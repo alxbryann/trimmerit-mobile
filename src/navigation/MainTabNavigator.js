@@ -6,6 +6,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { supabase, supabaseConfigured } from '../lib/supabase';
 import BarberosScreen from '../screens/BarberosScreen';
 import HistorialScreen from '../screens/HistorialScreen';
+import LoyaltyCardScreen from '../screens/LoyaltyCardScreen';
 import PanelScreen from '../screens/PanelScreen';
 import EditarScreen from '../screens/EditarScreen';
 import { colors, fonts } from '../theme';
@@ -21,6 +22,7 @@ function useBarberSlug() {
 const CLIENT_ICONS = {
   Catalogo: { focused: 'people', outline: 'people-outline' },
   Historial: { focused: 'time', outline: 'time-outline' },
+  Fidelizacion: { focused: 'ribbon', outline: 'ribbon-outline' },
   CerrarSesion: { focused: 'log-out-outline', outline: 'log-out-outline' },
 };
 
@@ -92,6 +94,11 @@ function ClientTabs({ bottomPad }) {
         options={{ tabBarLabel: 'Catálogo' }}
       />
       <Tab.Screen name="Historial" component={HistorialScreen} options={{ tabBarLabel: 'Historial' }} />
+      <Tab.Screen
+        name="Fidelizacion"
+        component={LoyaltyCardScreen}
+        options={{ tabBarLabel: 'Sellos' }}
+      />
       <Tab.Screen
         name="CerrarSesion"
         component={ClientLogoutStub}

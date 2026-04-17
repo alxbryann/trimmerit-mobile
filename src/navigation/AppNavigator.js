@@ -14,6 +14,7 @@ import PanelScreen from '../screens/PanelScreen';
 import EditarScreen from '../screens/EditarScreen';
 import PerfilScreen from '../screens/PerfilScreen';
 import HomeScreen from '../screens/HomeScreen';
+import LoyaltyConfigScreen from '../screens/LoyaltyConfigScreen';
 import { supabase, supabaseConfigured } from '../lib/supabase';
 import { colors } from '../theme';
 
@@ -94,6 +95,7 @@ export default function AppNavigator() {
         <Stack.Screen name="Panel" component={PanelScreen} />
         <Stack.Screen name="Editar" component={EditarScreen} />
         <Stack.Screen name="ClientePerfil" component={PerfilScreen} />
+        <Stack.Screen name="LoyaltyConfig" component={LoyaltyConfigScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

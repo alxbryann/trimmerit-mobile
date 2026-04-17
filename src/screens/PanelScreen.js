@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase, supabaseConfigured } from '../lib/supabase';
@@ -141,7 +142,25 @@ export default function PanelScreen({ navigation, route }) {
 
   async function handleCompletar(reservaId) {
     setCompletando(reservaId);
+
+    // Marcar reserva como completada
     await supabase.from('reservas').update({ estado: 'completada' }).eq('id', reservaId);
+
+    // Agregar sello de fidelización (si la barbería tiene programa activo)
+    try {
+      const { data: stampResult } = await supabase.rpc('add_loyalty_stamp', {
+        p_reserva_id: reservaId,
+      });
+      if (stampResult?.ok && stampResult?.completado) {
+        Alert.alert(
+          '🎉 ¡Tarjeta completada!',
+          `El cliente completó su tarjeta de fidelización.\nBeneficio: ${stampResult.beneficio}`
+        );
+      }
+    } catch (_) {
+      // Si la función no existe todavía, ignorar silenciosamente
+    }
+
     setReservas((prev) =>
       prev.map((r) => (r.id === reservaId ? { ...r, estado: 'completada' } : r))
     );
