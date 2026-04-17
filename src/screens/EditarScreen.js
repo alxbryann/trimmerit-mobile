@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
-import { Video, ResizeMode } from 'expo-av';
+import LoopMutedVideo from '../components/LoopMutedVideo';
 import { supabase, supabaseConfigured } from '../lib/supabase';
 import { colors, fonts, radii } from '../theme';
 import { SERVICE_ICON_OPTIONS, ServiceIonicon, resolveServiceIonicon } from '../utils/serviceIcons';
@@ -321,14 +321,7 @@ export default function EditarScreen({ navigation, route }) {
         <Section n="02" label="VIDEO HERO" />
         {videoUrl ? (
           <View style={styles.videoBox}>
-            <Video
-              source={{ uri: videoUrl }}
-              style={styles.video}
-              resizeMode={ResizeMode.COVER}
-              shouldPlay
-              isLooping
-              isMuted
-            />
+            <LoopMutedVideo uri={videoUrl} style={styles.video} contentFit="cover" />
             <TouchableOpacity style={styles.changeVid} onPress={pickHeroVideo} disabled={uploading}>
               <Text style={styles.changeVidTxt}>{uploading ? 'SUBIENDO...' : 'CAMBIAR'}</Text>
             </TouchableOpacity>
@@ -405,14 +398,7 @@ export default function EditarScreen({ navigation, route }) {
           {galeria.map((foto) => (
             <View key={foto.id} style={styles.galCell}>
               {foto.tipo === 'video' ? (
-                <Video
-                  source={{ uri: foto.imagen_url }}
-                  style={styles.galImg}
-                  resizeMode={ResizeMode.COVER}
-                  shouldPlay
-                  isLooping
-                  isMuted
-                />
+                <LoopMutedVideo uri={foto.imagen_url} style={styles.galImg} contentFit="cover" />
               ) : (
                 <Image source={{ uri: foto.imagen_url }} style={styles.galImg} />
               )}

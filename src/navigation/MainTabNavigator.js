@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { supabase, supabaseConfigured } from '../lib/supabase';
 import BarberosScreen from '../screens/BarberosScreen';
-import HistorialScreen from '../screens/HistorialScreen';
+import AgendaScreen from '../screens/AgendaScreen';
 import LoyaltyCardScreen from '../screens/LoyaltyCardScreen';
 import PanelScreen from '../screens/PanelScreen';
 import EditarScreen from '../screens/EditarScreen';
@@ -21,7 +21,7 @@ function useBarberSlug() {
 
 const CLIENT_ICONS = {
   Catalogo: { focused: 'people', outline: 'people-outline' },
-  Historial: { focused: 'time', outline: 'time-outline' },
+  Agenda: { focused: 'time', outline: 'time-outline' },
   Fidelizacion: { focused: 'ribbon', outline: 'ribbon-outline' },
   CerrarSesion: { focused: 'log-out-outline', outline: 'log-out-outline' },
 };
@@ -93,7 +93,7 @@ function ClientTabs({ bottomPad }) {
         component={BarberosScreen}
         options={{ tabBarLabel: 'Catálogo' }}
       />
-      <Tab.Screen name="Historial" component={HistorialScreen} options={{ tabBarLabel: 'Historial' }} />
+      <Tab.Screen name="Agenda" component={AgendaScreen} options={{ tabBarLabel: 'Agenda' }} />
       <Tab.Screen
         name="Fidelizacion"
         component={LoyaltyCardScreen}

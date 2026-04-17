@@ -34,11 +34,20 @@ export default {
   plugins: [
     'expo-web-browser',
     'expo-font',
+    'expo-video',
     [
       'expo-image-picker',
       {
         photosPermission:
           'Barber.it accede a tu galería para el video hero y fotos de cortes.',
+      },
+    ],
+    [
+      'expo-notifications',
+      {
+        icon: './assets/icon.png',
+        color: '#CDFF00',
+        sounds: [],
       },
     ],
   ],

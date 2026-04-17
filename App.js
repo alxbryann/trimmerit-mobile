@@ -13,8 +13,18 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import AppNavigator from './src/navigation/AppNavigator';
 import { finalizeOAuthFromUrl } from './src/lib/googleAuth';
 import { colors } from './src/theme';
+import {
+  setupNotificationChannel,
+  requestNotificationPermissions,
+} from './src/lib/notifications';
 
 export default function App() {
+  // Inicializar canal de notificaciones al arrancar la app
+  useEffect(() => {
+    setupNotificationChannel().catch(() => {});
+    requestNotificationPermissions().catch(() => {});
+  }, []);
+
   useEffect(() => {
     function onUrl({ url }) {
       if (!url) return;
