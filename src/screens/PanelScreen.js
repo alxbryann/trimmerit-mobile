@@ -6,10 +6,17 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase, supabaseConfigured } from '../lib/supabase';
 import { colors, fonts } from '../theme';
+import ReservaActionsCard from '../components/ReservaActionsCard';
+import SolicitudPopup from '../components/SolicitudPopup';
+import {
+  notifCancelacionAlCliente,
+  notifAplazamientoAlCliente,
+} from '../lib/notifications';
 
 const SLOT_START = 9 * 60;
 const SLOT_END = 20 * 60;
@@ -56,6 +63,7 @@ export default function PanelScreen({ navigation, route }) {
   const [loading, setLoading] = useState(true);
   const [authError, setAuthError] = useState(false);
   const [barberoId, setBarberoId] = useState(null);
+  const [barberiaNombre, setBarberiaNombre] = useState('');
 
   const [day, setDay] = useState(() => {
     const t = new Date();
@@ -67,8 +75,13 @@ export default function PanelScreen({ navigation, route }) {
   const [reservas, setReservas] = useState([]);
   const [profiles, setProfiles] = useState({});
   const [loadErr, setLoadErr] = useState(null);
-  const [completando, setCompletando] = useState(null);
+  const [tienePrograma, setTienePrograma] = useState(false);
 
+  // Cola de notificaciones para el barbero (respuestas del cliente + acciones del cliente)
+  const [solicitudQueue, setSolicitudQueue] = useState([]);
+  const solicitudPendiente = solicitudQueue[0] ?? null;
+
+  // ─── Carga de reservas del día ─────────────────────────────────────────────
   const loadReservas = useCallback(async () => {
     if (!barberoId) return;
     setLoadErr(null);
@@ -104,6 +117,35 @@ export default function PanelScreen({ navigation, route }) {
     setProfiles(map);
   }, [barberoId, dateStr]);
 
+  // ─── Verificar si tiene programa de fidelización activo ───────────────────
+  const checkPrograma = useCallback(async (bId) => {
+    const { data } = await supabase
+      .from('loyalty_programs')
+      .select('id')
+      .eq('barbero_id', bId)
+      .eq('activo', true)
+      .maybeSingle();
+    setTienePrograma(Boolean(data));
+  }, []);
+
+  // ─── Verificar solicitudes pendientes de lectura para el barbero ──────────
+  const checkSolicitudesBarbero = useCallback(async (bId) => {
+    const { data } = await supabase
+      .from('reserva_solicitudes')
+      .select('*')
+      .eq('barbero_id', bId)
+      .eq('leido_barbero', false)
+      .order('updated_at', { ascending: true });
+    if (data?.length) {
+      // Solo incluir las que tienen estado final (no las pendientes de respuesta del cliente)
+      const visibles = data.filter(
+        (s) => s.estado === 'aceptado' || s.estado === 'rechazado'
+      );
+      if (visibles.length) setSolicitudQueue(visibles);
+    }
+  }, []);
+
+  // ─── Auth + init ───────────────────────────────────────────────────────────
   useEffect(() => {
     if (!supabaseConfigured) {
       setLoading(false);
@@ -117,7 +159,7 @@ export default function PanelScreen({ navigation, route }) {
       }
       const { data: barbero, error } = await supabase
         .from('barberos')
-        .select('id, slug')
+        .select('id, slug, nombre_barberia')
         .eq('id', user.id)
         .maybeSingle();
       if (error || !barbero) {
@@ -130,6 +172,7 @@ export default function PanelScreen({ navigation, route }) {
         return;
       }
       setBarberoId(barbero.id);
+      setBarberiaNombre(barbero.nombre_barberia || '');
       setLoading(false);
     })();
   }, [slug, navigation]);
@@ -137,17 +180,92 @@ export default function PanelScreen({ navigation, route }) {
   useEffect(() => {
     if (!barberoId) return;
     loadReservas();
-  }, [barberoId, loadReservas]);
+    checkPrograma(barberoId);
+    checkSolicitudesBarbero(barberoId);
+  }, [barberoId, loadReservas, checkPrograma, checkSolicitudesBarbero]);
 
-  async function handleCompletar(reservaId) {
-    setCompletando(reservaId);
+  // ─── Handlers ─────────────────────────────────────────────────────────────
+
+  async function handleCompletarReserva(reservaId, sellarFidelizacion) {
     await supabase.from('reservas').update({ estado: 'completada' }).eq('id', reservaId);
+
+    if (sellarFidelizacion && tienePrograma) {
+      try {
+        const { data: stampResult } = await supabase.rpc('add_loyalty_stamp', {
+          p_reserva_id: reservaId,
+        });
+        if (stampResult?.ok && stampResult?.completado) {
+          Alert.alert(
+            '🎉 ¡Tarjeta completada!',
+            `El cliente completó su tarjeta de fidelización.\nBeneficio: ${stampResult.beneficio}`
+          );
+        }
+      } catch (_) {
+        // ignorar si el RPC no existe aún
+      }
+    }
+
     setReservas((prev) =>
       prev.map((r) => (r.id === reservaId ? { ...r, estado: 'completada' } : r))
     );
-    setCompletando(null);
   }
 
+  async function handleCancelarReserva(reservaId, razon) {
+    const { data, error } = await supabase.rpc('cancelar_reserva', {
+      p_reserva_id: reservaId,
+      p_razon: razon,
+    });
+
+    if (error || !data?.ok) {
+      Alert.alert('Error', error?.message || 'No se pudo cancelar la reserva.');
+      return;
+    }
+
+    // Notificación local (actúa como simulación de push al cliente)
+    await notifCancelacionAlCliente(barberiaNombre || 'La barbería');
+
+    setReservas((prev) =>
+      prev.map((r) => (r.id === reservaId ? { ...r, estado: 'cancelada' } : r))
+    );
+  }
+
+  async function handleAplazarReserva(reservaId, razon, nuevaFecha, nuevaHora) {
+    const { data, error } = await supabase.rpc('proponer_aplazamiento', {
+      p_reserva_id: reservaId,
+      p_razon: razon,
+      p_nueva_fecha: nuevaFecha,
+      p_nueva_hora: nuevaHora,
+    });
+
+    if (error || !data?.ok) {
+      Alert.alert('Error', error?.message || 'No se pudo enviar la propuesta.');
+      return;
+    }
+
+    // Notificación local simulando push al cliente
+    const DAY_NAMES = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+    const MON_NAMES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+    const [y, m, d] = nuevaFecha.split('-').map(Number);
+    const dateObj = new Date(y, m - 1, d);
+    const fechaLabel = `${DAY_NAMES[dateObj.getDay()]} ${d} de ${MON_NAMES[m - 1]}`;
+    await notifAplazamientoAlCliente(barberiaNombre || 'La barbería', fechaLabel, nuevaHora);
+
+    setReservas((prev) =>
+      prev.map((r) => (r.id === reservaId ? { ...r, estado: 'aplazamiento_pendiente' } : r))
+    );
+  }
+
+  async function handlePopupClose() {
+    if (solicitudPendiente) {
+      await supabase
+        .from('reserva_solicitudes')
+        .update({ leido_barbero: true })
+        .eq('id', solicitudPendiente.id);
+    }
+    setSolicitudQueue((prev) => prev.slice(1));
+  }
+
+  // ─── Derived state ─────────────────────────────────────────────────────────
   const byTime = useMemo(() => {
     const m = new Map();
     for (const r of reservas) {
@@ -185,6 +303,7 @@ export default function PanelScreen({ navigation, route }) {
     setDay(t);
   }
 
+  // ─── Render guards ─────────────────────────────────────────────────────────
   if (loading) {
     return (
       <View style={styles.center}>
@@ -202,9 +321,11 @@ export default function PanelScreen({ navigation, route }) {
     );
   }
 
+  // ─── Render ────────────────────────────────────────────────────────────────
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
       <ScrollView contentContainerStyle={styles.scroll}>
+        {/* Cabecera con navegación de día */}
         <View style={styles.head}>
           <View style={{ flex: 1 }}>
             <Text style={styles.dayTitle}>{labelDay}</Text>
@@ -233,45 +354,28 @@ export default function PanelScreen({ navigation, route }) {
 
         {loadErr ? <Text style={styles.err}>{loadErr}</Text> : null}
 
+        {/* Lista de citas */}
         <Text style={styles.section}>CITAS DEL DÍA ({sorted.length})</Text>
         {sorted.length === 0 ? (
           <Text style={styles.empty}>Sin citas para este día.</Text>
         ) : (
           sorted.map((r) => {
-            const p = profiles[r.cliente_id];
-            const name = p?.nombre?.trim() || 'Cliente';
-            const completada = r.estado === 'completada';
-            const cancelada = r.estado === 'cancelada';
+            const perfil = profiles[r.cliente_id] ?? null;
             return (
-              <View
+              <ReservaActionsCard
                 key={r.id}
-                style={[styles.card, completada && styles.cardOk, cancelada && { opacity: 0.45 }]}
-              >
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.name}>{name}</Text>
-                  <Text style={styles.meta}>
-                    {normalizeHora(r.hora)}
-                    {p?.telefono ? ` · ${p.telefono}` : ''}
-                    {r.precio != null ? ` · $${r.precio.toLocaleString('es-CO')}` : ''}
-                  </Text>
-                </View>
-                <View style={{ alignItems: 'flex-end', gap: 6 }}>
-                  <Text style={styles.estado}>{r.estado ?? 'pendiente'}</Text>
-                  {!completada && !cancelada && (
-                    <TouchableOpacity
-                      style={styles.compBtn}
-                      onPress={() => handleCompletar(r.id)}
-                      disabled={completando === r.id}
-                    >
-                      <Text style={styles.compTxt}>{completando === r.id ? '...' : 'COMPLETAR'}</Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
-              </View>
+                reserva={r}
+                perfil={perfil}
+                tienePrograma={tienePrograma}
+                onCompletar={handleCompletarReserva}
+                onCancelar={handleCancelarReserva}
+                onAplazar={handleAplazarReserva}
+              />
             );
           })
         )}
 
+        {/* Vista horaria de slots */}
         <Text style={[styles.section, { marginTop: 28 }]}>VISTA HORARIA · 09:00 – 20:00</Text>
         <View style={styles.grid}>
           {DAY_SLOTS.map((slot) => {
@@ -304,6 +408,15 @@ export default function PanelScreen({ navigation, route }) {
           })}
         </View>
       </ScrollView>
+
+      {/* Popup para cuando un cliente respondió a un aplazamiento propuesto por el barbero */}
+      {solicitudPendiente && (
+        <SolicitudPopup
+          solicitud={solicitudPendiente}
+          role="barbero"
+          onClose={handlePopupClose}
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -348,27 +461,6 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   empty: { fontFamily: fonts.body, color: colors.grayMid, marginBottom: 16 },
-  card: {
-    flexDirection: 'row',
-    borderWidth: 1,
-    borderColor: colors.gray,
-    backgroundColor: colors.dark2,
-    padding: 12,
-    marginBottom: 8,
-    gap: 10,
-  },
-  cardOk: { borderColor: 'rgba(205,255,0,0.35)', backgroundColor: 'rgba(205,255,0,0.05)' },
-  name: { fontFamily: fonts.display, fontSize: 20, color: colors.white },
-  meta: { fontFamily: fonts.body, fontSize: 12, color: colors.grayLight, marginTop: 4 },
-  estado: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 10,
-    letterSpacing: 1,
-    color: colors.grayLight,
-    textTransform: 'uppercase',
-  },
-  compBtn: { backgroundColor: colors.acid, paddingHorizontal: 10, paddingVertical: 4 },
-  compTxt: { fontFamily: fonts.display, fontSize: 11, color: colors.black, letterSpacing: 1 },
   grid: { borderWidth: 1, borderColor: colors.gray, backgroundColor: colors.dark2 },
   slotRow: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' },
   slotTime: {

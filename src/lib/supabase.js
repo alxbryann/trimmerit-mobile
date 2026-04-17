@@ -1,9 +1,22 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient } from '@supabase/supabase-js';
 import Constants from 'expo-constants';
+import { supabaseMock } from './supabaseMock';
 
 const extra = Constants.expoConfig?.extra ?? Constants.manifest?.extra ?? {};
 
+// ── Mock mode ─────────────────────────────────────────────────────────────────
+// Activar con EXPO_PUBLIC_USE_MOCK=true en .env.local
+// NO commitear ese archivo (ya está en .gitignore)
+const useMock =
+  (typeof process !== 'undefined' && process.env?.EXPO_PUBLIC_USE_MOCK === 'true') ||
+  extra.useMock === true;
+
+if (useMock) {
+  console.log('[BarberIT] 🧪 MOCK MODE activo — usando datos dummy');
+}
+
+// ── Supabase real ─────────────────────────────────────────────────────────────
 const envUrl =
   (typeof process !== 'undefined' && process.env?.EXPO_PUBLIC_SUPABASE_URL) ||
   extra.supabaseUrl ||
@@ -13,7 +26,7 @@ const envKey =
   extra.supabaseAnonKey ||
   '';
 
-export const supabaseConfigured = Boolean(String(envUrl).trim() && String(envKey).trim());
+export const supabaseConfigured = useMock || Boolean(String(envUrl).trim() && String(envKey).trim());
 
 /**
  * createClient('', key) lanza "supabaseUrl is required" al cargar el módulo
@@ -24,10 +37,10 @@ const PLACEHOLDER_URL = 'https://configure-env.supabase.co';
 const PLACEHOLDER_KEY =
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiJ9.placeholder';
 
-const supabaseUrl = supabaseConfigured ? envUrl.trim() : PLACEHOLDER_URL;
-const supabaseAnonKey = supabaseConfigured ? envKey.trim() : PLACEHOLDER_KEY;
+const supabaseUrl = supabaseConfigured && !useMock ? envUrl.trim() : PLACEHOLDER_URL;
+const supabaseAnonKey = supabaseConfigured && !useMock ? envKey.trim() : PLACEHOLDER_KEY;
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+const realClient = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     storage: AsyncStorage,
     autoRefreshToken: true,
@@ -35,3 +48,5 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     detectSessionInUrl: false,
   },
 });
+
+export const supabase = useMock ? supabaseMock : realClient;

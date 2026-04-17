@@ -12,10 +12,11 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
-import { Video, ResizeMode } from 'expo-av';
+import LoopMutedVideo from '../components/LoopMutedVideo';
 import { supabase, supabaseConfigured } from '../lib/supabase';
-import { colors, fonts } from '../theme';
+import { colors, fonts, radii } from '../theme';
 import { SERVICE_ICON_OPTIONS, ServiceIonicon, resolveServiceIonicon } from '../utils/serviceIcons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 
 function normalizeServicioIcon(s) {
   return { ...s, icono: resolveServiceIonicon(s.icono) };
@@ -320,14 +321,7 @@ export default function EditarScreen({ navigation, route }) {
         <Section n="02" label="VIDEO HERO" />
         {videoUrl ? (
           <View style={styles.videoBox}>
-            <Video
-              source={{ uri: videoUrl }}
-              style={styles.video}
-              resizeMode={ResizeMode.COVER}
-              shouldPlay
-              isLooping
-              isMuted
-            />
+            <LoopMutedVideo uri={videoUrl} style={styles.video} contentFit="cover" />
             <TouchableOpacity style={styles.changeVid} onPress={pickHeroVideo} disabled={uploading}>
               <Text style={styles.changeVidTxt}>{uploading ? 'SUBIENDO...' : 'CAMBIAR'}</Text>
             </TouchableOpacity>
@@ -404,14 +398,7 @@ export default function EditarScreen({ navigation, route }) {
           {galeria.map((foto) => (
             <View key={foto.id} style={styles.galCell}>
               {foto.tipo === 'video' ? (
-                <Video
-                  source={{ uri: foto.imagen_url }}
-                  style={styles.galImg}
-                  resizeMode={ResizeMode.COVER}
-                  shouldPlay
-                  isLooping
-                  isMuted
-                />
+                <LoopMutedVideo uri={foto.imagen_url} style={styles.galImg} contentFit="cover" />
               ) : (
                 <Image source={{ uri: foto.imagen_url }} style={styles.galImg} />
               )}
@@ -430,6 +417,25 @@ export default function EditarScreen({ navigation, route }) {
             {uploadingGaleria ? 'SUBIENDO...' : 'AÑADIR FOTOS / VIDEOS'}
           </Text>
         </TouchableOpacity>
+
+        {/* ── SECCIÓN 05: FIDELIZACIÓN ── */}
+        <Section n="05" label="FIDELIZACIÓN" />
+        <TouchableOpacity
+          style={styles.loyaltyBtn}
+          onPress={() => navigation.navigate('LoyaltyConfig')}
+        >
+          <View style={styles.loyaltyBtnLeft}>
+            <Ionicons name="ribbon" size={20} color={colors.acid} />
+            <View>
+              <Text style={styles.loyaltyBtnTitle}>Programa de puntos</Text>
+              <Text style={styles.loyaltyBtnSubtitle}>
+                Configurá sellos, beneficios y canje de premios
+              </Text>
+            </View>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={colors.grayMid} />
+        </TouchableOpacity>
+
       </ScrollView>
     </View>
   );
@@ -639,4 +645,31 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   galUploadTxt: { fontFamily: fonts.bodyBold, fontSize: 12, letterSpacing: 2, color: colors.grayLight },
+  loyaltyBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    borderRadius: radii.md,
+    padding: 16,
+  },
+  loyaltyBtnLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+  },
+  loyaltyBtnTitle: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 15,
+    color: colors.white,
+  },
+  loyaltyBtnSubtitle: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: colors.grayLight,
+    marginTop: 1,
+  },
 });

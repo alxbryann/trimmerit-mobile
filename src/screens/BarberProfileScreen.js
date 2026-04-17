@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Video, ResizeMode } from 'expo-av';
+import LoopMutedVideo from '../components/LoopMutedVideo';
 import { LinearGradient } from 'expo-linear-gradient';
 import { supabase, supabaseConfigured } from '../lib/supabase';
 import { colors, fonts, radii, shadows } from '../theme';
@@ -110,6 +110,14 @@ export default function BarberProfileScreen({ navigation, route }) {
   useEffect(() => { loadBarbero(); }, [loadBarbero]);
 
   useEffect(() => {
+    // Verificar sesión activa al montar (cubre el caso en que ya hay sesión iniciada)
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        setUser({ id: session.user.id, email: session.user.email ?? '' });
+      }
+    });
+
+    // Escuchar cambios futuros de auth (login desde este screen, logout, etc.)
     const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
       if (session?.user) {
         setUser({ id: session.user.id, email: session.user.email ?? '' });
@@ -243,7 +251,7 @@ export default function BarberProfileScreen({ navigation, route }) {
         {/* HERO */}
         <View style={styles.hero}>
           {barbero.video_url ? (
-            <Video source={{ uri: barbero.video_url }} style={styles.video} resizeMode={ResizeMode.COVER} shouldPlay isLooping isMuted />
+            <LoopMutedVideo uri={barbero.video_url} style={styles.video} contentFit="cover" />
           ) : (
             <LinearGradient colors={['#0f1208', '#0a0a0a', '#080808']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.video} />
           )}
@@ -333,7 +341,7 @@ export default function BarberProfileScreen({ navigation, route }) {
                 {galeria.map((foto) => (
                   <View key={foto.id} style={styles.galCell}>
                     {foto.tipo === 'video' ? (
-                      <Video source={{ uri: foto.imagen_url }} style={styles.galImg} resizeMode={ResizeMode.COVER} shouldPlay isLooping isMuted />
+                      <LoopMutedVideo uri={foto.imagen_url} style={styles.galImg} contentFit="cover" />
                     ) : (
                       <Image source={{ uri: foto.imagen_url }} style={styles.galImg} />
                     )}
