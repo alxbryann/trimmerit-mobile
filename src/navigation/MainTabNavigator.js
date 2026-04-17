@@ -8,6 +8,8 @@ import BarberosScreen from '../screens/BarberosScreen';
 import HistorialScreen from '../screens/HistorialScreen';
 import PanelScreen from '../screens/PanelScreen';
 import EditarScreen from '../screens/EditarScreen';
+import AdminBarberiaScreen from '../screens/AdminBarberiaScreen';
+import EmpleadoBarberiaScreen from '../screens/EmpleadoBarberiaScreen';
 import { colors, fonts } from '../theme';
 
 const Tab = createBottomTabNavigator();
@@ -168,12 +170,132 @@ function BarberTabs({ bottomPad, slug }) {
   );
 }
 
+const ADMIN_ICONS = {
+  MiPanel: { focused: 'grid', outline: 'grid-outline' },
+  Barberos: { focused: 'people', outline: 'people-outline' },
+  Ajustes: { focused: 'settings', outline: 'settings-outline' },
+  CerrarSesion: { focused: 'log-out-outline', outline: 'log-out-outline' },
+};
+
+const EMPLEADO_ICONS = {
+  MiAgenda: { focused: 'calendar', outline: 'calendar-outline' },
+  MiPerfil: { focused: 'person', outline: 'person-outline' },
+  CerrarSesion: { focused: 'log-out-outline', outline: 'log-out-outline' },
+};
+
+function AdminLogoutStub() {
+  return <View style={styles.stub} />;
+}
+
+function EmpleadoLogoutStub() {
+  return <View style={styles.stub} />;
+}
+
+function AdminBarberTabs({ bottomPad }) {
+  async function onLogoutPress() {
+    await supabase.auth.signOut();
+  }
+
+  return (
+    <Tab.Navigator
+      initialRouteName="MiPanel"
+      screenOptions={({ route }) => ({
+        headerShown: false,
+        tabBarStyle: {
+          backgroundColor: colors.black,
+          borderTopColor: colors.cardBorder,
+          borderTopWidth: 1,
+          paddingTop: 8,
+          paddingBottom: bottomPad,
+        },
+        tabBarActiveTintColor: colors.acid,
+        tabBarInactiveTintColor: colors.grayLight,
+        tabBarLabelStyle: {
+          fontFamily: fonts.bodyBold,
+          fontSize: 9,
+          letterSpacing: 1.2,
+          marginBottom: 4,
+          textTransform: 'uppercase',
+        },
+        tabBarIcon: ({ color, focused }) => {
+          if (route.name === 'CerrarSesion') {
+            return <Ionicons name="log-out-outline" size={22} color={colors.grayLight} />;
+          }
+          const map = ADMIN_ICONS[route.name];
+          const name = map ? (focused ? map.focused : map.outline) : 'ellipse-outline';
+          return <Ionicons name={name} size={22} color={color} />;
+        },
+      })}
+    >
+      <Tab.Screen name="MiPanel" component={AdminBarberiaScreen} options={{ tabBarLabel: 'Mi Panel' }} />
+      <Tab.Screen
+        name="CerrarSesion"
+        component={AdminLogoutStub}
+        options={{ tabBarLabel: 'Cerrar sesión', tabBarActiveTintColor: colors.grayLight }}
+        listeners={{ tabPress: (e) => { e.preventDefault(); onLogoutPress(); } }}
+      />
+    </Tab.Navigator>
+  );
+}
+
+function EmpleadoTabs({ bottomPad, slug }) {
+  async function onLogoutPress() {
+    await supabase.auth.signOut();
+  }
+
+  return (
+    <BarberSlugContext.Provider value={slug}>
+      <Tab.Navigator
+        initialRouteName="MiAgenda"
+        screenOptions={({ route }) => ({
+          headerShown: false,
+          tabBarStyle: {
+            backgroundColor: colors.black,
+            borderTopColor: colors.cardBorder,
+            borderTopWidth: 1,
+            paddingTop: 8,
+            paddingBottom: bottomPad,
+          },
+          tabBarActiveTintColor: colors.acid,
+          tabBarInactiveTintColor: colors.grayLight,
+          tabBarLabelStyle: {
+            fontFamily: fonts.bodyBold,
+            fontSize: 9,
+            letterSpacing: 1.2,
+            marginBottom: 4,
+            textTransform: 'uppercase',
+          },
+          tabBarIcon: ({ color, focused }) => {
+            if (route.name === 'CerrarSesion') {
+              return <Ionicons name="log-out-outline" size={22} color={colors.grayLight} />;
+            }
+            const map = EMPLEADO_ICONS[route.name];
+            const name = map ? (focused ? map.focused : map.outline) : 'ellipse-outline';
+            return <Ionicons name={name} size={22} color={color} />;
+          },
+        })}
+      >
+        <Tab.Screen name="MiAgenda" component={EmpleadoBarberiaScreen} options={{ tabBarLabel: 'Mi Agenda' }} />
+        <Tab.Screen name="MiPerfil" component={BarberEditarTab} options={{ tabBarLabel: 'Mi perfil' }} />
+        <Tab.Screen
+          name="CerrarSesion"
+          component={EmpleadoLogoutStub}
+          options={{ tabBarLabel: 'Cerrar sesión', tabBarActiveTintColor: colors.grayLight }}
+          listeners={{ tabPress: (e) => { e.preventDefault(); onLogoutPress(); } }}
+        />
+      </Tab.Navigator>
+    </BarberSlugContext.Provider>
+  );
+}
+
 export default function MainTabNavigator() {
   const insets = useSafeAreaInsets();
   const bottomPad = Math.max(insets.bottom, 10);
   const [ready, setReady] = useState(false);
   const [isBarber, setIsBarber] = useState(false);
   const [barberSlug, setBarberSlug] = useState(null);
+  const [empleadoSlug, setEmpleadoSlug] = useState(null);
+  const [role, setRole] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -183,6 +305,8 @@ export default function MainTabNavigator() {
         if (!cancelled) {
           setIsBarber(false);
           setBarberSlug(null);
+          setEmpleadoSlug(null);
+          setRole(null);
           setReady(true);
         }
         return;
@@ -192,6 +316,8 @@ export default function MainTabNavigator() {
         if (!cancelled) {
           setIsBarber(false);
           setBarberSlug(null);
+          setEmpleadoSlug(null);
+          setRole(null);
           setReady(true);
         }
         return;
@@ -210,15 +336,34 @@ export default function MainTabNavigator() {
         if (b?.slug) {
           if (!cancelled) {
             setBarberSlug(b.slug);
+            setEmpleadoSlug(null);
             setIsBarber(true);
+            setRole('barbero');
             setReady(true);
           }
           return;
         }
       }
+      if (profile?.role === 'barbero_empleado') {
+        const { data: bEmp } = await supabase
+          .from('barberos')
+          .select('slug')
+          .eq('id', session.user.id)
+          .maybeSingle();
+        if (!cancelled) {
+          setIsBarber(false);
+          setBarberSlug(null);
+          setEmpleadoSlug(bEmp?.slug ?? null);
+          setRole('barbero_empleado');
+          setReady(true);
+        }
+        return;
+      }
       if (!cancelled) {
         setIsBarber(false);
         setBarberSlug(null);
+        setEmpleadoSlug(null);
+        setRole(profile?.role ?? null);
         setReady(true);
       }
     }
@@ -243,6 +388,14 @@ export default function MainTabNavigator() {
 
   if (isBarber && barberSlug) {
     return <BarberTabs bottomPad={bottomPad} slug={barberSlug} />;
+  }
+
+  if (role === 'admin_barberia') {
+    return <AdminBarberTabs bottomPad={bottomPad} />;
+  }
+
+  if (role === 'barbero_empleado') {
+    return <EmpleadoTabs bottomPad={bottomPad} slug={empleadoSlug} />;
   }
 
   return <ClientTabs bottomPad={bottomPad} />;

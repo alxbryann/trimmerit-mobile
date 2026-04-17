@@ -4,6 +4,13 @@ export const DEFAULT_SERVICES = [
   { id: 'combo', label: 'COMBO FULL', price: 65000, duration: '75 min', icon: 'layers-outline' },
 ];
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** True if `s` looks like a Postgres uuid (servicios.id). Default booking slugs like "corte" are not uuids. */
+export function isUuidString(s) {
+  return typeof s === 'string' && UUID_RE.test(s);
+}
+
 export const TIMES_MORNING = ['09:00', '09:30', '10:00', '10:30', '11:00', '11:30'];
 export const TIMES_AFTERNOON = [
   '13:00',

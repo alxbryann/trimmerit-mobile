@@ -12,9 +12,23 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import AppNavigator from './src/navigation/AppNavigator';
 import { finalizeOAuthFromUrl } from './src/lib/googleAuth';
+import { registerPushToken } from './src/lib/notifications';
+import { supabase } from './src/lib/supabase';
 import { colors } from './src/theme';
 
 export default function App() {
+  useEffect(() => {
+    // Register push token when user is already logged in on app open
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) registerPushToken();
+    });
+    // Also register on sign-in
+    const { data: authSub } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_IN') registerPushToken();
+    });
+    return () => authSub.subscription.unsubscribe();
+  }, []);
+
   useEffect(() => {
     function onUrl({ url }) {
       if (!url) return;

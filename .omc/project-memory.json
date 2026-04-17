@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "lastScanned": 1776212885900,
+  "lastScanned": 1776450545801,
   "projectRoot": "/Users/bryanriano/Desktop/barberit-mobile",
   "techStack": {
     "languages": [
@@ -48,7 +48,10 @@
       "assets",
       "src"
     ],
-    "gitBranches": null
+    "gitBranches": {
+      "defaultBranch": "main",
+      "branchingStrategy": null
+    }
   },
   "customNotes": [],
   "directoryMap": {
@@ -56,7 +59,7 @@
       "path": "assets",
       "purpose": "Static assets",
       "fileCount": 4,
-      "lastAccessed": 1776212885811,
+      "lastAccessed": 1776450545781,
       "keyFiles": [
         "adaptive-icon.png",
         "favicon.png",
@@ -68,7 +71,7 @@
       "path": "dist",
       "purpose": "Distribution/build output",
       "fileCount": 1,
-      "lastAccessed": 1776212885811,
+      "lastAccessed": 1776450545781,
       "keyFiles": [
         "metadata.json"
       ]
@@ -77,7 +80,7 @@
       "path": "src",
       "purpose": "Source code",
       "fileCount": 1,
-      "lastAccessed": 1776212885811,
+      "lastAccessed": 1776450545787,
       "keyFiles": [
         "theme.js"
       ]
@@ -86,7 +89,7 @@
       "path": "dist/assets",
       "purpose": "Static assets",
       "fileCount": 35,
-      "lastAccessed": 1776212885813,
+      "lastAccessed": 1776450545787,
       "keyFiles": [
         "0747a1317bbe9c6fc340b889ef8ab3ae",
         "0a328cd9c1afd0afe8e3b1ec5165b1b4",
@@ -97,7 +100,7 @@
       "path": "src/api",
       "purpose": "API routes",
       "fileCount": 1,
-      "lastAccessed": 1776212885831,
+      "lastAccessed": 1776450545788,
       "keyFiles": [
         "notify.js"
       ]
@@ -106,14 +109,14 @@
       "path": "src/components",
       "purpose": "UI components",
       "fileCount": 0,
-      "lastAccessed": 1776212885832,
+      "lastAccessed": 1776450545788,
       "keyFiles": []
     },
     "src/lib": {
       "path": "src/lib",
       "purpose": "Library code",
       "fileCount": 3,
-      "lastAccessed": 1776212885834,
+      "lastAccessed": 1776450545788,
       "keyFiles": [
         "googleAuth.js",
         "oauthRedirect.js",
@@ -123,108 +126,193 @@
     "src/utils": {
       "path": "src/utils",
       "purpose": "Utility functions",
-      "fileCount": 1,
-      "lastAccessed": 1776212885834,
+      "fileCount": 2,
+      "lastAccessed": 1776450545789,
       "keyFiles": [
-        "booking.js"
+        "booking.js",
+        "serviceIcons.js"
       ]
     }
   },
   "hotPaths": [
     {
-      "path": "src/screens/HomeScreen.js",
-      "accessCount": 11,
-      "lastAccessed": 1776214885587,
-      "type": "file"
-    },
-    {
-      "path": "src/screens/LoginScreen.js",
-      "accessCount": 10,
-      "lastAccessed": 1776214481700,
-      "type": "file"
-    },
-    {
-      "path": "src/lib/googleAuth.js",
-      "accessCount": 8,
-      "lastAccessed": 1776214474678,
-      "type": "file"
-    },
-    {
-      "path": "src/screens/HistorialScreen.js",
-      "accessCount": 3,
-      "lastAccessed": 1776218288193,
-      "type": "file"
-    },
-    {
-      "path": "src/theme.js",
-      "accessCount": 2,
-      "lastAccessed": 1776212953745,
+      "path": "src/screens/AdminBarberiaScreen.js",
+      "accessCount": 29,
+      "lastAccessed": 1776463626124,
       "type": "file"
     },
     {
       "path": "src/screens/RegistroScreen.js",
+      "accessCount": 11,
+      "lastAccessed": 1776454096168,
+      "type": "file"
+    },
+    {
+      "path": "src/navigation/AppNavigator.js",
+      "accessCount": 8,
+      "lastAccessed": 1776454359823,
+      "type": "file"
+    },
+    {
+      "path": "App.js",
+      "accessCount": 8,
+      "lastAccessed": 1776455443281,
+      "type": "file"
+    },
+    {
+      "path": "src/screens/BarberProfileScreen.js",
+      "accessCount": 8,
+      "lastAccessed": 1776455461881,
+      "type": "file"
+    },
+    {
+      "path": "src/navigation/MainTabNavigator.js",
+      "accessCount": 6,
+      "lastAccessed": 1776453149934,
+      "type": "file"
+    },
+    {
+      "path": "src/screens/UnirseBarberiaScreen.js",
+      "accessCount": 6,
+      "lastAccessed": 1776454343993,
+      "type": "file"
+    },
+    {
+      "path": "src/screens/EmpleadoBarberiaScreen.js",
+      "accessCount": 5,
+      "lastAccessed": 1776463644469,
+      "type": "file"
+    },
+    {
+      "path": "app.config.js",
+      "accessCount": 4,
+      "lastAccessed": 1776455659501,
+      "type": "file"
+    },
+    {
+      "path": "src/screens/PanelScreen.js",
+      "accessCount": 3,
+      "lastAccessed": 1776452917835,
+      "type": "file"
+    },
+    {
+      "path": "src/screens/CrearBarberiaScreen.js",
+      "accessCount": 3,
+      "lastAccessed": 1776454101206,
+      "type": "file"
+    },
+    {
+      "path": "src/theme.js",
+      "accessCount": 3,
+      "lastAccessed": 1776463041853,
+      "type": "file"
+    },
+    {
+      "path": "src/lib/notifications.js",
+      "accessCount": 3,
+      "lastAccessed": 1776463625471,
+      "type": "file"
+    },
+    {
+      "path": "src/screens/LoginScreen.js",
       "accessCount": 2,
-      "lastAccessed": 1776213086171,
+      "lastAccessed": 1776452811770,
       "type": "file"
     },
     {
       "path": "src/screens/BarberosScreen.js",
       "accessCount": 2,
-      "lastAccessed": 1776213116638,
-      "type": "file"
-    },
-    {
-      "path": "src/screens/BarberProfileScreen.js",
-      "accessCount": 2,
-      "lastAccessed": 1776213237768,
-      "type": "file"
-    },
-    {
-      "path": "src/screens",
-      "accessCount": 2,
-      "lastAccessed": 1776213244795,
-      "type": "directory"
-    },
-    {
-      "path": "src/screens/PanelScreen.js",
-      "accessCount": 1,
-      "lastAccessed": 1776212932185,
+      "lastAccessed": 1776452812208,
       "type": "file"
     },
     {
       "path": "src/screens/EditarScreen.js",
-      "accessCount": 1,
-      "lastAccessed": 1776212932561,
+      "accessCount": 2,
+      "lastAccessed": 1776452815579,
       "type": "file"
     },
     {
-      "path": "src/screens/CompletarPerfilScreen.js",
-      "accessCount": 1,
-      "lastAccessed": 1776212933135,
+      "path": "src/utils/booking.js",
+      "accessCount": 2,
+      "lastAccessed": 1776452825245,
       "type": "file"
     },
     {
-      "path": "src/lib/oauthRedirect.js",
-      "accessCount": 1,
-      "lastAccessed": 1776213708111,
+      "path": "src/navigation/resetMainTabs.js",
+      "accessCount": 2,
+      "lastAccessed": 1776452918100,
       "type": "file"
     },
     {
-      "path": "src/navigation/AppNavigator.js",
-      "accessCount": 1,
-      "lastAccessed": 1776213861972,
+      "path": "supabase/migrations/001_barbershop_roles.sql",
+      "accessCount": 2,
+      "lastAccessed": 1776453387128,
+      "type": "file"
+    },
+    {
+      "path": "src/api/notify.js",
+      "accessCount": 2,
+      "lastAccessed": 1776455392578,
       "type": "file"
     },
     {
       "path": "src/lib/supabase.js",
       "accessCount": 1,
-      "lastAccessed": 1776214768603,
+      "lastAccessed": 1776452150833,
       "type": "file"
+    },
+    {
+      "path": "src/lib/googleAuth.js",
+      "accessCount": 1,
+      "lastAccessed": 1776452151030,
+      "type": "file"
+    },
+    {
+      "path": "package.json",
+      "accessCount": 1,
+      "lastAccessed": 1776452151387,
+      "type": "file"
+    },
+    {
+      "path": "src/screens/CompletarPerfilScreen.js",
+      "accessCount": 1,
+      "lastAccessed": 1776452162032,
+      "type": "file"
+    },
+    {
+      "path": "src/screens/PerfilScreen.js",
+      "accessCount": 1,
+      "lastAccessed": 1776452174193,
+      "type": "file"
+    },
+    {
+      "path": "src/screens/HistorialScreen.js",
+      "accessCount": 1,
+      "lastAccessed": 1776452174334,
+      "type": "file"
+    },
+    {
+      "path": "src/screens/HomeScreen.js",
+      "accessCount": 1,
+      "lastAccessed": 1776452821493,
+      "type": "file"
+    },
+    {
+      "path": "",
+      "accessCount": 1,
+      "lastAccessed": 1776453890187,
+      "type": "directory"
     },
     {
       "path": "src",
       "accessCount": 1,
-      "lastAccessed": 1776218277033,
+      "lastAccessed": 1776454076900,
+      "type": "directory"
+    },
+    {
+      "path": "src/screens",
+      "accessCount": 1,
+      "lastAccessed": 1776463629728,
       "type": "directory"
     }
   ],

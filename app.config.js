@@ -15,6 +15,11 @@ export default {
   },
   ios: {
     supportsTablet: true,
+    bundleIdentifier: 'com.barberit.app',
+    infoPlist: {
+      UIBackgroundModes: ['remote-notification'],
+      ITSAppUsesNonExemptEncryption: false,
+    },
   },
   android: {
     adaptiveIcon: {
@@ -30,10 +35,22 @@ export default {
     supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL ?? '',
     supabaseAnonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? '',
     siteUrl: process.env.EXPO_PUBLIC_SITE_URL ?? '',
+    eas: {
+      projectId: '05af54d2-14ca-4996-b715-4543396d9683',
+    },
   },
   plugins: [
     'expo-web-browser',
     'expo-font',
+    [
+      'expo-notifications',
+      {
+        icon: './assets/icon.png',
+        color: '#CDFF00',
+        // iOS: .caf is most reliable; Android res/raw uses .wav
+        sounds: ['./assets/barber_buzz.caf', './assets/barber_buzz.wav'],
+      },
+    ],
     [
       'expo-image-picker',
       {

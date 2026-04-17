@@ -14,6 +14,10 @@ import PanelScreen from '../screens/PanelScreen';
 import EditarScreen from '../screens/EditarScreen';
 import PerfilScreen from '../screens/PerfilScreen';
 import HomeScreen from '../screens/HomeScreen';
+import CrearBarberiaScreen from '../screens/CrearBarberiaScreen';
+import AdminBarberiaScreen from '../screens/AdminBarberiaScreen';
+import UnirseBarberiaScreen from '../screens/UnirseBarberiaScreen';
+import EmpleadoBarberiaScreen from '../screens/EmpleadoBarberiaScreen';
 import { supabase, supabaseConfigured } from '../lib/supabase';
 import { colors } from '../theme';
 
@@ -38,7 +42,33 @@ export default function AppNavigator() {
       }
       const { data: { session } } = await supabase.auth.getSession();
       if (!cancelled) {
-        setInitialRouteName(session?.user ? 'MainTabs' : 'Welcome');
+        if (session?.user) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', session.user.id)
+            .maybeSingle();
+          const role = profile?.role;
+          if (role === 'admin_barberia') {
+            const { data: barberiaRow } = await supabase
+              .from('barberias')
+              .select('id')
+              .eq('admin_id', session.user.id)
+              .maybeSingle();
+            setInitialRouteName(barberiaRow ? 'AdminBarberia' : 'CrearBarberia');
+          } else if (role === 'barbero_empleado') {
+            const { data: barberoRow } = await supabase
+              .from('barberos')
+              .select('id, barberia_id')
+              .eq('id', session.user.id)
+              .maybeSingle();
+            setInitialRouteName(barberoRow?.barberia_id ? 'MainTabs' : 'UnirseBarberia');
+          } else {
+            setInitialRouteName('MainTabs');
+          }
+        } else {
+          setInitialRouteName('Welcome');
+        }
         setBootReady(true);
       }
     }
@@ -94,6 +124,10 @@ export default function AppNavigator() {
         <Stack.Screen name="Panel" component={PanelScreen} />
         <Stack.Screen name="Editar" component={EditarScreen} />
         <Stack.Screen name="ClientePerfil" component={PerfilScreen} />
+        <Stack.Screen name="CrearBarberia" component={CrearBarberiaScreen} />
+        <Stack.Screen name="AdminBarberia" component={AdminBarberiaScreen} />
+        <Stack.Screen name="UnirseBarberia" component={UnirseBarberiaScreen} />
+        <Stack.Screen name="EmpleadoBarberia" component={EmpleadoBarberiaScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

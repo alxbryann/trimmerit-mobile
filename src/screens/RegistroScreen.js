@@ -72,6 +72,10 @@ export default function RegistroScreen({ navigation, route }) {
         const { error: barberErr } = await supabase.from('barberos').upsert({ id: userId, slug: slugFinal });
         if (barberErr) { setError(barberErr.message); setLoading(false); return; }
         navigation.reset(resetToBarberMainTabs(slugFinal));
+      } else if (role === 'admin_barberia') {
+        navigation.reset({ index: 0, routes: [{ name: 'CrearBarberia' }] });
+      } else if (role === 'barbero_empleado') {
+        navigation.reset({ index: 0, routes: [{ name: 'UnirseBarberia' }] });
       } else {
         if (redirect?.screen) { navigation.reset({ index: 0, routes: [{ name: redirect.screen, params: redirect.params ?? {} }] }); }
         else { navigation.reset(RESET_MAIN_AGENDA); }
@@ -101,7 +105,7 @@ export default function RegistroScreen({ navigation, route }) {
                 <Text style={{ color: colors.white, fontFamily: fonts.bodyBold }}>{email}</Text>
                 {'\n\n'}
                 {role === 'barbero'
-                  ? `Tras confirmar, tu perfil estará en barber.it/barbero/${slugFinalSent}`
+                  ? `Tras confirmar, tu perfil estará en barberit.vercel.app/barbero/${slugFinalSent}`
                   : 'Tras confirmar, ya puedes iniciar sesión.'}
               </Text>
               <TouchableOpacity style={styles.primaryBtn} onPress={() => navigation.navigate('Login')}>
@@ -151,6 +155,8 @@ export default function RegistroScreen({ navigation, route }) {
               {[
                 { id: 'cliente', icon: '◉', title: 'SOY CLIENTE', sub: 'Quiero reservar' },
                 { id: 'barbero', icon: '✂', title: 'SOY BARBERO', sub: 'Aliado profesional' },
+                { id: 'admin_barberia', icon: '⊕', title: 'ADMIN BARBERÍA', sub: 'Gestiona tu barbería y equipo' },
+                { id: 'barbero_empleado', icon: '⊙', title: 'BARBERO COLABORADOR', sub: 'Únete a una barbería' },
               ].map((r) => {
                 const active = role === r.id;
                 return (
@@ -205,7 +211,7 @@ export default function RegistroScreen({ navigation, route }) {
                     onBlur={() => setFocusedField(null)}
                   />
                   <View style={styles.slugPreview}>
-                    <Text style={styles.slugPreviewLabel}>barber.it/barbero/</Text>
+                    <Text style={styles.slugPreviewLabel}>barberit.vercel.app/barbero/</Text>
                     <Text style={styles.slugPreviewValue}>{slug || 'tu-nombre'}</Text>
                   </View>
                 </View>
@@ -307,9 +313,9 @@ const styles = StyleSheet.create({
   sub: { fontFamily: fonts.body, fontSize: 15, color: colors.grayLight },
   link: { color: colors.acid, fontFamily: fonts.bodyBold },
 
-  roles: { flexDirection: 'row', gap: 10, marginBottom: 20 },
+  roles: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 20 },
   roleBtn: {
-    flex: 1,
+    width: '47%',
     borderWidth: 1,
     borderColor: colors.cardBorder,
     backgroundColor: colors.dark2,

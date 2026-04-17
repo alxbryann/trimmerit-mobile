@@ -27,9 +27,11 @@ import {
   getBogotaClock,
   heroNameLines,
   fmtPrice,
+  isUuidString,
 } from '../utils/booking';
 import { ServiceIonicon, resolveServiceIonicon } from '../utils/serviceIcons';
 import { notifyReservation } from '../api/notify';
+import { sendPushNotification } from '../lib/notifications';
 
 const { width: W } = Dimensions.get('window');
 
@@ -169,11 +171,28 @@ export default function BarberProfileScreen({ navigation, route }) {
     setReservaLoading(true);
     const d = days[selectedDay];
     const fecha = d.fullDate.toISOString().split('T')[0];
+    const servicioIdDb = service?.id && isUuidString(service.id) ? service.id : null;
     const { error: insertError } = await supabase.from('reservas').insert({
-      cliente_id: user.id, barbero_id: barbero.id, servicio_id: service?.id ?? null,
+      cliente_id: user.id, barbero_id: barbero.id, servicio_id: servicioIdDb,
       fecha, hora: selectedTime, precio: service?.price ?? null, estado: 'pendiente',
     });
     if (insertError) { console.warn(insertError); setReservaLoading(false); return; }
+
+    // Fetch barbero's push token and send push notification
+    const { data: barberoProfile } = await supabase
+      .from('profiles')
+      .select('push_token, nombre')
+      .eq('id', barbero.id)
+      .maybeSingle();
+    if (barberoProfile?.push_token) {
+      await sendPushNotification({
+        to: barberoProfile.push_token,
+        title: '💈 Nueva reserva',
+        body: `${barberoProfile.nombre ?? 'Cliente'} reservó ${service?.label ?? selectedService} el ${fecha} a las ${selectedTime}`,
+        data: { barberoId: barbero.id, fecha, hora: selectedTime },
+      });
+    }
+
     await notifyReservation({
       barberoId: barbero.id, barbero: barbero.nombre_barberia || barbero.nombre,
       servicio: service?.label ?? selectedService, fecha, hora: selectedTime,
