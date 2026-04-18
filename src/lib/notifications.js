@@ -12,7 +12,10 @@
  */
 
 import Constants, { ExecutionEnvironment } from 'expo-constants';
+import * as Device from 'expo-device';
 import { Platform } from 'react-native';
+
+import { supabase, supabaseConfigured } from './supabase';
 
 const isExpoGoAndroid =
   Platform.OS === 'android' &&
@@ -122,4 +125,59 @@ export function notifCambioAlBarbero(nombreCliente, nuevaFecha, nuevaHora) {
     `${nombreCliente} cambió su cita al ${nuevaFecha} a las ${nuevaHora}.`,
     { tipo: 'cambio_cliente' }
   );
+}
+
+const EXPO_PUSH_URL = 'https://exp.host/--/api/v2/push/send';
+
+/**
+ * Registra el token Expo Push del dispositivo en `profiles.push_token` (sesión actual).
+ */
+export async function registerPushToken() {
+  if (!supabaseConfigured || Platform.OS === 'web' || !Notifications) return;
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) return;
+    if (!Device.isDevice) return;
+
+    const granted = await requestNotificationPermissions();
+    if (!granted) return;
+
+    const projectId =
+      Constants.expoConfig?.extra?.eas?.projectId ??
+      Constants.expoConfig?.extra?.easProjectId;
+    const tokenRes = await Notifications.getExpoPushTokenAsync(
+      projectId ? { projectId } : undefined,
+    );
+    const token = tokenRes?.data;
+    if (!token) return;
+
+    await supabase.from('profiles').update({ push_token: token }).eq('id', session.user.id);
+  } catch (e) {
+    console.warn('[Notifications] registerPushToken:', e?.message ?? e);
+  }
+}
+
+/**
+ * Envía notificación remota vía API de Expo Push (token tipo ExponentPushToken[...]).
+ */
+export async function sendPushNotification({ to, title, body, data = {} }) {
+  if (!to || typeof to !== 'string') return;
+  try {
+    await fetch(EXPO_PUSH_URL, {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        to,
+        title,
+        body,
+        data,
+        sound: 'default',
+      }),
+    });
+  } catch (e) {
+    console.warn('[Notifications] sendPushNotification:', e?.message ?? e);
+  }
 }

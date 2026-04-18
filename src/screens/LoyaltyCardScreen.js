@@ -42,8 +42,10 @@ export default function LoyaltyCardScreen({ navigation }) {
       return;
     }
 
-    // Traer tarjetas con datos del programa y de la barbería
-    const { data, error } = await supabase
+    // Tarjetas + programa (FK programa_id → loyalty_programs).
+    // barbero_id no tiene FK a barberos en el esquema remoto, así que PostgREST no permite
+    // embed `barberos(...)`; cargamos barberos en un segundo paso.
+    const { data: rows, error } = await supabase
       .from('loyalty_cards')
       .select(`
         id,
@@ -55,10 +57,6 @@ export default function LoyaltyCardScreen({ navigation }) {
           beneficio_descripcion,
           beneficio_tipo,
           activo
-        ),
-        barberos (
-          nombre_barberia,
-          profiles ( nombre )
         )
       `)
       .eq('cliente_id', s.user.id)
@@ -68,8 +66,27 @@ export default function LoyaltyCardScreen({ navigation }) {
       setErr(error.message);
       setCards([]);
     } else {
-      // Solo mostrar tarjetas con programa activo
-      const filtered = (data ?? []).filter(
+      const list = rows ?? [];
+      const barberIds = [...new Set(list.map((c) => c.barbero_id).filter(Boolean))];
+      let barberById = {};
+      if (barberIds.length > 0) {
+        const { data: barr, error: bErr } = await supabase
+          .from('barberos')
+          .select('id, nombre_barberia, profiles ( nombre )')
+          .in('id', barberIds);
+        if (bErr) {
+          setErr(bErr.message);
+          setCards([]);
+          if (!silent) setLoading(false);
+          return;
+        }
+        barberById = Object.fromEntries((barr ?? []).map((b) => [b.id, b]));
+      }
+      const merged = list.map((c) => ({
+        ...c,
+        barberos: barberById[c.barbero_id] ?? null,
+      }));
+      const filtered = merged.filter(
         (c) => c.loyalty_programs?.activo !== false
       );
       setCards(filtered);

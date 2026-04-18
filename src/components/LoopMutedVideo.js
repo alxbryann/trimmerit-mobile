@@ -1,27 +1,23 @@
-import { useVideoPlayer, VideoView } from 'expo-video';
+import { Video, ResizeMode } from 'expo-av';
 
 /**
  * Video en bucle, silenciado, sin controles (hero / galería).
- * Cada instancia tiene su propio reproductor (correcto para listas).
+ * Usa expo-av (mismo runtime que el resto del proyecto) para evitar fallos si el binario
+ * no incluye el módulo nativo de expo-video.
  */
-function LoopMutedVideoInner({ uri, style, contentFit = 'cover' }) {
-  const player = useVideoPlayer(uri, (p) => {
-    p.loop = true;
-    p.muted = true;
-    p.play();
-  });
-
+export default function LoopMutedVideo({ uri, style, contentFit = 'cover' }) {
+  if (!uri) return null;
+  const resizeMode =
+    contentFit === 'contain' ? ResizeMode.CONTAIN : ResizeMode.COVER;
   return (
-    <VideoView
-      player={player}
+    <Video
+      source={{ uri }}
       style={style}
-      contentFit={contentFit}
-      nativeControls={false}
+      resizeMode={resizeMode}
+      isLooping
+      shouldPlay
+      isMuted
+      useNativeControls={false}
     />
   );
-}
-
-export default function LoopMutedVideo({ uri, style, contentFit }) {
-  if (!uri) return null;
-  return <LoopMutedVideoInner uri={uri} style={style} contentFit={contentFit} />;
 }

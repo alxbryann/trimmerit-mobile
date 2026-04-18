@@ -42,7 +42,6 @@ export default {
   plugins: [
     'expo-web-browser',
     'expo-font',
-    'expo-video',
     [
       'expo-notifications',
       {

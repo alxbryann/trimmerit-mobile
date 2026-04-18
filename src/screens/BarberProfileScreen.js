@@ -186,27 +186,31 @@ export default function BarberProfileScreen({ navigation, route }) {
     });
     if (insertError) { console.warn(insertError); setReservaLoading(false); return; }
 
-    // Fetch barbero's push token and send push notification
-    const { data: barberoProfile } = await supabase
-      .from('profiles')
-      .select('push_token, nombre')
-      .eq('id', barbero.id)
-      .maybeSingle();
-    if (barberoProfile?.push_token) {
-      await sendPushNotification({
-        to: barberoProfile.push_token,
-        title: '💈 Nueva reserva',
-        body: `${barberoProfile.nombre ?? 'Cliente'} reservó ${service?.label ?? selectedService} el ${fecha} a las ${selectedTime}`,
-        data: { barberoId: barbero.id, fecha, hora: selectedTime },
-      });
-    }
+    try {
+      const { data: barberoProfile } = await supabase
+        .from('profiles')
+        .select('push_token, nombre')
+        .eq('id', barbero.id)
+        .maybeSingle();
+      if (barberoProfile?.push_token) {
+        await sendPushNotification({
+          to: barberoProfile.push_token,
+          title: '💈 Nueva reserva',
+          body: `${barberoProfile.nombre ?? 'Cliente'} reservó ${service?.label ?? selectedService} el ${fecha} a las ${selectedTime}`,
+          data: { barberoId: barbero.id, fecha, hora: selectedTime },
+        });
+      }
 
-    await notifyReservation({
-      barberoId: barbero.id, barbero: barbero.nombre_barberia || barbero.nombre,
-      servicio: service?.label ?? selectedService, fecha, hora: selectedTime,
-      precio: service?.price ? service.price.toLocaleString('es-CO') : '—', cliente: user.email,
-    });
-    setReservaLoading(false);
+      await notifyReservation({
+        barberoId: barbero.id, barbero: barbero.nombre_barberia || barbero.nombre,
+        servicio: service?.label ?? selectedService, fecha, hora: selectedTime,
+        precio: service?.price ? service.price.toLocaleString('es-CO') : '—', cliente: user.email,
+      });
+    } catch (e) {
+      console.warn('[reserva] post-insert:', e);
+    } finally {
+      setReservaLoading(false);
+    }
     setConfirmed(true);
   }
 
