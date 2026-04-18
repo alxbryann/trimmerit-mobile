@@ -342,6 +342,8 @@ export function buildInitialDB() {
         razon: '',
         nueva_fecha: null,
         nueva_hora: null,
+        reserva_fecha: today(2),   // fecha original de res4
+        reserva_hora: '09:00',     // hora original de res4
         leido_cliente: true,
         leido_barbero: false,
         created_at: new Date(Date.now() - 10 * 60000).toISOString(),
@@ -359,7 +361,9 @@ export function buildInitialDB() {
         estado: 'aceptado',
         razon: '',
         nueva_fecha: today(3),
-        nueva_hora: '10:00',
+        nueva_hora: '14:00',
+        reserva_fecha: today(),     // fecha original de res6 (hoy)
+        reserva_hora: '10:00',      // hora original de res6
         leido_cliente: true,
         leido_barbero: false,
         created_at: new Date(Date.now() - 5 * 60000).toISOString(),
@@ -368,5 +372,6 @@ export function buildInitialDB() {
         profiles: { nombre: 'Juan Mesa' },
       },
     ],
+
   };
 }

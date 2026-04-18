@@ -9,6 +9,8 @@ import AgendaScreen from '../screens/AgendaScreen';
 import LoyaltyCardScreen from '../screens/LoyaltyCardScreen';
 import PanelScreen from '../screens/PanelScreen';
 import EditarScreen from '../screens/EditarScreen';
+import SolicitudPopup from '../components/SolicitudPopup';
+import { notifRespuestaAlBarbero } from '../lib/notifications';
 import { colors, fonts } from '../theme';
 
 const Tab = createBottomTabNavigator();
@@ -175,12 +177,16 @@ function BarberTabs({ bottomPad, slug }) {
   );
 }
 
-export default function MainTabNavigator() {
+export default function MainTabNavigator({ navigation }) {
   const insets = useSafeAreaInsets();
   const bottomPad = Math.max(insets.bottom, 10);
   const [ready, setReady] = useState(false);
   const [isBarber, setIsBarber] = useState(false);
   const [barberSlug, setBarberSlug] = useState(null);
+
+  // ─── Cola de solicitudes para el cliente (se carga al arrancar la app) ───────
+  const [clientSolicitudQueue, setClientSolicitudQueue] = useState([]);
+  const clientSolicitudActual = clientSolicitudQueue[0] ?? null;
 
   useEffect(() => {
     let cancelled = false;
@@ -223,7 +229,18 @@ export default function MainTabNavigator() {
           return;
         }
       }
+
+      // ── Cliente: cargar solicitudes no leídas al arrancar ──────────────────
       if (!cancelled) {
+        const { data: sols } = await supabase
+          .from('reserva_solicitudes')
+          .select('*')
+          .eq('cliente_id', session.user.id)
+          .eq('leido_cliente', false)
+          .order('created_at', { ascending: true });
+        if (!cancelled && sols?.length) {
+          setClientSolicitudQueue(sols);
+        }
         setIsBarber(false);
         setBarberSlug(null);
         setReady(true);
@@ -240,6 +257,48 @@ export default function MainTabNavigator() {
     };
   }, []);
 
+  // ─── Handlers del popup de solicitudes (rol cliente) ──────────────────────
+
+  async function handleClientSolicitudClose() {
+    if (!clientSolicitudActual) return;
+    const s = clientSolicitudActual;
+    // Solo marcar como leído si tiene estado final (no aplazamiento pendiente)
+    if (s.tipo === 'cancelacion' || s.estado !== 'pendiente') {
+      await supabase
+        .from('reserva_solicitudes')
+        .update({ leido_cliente: true })
+        .eq('id', s.id);
+    }
+    setClientSolicitudQueue((prev) => prev.slice(1));
+  }
+
+  async function handleClientAceptar(solicitudId) {
+    const { data, error } = await supabase.rpc('responder_aplazamiento', {
+      p_solicitud_id: solicitudId,
+      p_acepta: true,
+    });
+    if (error || !data?.ok) return;
+    await notifRespuestaAlBarbero('El cliente', true);
+  }
+
+  async function handleClientRechazar(solicitudId) {
+    const { data, error } = await supabase.rpc('responder_aplazamiento', {
+      p_solicitud_id: solicitudId,
+      p_acepta: false,
+    });
+    if (error || !data?.ok) return;
+    await notifRespuestaAlBarbero('El cliente', false);
+  }
+
+  function handleClientNuevaReserva(barberoSlug) {
+    setClientSolicitudQueue((prev) => prev.slice(1));
+    if (barberoSlug && navigation) {
+      navigation.navigate('BarberProfile', { slug: barberoSlug });
+    }
+  }
+
+  // ─── Render ────────────────────────────────────────────────────────────────
+
   if (!ready) {
     return (
       <View style={styles.loadingRoot}>
@@ -248,17 +307,32 @@ export default function MainTabNavigator() {
     );
   }
 
-  if (isBarber && barberSlug) {
-    return <BarberTabs bottomPad={bottomPad} slug={barberSlug} />;
-  }
+  return (
+    <>
+      {isBarber && barberSlug
+        ? <BarberTabs bottomPad={bottomPad} slug={barberSlug} />
+        : <ClientTabs bottomPad={bottomPad} />
+      }
 
-  return <ClientTabs bottomPad={bottomPad} />;
+      {/* Popup global para el cliente — dispara al abrir la app */}
+      {!isBarber && clientSolicitudActual && (
+        <SolicitudPopup
+          solicitud={clientSolicitudActual}
+          role="cliente"
+          onClose={handleClientSolicitudClose}
+          onAceptar={handleClientAceptar}
+          onRechazar={handleClientRechazar}
+          onNuevaReserva={handleClientNuevaReserva}
+        />
+      )}
+    </>
+  );
 }
 
 const styles = StyleSheet.create({
   loadingRoot: {
     flex: 1,
-    backgroundColor: colors.black,
+    backgroundColor: '#080808',
     alignItems: 'center',
     justifyContent: 'center',
   },

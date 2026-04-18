@@ -449,6 +449,8 @@ const RPC_HANDLERS = {
       razon: '',
       nueva_fecha: null,
       nueva_hora: null,
+      reserva_fecha: reserva.fecha,   // fecha original de la cita cancelada
+      reserva_hora: reserva.hora,     // hora original de la cita cancelada
       leido_cliente: true,
       leido_barbero: false,
       created_at: new Date().toISOString(),
@@ -471,6 +473,10 @@ const RPC_HANDLERS = {
     if (reserva.cliente_id !== user.id) return { ok: false, reason: 'unauthorized' };
     if (reserva.estado !== 'pendiente') return { ok: false, reason: 'invalid_state' };
 
+    // Guardar fecha anterior antes de actualizar
+    const oldFecha = reserva.fecha;
+    const oldHora  = reserva.hora;
+
     // Actualizar fecha/hora
     reserva.fecha = p_nueva_fecha;
     reserva.hora  = p_nueva_hora;
@@ -487,6 +493,8 @@ const RPC_HANDLERS = {
       razon: '',
       nueva_fecha: p_nueva_fecha,
       nueva_hora: p_nueva_hora,
+      reserva_fecha: oldFecha,  // fecha anterior (antes del cambio)
+      reserva_hora: oldHora,    // hora anterior (antes del cambio)
       leido_cliente: true,
       leido_barbero: false,
       created_at: new Date().toISOString(),

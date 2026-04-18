@@ -87,6 +87,18 @@ export default function ReservaActionsCard({
   const inactiva   = completada || cancelada;
   const name       = perfil?.nombre?.trim() || 'Cliente';
 
+  // ── Verificar si la cita ya llegó ────────────────────────────────────────
+  function citaYaOcurrio() {
+    const fecha = reserva.fecha;
+    const hora  = reserva.hora;
+    if (!fecha || !hora) return true; // sin datos → permitir por seguridad
+    const [y, m, d]   = fecha.split('-').map(Number);
+    const [h, min]    = hora.split(':').map(Number);
+    const citaMs = new Date(y, m - 1, d, h, min, 0, 0).getTime();
+    return Date.now() >= citaMs;
+  }
+  const puedeCerrar = citaYaOcurrio();
+
   function fmtPrecio(p) {
     if (p == null) return '';
     return ` · $${Number(p).toLocaleString('es-CO')}`;
@@ -193,7 +205,17 @@ export default function ReservaActionsCard({
           {/* ── Completar ── */}
           {tab === 'completar' && (
             <View style={styles.section}>
-              {tienePrograma && (
+              {/* Aviso si la cita aún no llegó */}
+              {!puedeCerrar && (
+                <View style={styles.futureWarning}>
+                  <Ionicons name="time-outline" size={16} color="#60a5fa" />
+                  <Text style={styles.futureWarningTxt}>
+                    La cita aún no ha ocurrido. Podés confirmar el corte a partir de las {reserva.hora ?? '—'}.
+                  </Text>
+                </View>
+              )}
+
+              {tienePrograma && puedeCerrar && (
                 <>
                   <Text style={styles.sectionLabel}>¿Sellar tarjeta de fidelización?</Text>
                   <View style={styles.yesno}>
@@ -221,10 +243,10 @@ export default function ReservaActionsCard({
                 style={[
                   styles.actionBtn,
                   { backgroundColor: '#4ade80' },
-                  (busy || (tienePrograma && sellar === null)) && styles.btnDisabled,
+                  (!puedeCerrar || busy || (tienePrograma && sellar === null)) && styles.btnDisabled,
                 ]}
                 onPress={handleCompletar}
-                disabled={busy || (tienePrograma && sellar === null)}
+                disabled={!puedeCerrar || busy || (tienePrograma && sellar === null)}
               >
                 {busy
                   ? <ActivityIndicator size="small" color={colors.black} />
@@ -425,6 +447,16 @@ const styles = StyleSheet.create({
   },
   required: { color: colors.danger },
   hint: { fontFamily: fonts.body, fontSize: 11, color: colors.grayMid },
+  futureWarning: {
+    flexDirection: 'row', alignItems: 'flex-start', gap: 8,
+    backgroundColor: 'rgba(96,165,250,0.08)',
+    borderWidth: 1, borderColor: 'rgba(96,165,250,0.25)',
+    borderRadius: radii.xs, padding: 10,
+  },
+  futureWarningTxt: {
+    flex: 1, fontFamily: fonts.body, fontSize: 12,
+    color: '#93c5fd', lineHeight: 17,
+  },
 
   textarea: {
     backgroundColor: colors.dark3,
@@ -467,16 +499,17 @@ const styles = StyleSheet.create({
   horaChipTxt: { fontFamily: fonts.body, fontSize: 12, color: colors.grayLight },
 
   proposalPreview: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
+    flexDirection: 'row', alignItems: 'center', gap: 8,
     backgroundColor: 'rgba(96,165,250,0.08)',
+    borderWidth: 1, borderColor: 'rgba(96,165,250,0.25)',
     borderRadius: radii.xs, padding: 10,
   },
-  proposalTxt: { fontFamily: fonts.bodySemi, fontSize: 13, color: '#60a5fa' },
+  proposalTxt: { fontFamily: fonts.body, fontSize: 12, color: '#93c5fd' },
 
   actionBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: 8, borderRadius: radii.xs, paddingVertical: 14, marginTop: 4,
+    gap: 8, borderRadius: radii.sm, paddingVertical: 14, marginTop: 4,
   },
+  actionBtnTxt: { fontFamily: fonts.display, fontSize: 14, letterSpacing: 1.5 },
   btnDisabled: { opacity: 0.4 },
-  actionBtnTxt: { fontFamily: fonts.display, fontSize: 14, letterSpacing: 2 },
 });

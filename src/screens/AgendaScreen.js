@@ -13,10 +13,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { supabase, supabaseConfigured } from '../lib/supabase';
 import { colors, fonts, radii } from '../theme';
 import { fmtPrice } from '../utils/booking';
-import SolicitudPopup from '../components/SolicitudPopup';
 import ClienteReservaCard from '../components/ClienteReservaCard';
 import {
-  notifRespuestaAlBarbero,
   notifCancelacionAlBarbero,
   notifCambioAlBarbero,
 } from '../lib/notifications';
@@ -53,10 +51,6 @@ export default function AgendaScreen({ navigation }) {
   const [refreshing, setRefreshing] = useState(false);
   const [err, setErr] = useState(null);
 
-  // Solicitudes pendientes de lectura para este cliente
-  const [solicitudQueue, setSolicitudQueue] = useState([]);
-  const solicitudActual = solicitudQueue[0] ?? null;
-
   const load = useCallback(async (opts = {}) => {
     const silent = Boolean(opts.silent);
     if (!silent) setLoading(true);
@@ -88,17 +82,6 @@ export default function AgendaScreen({ navigation }) {
       setRows(list);
     }
 
-    // Cargar solicitudes pendientes de lectura (cancelaciones o aplazamientos sin ver)
-    const { data: sols } = await supabase
-      .from('reserva_solicitudes')
-      .select('*')
-      .eq('cliente_id', s.user.id)
-      .eq('leido_cliente', false)
-      .order('created_at', { ascending: true });
-    if (sols?.length) {
-      setSolicitudQueue(sols);
-    }
-
     if (!silent) setLoading(false);
   }, []);
 
@@ -115,57 +98,6 @@ export default function AgendaScreen({ navigation }) {
     setRefreshing(true);
     await load({ silent: true });
     setRefreshing(false);
-  }
-
-  // ─── Handlers de solicitudes ──────────────────────────────────────────────
-
-  /** Descarta el popup actual (sin tomar acción — aplazamientos pendientes se guardan) */
-  async function handleSolicitudClose() {
-    if (!solicitudActual) return;
-    // Solo marcar como leído si ya tiene un estado final (cancelacion o aplazamiento respondido)
-    if (solicitudActual.tipo === 'cancelacion' || solicitudActual.estado !== 'pendiente') {
-      await supabase
-        .from('reserva_solicitudes')
-        .update({ leido_cliente: true })
-        .eq('id', solicitudActual.id);
-    }
-    setSolicitudQueue((prev) => prev.slice(1));
-  }
-
-  /** Cliente acepta un aplazamiento propuesto por el barbero */
-  async function handleAceptarAplazamiento(solicitudId) {
-    const { data, error } = await supabase.rpc('responder_aplazamiento', {
-      p_solicitud_id: solicitudId,
-      p_acepta: true,
-    });
-    if (error || !data?.ok) return;
-
-    await notifRespuestaAlBarbero(session?.user?.email ?? 'El cliente', true);
-
-    // Refrescar agenda en background
-    load({ silent: true });
-  }
-
-  /** Cliente rechaza un aplazamiento propuesto por el barbero */
-  async function handleRechazarAplazamiento(solicitudId) {
-    const { data, error } = await supabase.rpc('responder_aplazamiento', {
-      p_solicitud_id: solicitudId,
-      p_acepta: false,
-    });
-    if (error || !data?.ok) return;
-
-    await notifRespuestaAlBarbero(session?.user?.email ?? 'El cliente', false);
-
-    load({ silent: true });
-  }
-
-  /** Cliente pide hacer una nueva reserva desde el popup de cancelación */
-  function handleNuevaReserva(barberoSlug) {
-    if (barberoSlug) {
-      navigation.navigate('Perfil', { slug: barberoSlug });
-    } else {
-      navigation.navigate('Catalogo');
-    }
   }
 
   // ─── Acciones propias del cliente sobre sus reservas ──────────────────────
@@ -352,17 +284,6 @@ export default function AgendaScreen({ navigation }) {
         )}
       </SafeAreaView>
 
-      {/* Popup de solicitudes pendientes (cancelaciones o aplazamientos por responder) */}
-      {solicitudActual && (
-        <SolicitudPopup
-          solicitud={solicitudActual}
-          role="cliente"
-          onClose={handleSolicitudClose}
-          onAceptar={handleAceptarAplazamiento}
-          onRechazar={handleRechazarAplazamiento}
-          onNuevaReserva={handleNuevaReserva}
-        />
-      )}
     </View>
   );
 }

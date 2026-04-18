@@ -177,7 +177,7 @@ export default function SolicitudPopup({
           </Text>
           {rechazo && (
             <Text style={styles.razon}>
-              La cita ha sido cancelada para ambos.
+              La cita ha sido cancelada.
             </Text>
           )}
           <View style={styles.actions}>
@@ -191,6 +191,9 @@ export default function SolicitudPopup({
 
     // BARBERO ve que el cliente canceló su cita
     if (role === 'barbero' && esCancelacionCliente) {
+      const fechaStr = solicitud.reserva_fecha
+        ? `${fmtFecha(solicitud.reserva_fecha)}${solicitud.reserva_hora ? ` · ${solicitud.reserva_hora}` : ''}`
+        : null;
       return (
         <>
           <View style={styles.iconCircle}>
@@ -200,6 +203,15 @@ export default function SolicitudPopup({
           <Text style={styles.subtitle}>
             {nombreCliente} canceló su cita.
           </Text>
+          {fechaStr && (
+            <View style={styles.propuestaBox}>
+              <Ionicons name="calendar-outline" size={16} color={colors.grayLight} />
+              <View>
+                <Text style={styles.propuestaLabel}>FECHA DE LA CITA</Text>
+                <Text style={styles.propuestaVal}>{fechaStr}</Text>
+              </View>
+            </View>
+          )}
           <View style={styles.actions}>
             <TouchableOpacity style={styles.btnPrimary} onPress={onClose}>
               <Text style={styles.btnPrimaryTxt}>ENTENDIDO</Text>
