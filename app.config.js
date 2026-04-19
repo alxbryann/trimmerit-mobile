@@ -1,6 +1,6 @@
 /** @type {import('expo/config').ExpoConfig} */
 export default {
-  name: 'Barber.it',
+  name: 'trimmerit',
   slug: 'barberit',
   version: '1.0.0',
   orientation: 'portrait',
@@ -11,7 +11,7 @@ export default {
   splash: {
     image: './assets/splash-icon.png',
     resizeMode: 'contain',
-    backgroundColor: '#080808',
+    backgroundColor: '#0a0a0a',
   },
   ios: {
     supportsTablet: true,
@@ -24,7 +24,7 @@ export default {
   android: {
     adaptiveIcon: {
       foregroundImage: './assets/adaptive-icon.png',
-      backgroundColor: '#080808',
+      backgroundColor: '#0a0a0a',
     },
     edgeToEdgeEnabled: true,
   },
@@ -40,14 +40,14 @@ export default {
     },
   },
   plugins: [
+    'expo-video',
     'expo-web-browser',
     'expo-font',
     [
       'expo-notifications',
       {
         icon: './assets/icon.png',
-        color: '#CDFF00',
-        // iOS: .caf is most reliable; Android res/raw uses .wav
+        color: '#c8a96a',
         sounds: ['./assets/barber_buzz.caf', './assets/barber_buzz.wav'],
       },
     ],
@@ -55,15 +55,7 @@ export default {
       'expo-image-picker',
       {
         photosPermission:
-          'Barber.it accede a tu galería para el video hero y fotos de cortes.',
-      },
-    ],
-    [
-      'expo-notifications',
-      {
-        icon: './assets/icon.png',
-        color: '#CDFF00',
-        sounds: [],
+          'trimmerit accede a tu galería para el video hero y fotos de cortes.',
       },
     ],
   ],

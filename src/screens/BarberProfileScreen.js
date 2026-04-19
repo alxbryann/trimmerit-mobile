@@ -91,6 +91,10 @@ export default function BarberProfileScreen({ navigation, route }) {
         }
       });
 
+    const videoRaw = data.video_url;
+    const videoNorm =
+      typeof videoRaw === 'string' && videoRaw.trim() ? videoRaw.trim() : videoRaw || null;
+
     setBarbero({
       id: data.id, slug: data.slug,
       nombre: data.profiles?.nombre ?? slug,
@@ -99,7 +103,8 @@ export default function BarberProfileScreen({ navigation, route }) {
       rating: data.rating ?? 5,
       total_cortes: data.total_cortes ?? 0,
       desde_año: new Date().getFullYear(),
-      bio: data.bio, video_url: data.video_url,
+      bio: data.bio,
+      video_url: videoNorm,
     });
 
     supabase.from('galeria_cortes').select('id, imagen_url, tipo').eq('barbero_id', data.id)
@@ -270,16 +275,29 @@ export default function BarberProfileScreen({ navigation, route }) {
 
   return (
     <View style={styles.root}>
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        removeClippedSubviews={false}
+      >
         {/* HERO */}
         <View style={styles.hero}>
           {barbero.video_url ? (
-            <LoopMutedVideo uri={barbero.video_url} style={styles.video} contentFit="cover" />
+            <LoopMutedVideo
+              key={barbero.video_url}
+              uri={barbero.video_url}
+              style={styles.video}
+              contentFit="cover"
+            />
           ) : (
             <LinearGradient colors={['#0f1208', '#0a0a0a', '#080808']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.video} />
           )}
-          {/* Overlay gradient */}
-          <LinearGradient colors={['transparent', 'rgba(0,0,0,0.5)', 'rgba(8,8,8,0.95)']} locations={[0, 0.5, 1]} style={styles.heroGrad} />
+          {/* Scrim ligero: el título vive abajo; un degradé casi opaco tapaba por completo el video detrás del nombre */}
+          <LinearGradient
+            colors={['rgba(0,0,0,0.2)', 'rgba(0,0,0,0.38)', 'rgba(6,6,6,0.55)']}
+            locations={[0, 0.45, 1]}
+            style={styles.heroGrad}
+            pointerEvents="none"
+          />
 
           {/* Top controls */}
           <SafeAreaView edges={['top']} style={styles.heroTop}>
@@ -653,11 +671,12 @@ const styles = StyleSheet.create({
   },
   ghostBtnText: { fontFamily: fonts.bodyBold, fontSize: 12, letterSpacing: 2, color: colors.grayLight },
 
-  // HERO
+  // HERO (sin overflow:hidden: en iOS puede recortar mal la capa nativa del vídeo)
   hero: { height: W * 1.15, position: 'relative' },
-  video: { ...StyleSheet.absoluteFillObject },
-  heroGrad: { ...StyleSheet.absoluteFillObject },
+  video: { ...StyleSheet.absoluteFillObject, zIndex: 0 },
+  heroGrad: { ...StyleSheet.absoluteFillObject, zIndex: 1 },
   heroTop: {
+    zIndex: 2,
     position: 'absolute', top: 0, left: 0, right: 0,
     flexDirection: 'row', justifyContent: 'space-between',
     paddingHorizontal: 14, paddingTop: 4,
@@ -687,6 +706,7 @@ const styles = StyleSheet.create({
   ownerSolidText: { fontFamily: fonts.bodyBold, fontSize: 11, letterSpacing: 2, color: colors.black },
 
   heroText: {
+    zIndex: 2,
     position: 'absolute',
     bottom: 28,
     left: 22,
@@ -696,13 +716,24 @@ const styles = StyleSheet.create({
   },
   heroKickerRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10 },
   heroKickerDot: { width: 5, height: 5, borderRadius: 3, backgroundColor: colors.acid },
-  kicker: { fontFamily: fonts.bodyBold, fontSize: 10, letterSpacing: 4, color: colors.acid },
+  kicker: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 10,
+    letterSpacing: 4,
+    color: colors.acid,
+    textShadowColor: 'rgba(0,0,0,0.9)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 8,
+  },
   heroName: {
     fontFamily: fonts.display,
     fontSize: 54,
     lineHeight: 62,
     color: colors.white,
     width: '100%',
+    textShadowColor: 'rgba(0,0,0,0.85)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 16,
     ...(Platform.OS === 'android' ? { includeFontPadding: false } : {}),
   },
   heroNameAcid: {
@@ -712,9 +743,21 @@ const styles = StyleSheet.create({
     color: colors.acid,
     marginBottom: 8,
     width: '100%',
+    textShadowColor: 'rgba(0,0,0,0.75)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 14,
     ...(Platform.OS === 'android' ? { includeFontPadding: false } : {}),
   },
-  personName: { fontFamily: fonts.bodyBold, fontSize: 13, letterSpacing: 2, color: colors.grayLight, marginBottom: 14 },
+  personName: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 13,
+    letterSpacing: 2,
+    color: colors.grayLight,
+    marginBottom: 14,
+    textShadowColor: 'rgba(0,0,0,0.8)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 6,
+  },
 
   statsRow: {
     flexDirection: 'row',
@@ -732,7 +775,7 @@ const styles = StyleSheet.create({
   statVal: { fontFamily: fonts.display, fontSize: 22, color: colors.white, lineHeight: 24 },
   statLbl: { fontFamily: fonts.bodyBold, fontSize: 8, letterSpacing: 2, color: colors.grayLight, marginTop: 2 },
 
-  acidLine: { height: 3, backgroundColor: colors.acid },
+  acidLine: { zIndex: 2, height: 3, backgroundColor: colors.acid },
 
   // BODY
   body: { padding: 18, paddingBottom: 48, maxWidth: 720, alignSelf: 'center', width: '100%' },

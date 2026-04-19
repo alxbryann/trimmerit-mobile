@@ -9,10 +9,8 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
-import Ionicons from '@expo/vector-icons/Ionicons';
 import { supabase, supabaseConfigured } from '../lib/supabase';
-import { colors, fonts, radii } from '../theme';
+import { colors, fonts } from '../theme';
 import LoyaltyCard from '../components/LoyaltyCard';
 
 export default function LoyaltyCardScreen({ navigation }) {
@@ -36,28 +34,13 @@ export default function LoyaltyCardScreen({ navigation }) {
     const { data: { session: s } } = await supabase.auth.getSession();
     setSession(s);
 
-    if (!s?.user) {
-      setCards([]);
-      if (!silent) setLoading(false);
-      return;
-    }
+    if (!s?.user) { setCards([]); if (!silent) setLoading(false); return; }
 
-    // Tarjetas + programa (FK programa_id → loyalty_programs).
-    // barbero_id no tiene FK a barberos en el esquema remoto, así que PostgREST no permite
-    // embed `barberos(...)`; cargamos barberos en un segundo paso.
     const { data: rows, error } = await supabase
       .from('loyalty_cards')
       .select(`
-        id,
-        sellos_acumulados,
-        canjeado_at,
-        barbero_id,
-        loyalty_programs (
-          sellos_requeridos,
-          beneficio_descripcion,
-          beneficio_tipo,
-          activo
-        )
+        id, sellos_acumulados, canjeado_at, barbero_id,
+        loyalty_programs ( sellos_requeridos, beneficio_descripcion, beneficio_tipo, activo )
       `)
       .eq('cliente_id', s.user.id)
       .order('created_at', { ascending: false });
@@ -74,22 +57,11 @@ export default function LoyaltyCardScreen({ navigation }) {
           .from('barberos')
           .select('id, nombre_barberia, profiles ( nombre )')
           .in('id', barberIds);
-        if (bErr) {
-          setErr(bErr.message);
-          setCards([]);
-          if (!silent) setLoading(false);
-          return;
-        }
+        if (bErr) { setErr(bErr.message); setCards([]); if (!silent) setLoading(false); return; }
         barberById = Object.fromEntries((barr ?? []).map((b) => [b.id, b]));
       }
-      const merged = list.map((c) => ({
-        ...c,
-        barberos: barberById[c.barbero_id] ?? null,
-      }));
-      const filtered = merged.filter(
-        (c) => c.loyalty_programs?.activo !== false
-      );
-      setCards(filtered);
+      const merged = list.map((c) => ({ ...c, barberos: barberById[c.barbero_id] ?? null }));
+      setCards(merged.filter((c) => c.loyalty_programs?.activo !== false));
     }
 
     if (!silent) setLoading(false);
@@ -108,11 +80,7 @@ export default function LoyaltyCardScreen({ navigation }) {
   }, [load]);
 
   function nombreBarberia(card) {
-    return (
-      card.barberos?.nombre_barberia?.trim() ||
-      card.barberos?.profiles?.nombre ||
-      'Barbería'
-    );
+    return card.barberos?.nombre_barberia?.trim() || card.barberos?.profiles?.nombre || 'Barbería';
   }
 
   function isCompletada(card) {
@@ -121,42 +89,28 @@ export default function LoyaltyCardScreen({ navigation }) {
     return card.sellos_acumulados >= prog.sellos_requeridos;
   }
 
-  // ── Render ──────────────────────────────────────────────────
-
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color={colors.acid} />
+        <ActivityIndicator size="large" color={colors.champagne} />
       </View>
     );
   }
 
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
-      {/* Header */}
-      <LinearGradient
-        colors={['#141414', colors.black]}
-        style={styles.headerGrad}
-      >
-        <View style={styles.headerRow}>
-          <View>
-            <Text style={styles.headerLabel}>MIS TARJETAS</Text>
-            <Text style={styles.headerTitle}>FIDELIZACIÓN</Text>
-          </View>
-          <View style={styles.headerBadge}>
-            <Ionicons name="ribbon" size={18} color={colors.acid} />
-          </View>
-        </View>
-      </LinearGradient>
+      <View style={styles.header}>
+        <Text style={styles.headerKicker}>— lealtad —</Text>
+        <Text style={styles.headerTitle}>sellos.</Text>
+        <Text style={styles.headerSub}>
+          Un sello por cada corte completado. La tarjeta la lleva tu barbero en la app.
+        </Text>
+      </View>
 
       <ScrollView
         contentContainerStyle={styles.scroll}
         refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={colors.acid}
-          />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.champagne} />
         }
         showsVerticalScrollIndicator={false}
       >
@@ -168,26 +122,23 @@ export default function LoyaltyCardScreen({ navigation }) {
 
         {!session?.user ? (
           <EmptyState
-            icon="log-in-outline"
-            title="Iniciá sesión"
+            title="iniciá sesión"
             subtitle="Necesitás una cuenta para ver tus tarjetas de fidelización."
-            action="Iniciar sesión"
+            action="iniciar sesión →"
             onAction={() => navigation.navigate('Login')}
           />
         ) : cards.length === 0 ? (
           <EmptyState
-            icon="ribbon-outline"
-            title="Sin tarjetas todavía"
-            subtitle={'Reservá y completá cortes en barberías que tengan programa de fidelización para acumular sellos.'}
-            action="Ver barberías"
+            title="sin tarjetas todavía"
+            subtitle="Reservá y completá cortes en barberías con programa de fidelización para acumular sellos."
+            action="ver barberías →"
             onAction={() => navigation.navigate('Catalogo')}
           />
         ) : (
           <>
-            {/* Tarjetas listas para canjear primero */}
             {cards.filter(isCompletada).length > 0 && (
               <>
-                <Text style={styles.sectionLabel}>LISTAS PARA CANJEAR</Text>
+                <Text style={styles.sectionLabel}>listas para canjear</Text>
                 {cards.filter(isCompletada).map((card) => (
                   <View key={card.id}>
                     <LoyaltyCard
@@ -205,10 +156,9 @@ export default function LoyaltyCardScreen({ navigation }) {
               </>
             )}
 
-            {/* Tarjetas en progreso */}
             {cards.filter((c) => !isCompletada(c)).length > 0 && (
               <>
-                <Text style={styles.sectionLabel}>EN PROGRESO</Text>
+                <Text style={styles.sectionLabel}>en progreso</Text>
                 {cards.filter((c) => !isCompletada(c)).map((card) => (
                   <LoyaltyCard
                     key={card.id}
@@ -228,17 +178,14 @@ export default function LoyaltyCardScreen({ navigation }) {
   );
 }
 
-function EmptyState({ icon, title, subtitle, action, onAction }) {
+function EmptyState({ title, subtitle, action, onAction }) {
   return (
     <View style={styles.emptyBlock}>
-      <View style={styles.emptyIcon}>
-        <Ionicons name={icon} size={36} color={colors.grayMid} />
-      </View>
       <Text style={styles.emptyTitle}>{title}</Text>
       <Text style={styles.emptySubtitle}>{subtitle}</Text>
       {action && onAction && (
         <TouchableOpacity style={styles.emptyBtn} onPress={onAction}>
-          <Text style={styles.emptyBtnText}>{action.toUpperCase()}</Text>
+          <Text style={styles.emptyBtnText}>{action}</Text>
         </TouchableOpacity>
       )}
     </View>
@@ -246,111 +193,75 @@ function EmptyState({ icon, title, subtitle, action, onAction }) {
 }
 
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: colors.black,
-  },
-  center: {
-    flex: 1,
-    backgroundColor: colors.black,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerGrad: {
-    paddingHorizontal: 24,
-    paddingTop: 16,
-    paddingBottom: 20,
+  root: { flex: 1, backgroundColor: colors.ink },
+  center: { flex: 1, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
+
+  header: {
+    paddingHorizontal: 20,
+    paddingTop: 14,
+    paddingBottom: 14,
     borderBottomWidth: 1,
-    borderBottomColor: colors.cardBorder,
+    borderBottomColor: colors.border,
   },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  headerLabel: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 9,
+  headerKicker: {
+    fontFamily: fonts.mono,
+    fontSize: 10,
     letterSpacing: 3,
-    color: colors.acid,
-    marginBottom: 2,
+    textTransform: 'uppercase',
+    color: colors.champagne,
+    marginBottom: 4,
   },
   headerTitle: {
     fontFamily: fonts.display,
-    fontSize: 32,
-    color: colors.white,
-    letterSpacing: 1,
+    fontStyle: 'italic',
+    fontSize: 48,
+    lineHeight: 46,
+    color: colors.paper,
+    letterSpacing: -1,
+    marginBottom: 8,
   },
-  headerBadge: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: colors.dark3,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    alignItems: 'center',
-    justifyContent: 'center',
+  headerSub: {
+    fontFamily: fonts.body,
+    fontSize: 13,
+    color: colors.muted,
+    lineHeight: 20,
+    maxWidth: 280,
   },
-  scroll: {
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 40,
-    gap: 12,
-  },
+
+  scroll: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 40, gap: 12 },
+
   sectionLabel: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 9,
-    letterSpacing: 2.5,
-    color: colors.grayLight,
+    fontFamily: fonts.mono,
+    fontSize: 10,
+    letterSpacing: 3,
+    textTransform: 'uppercase',
+    color: colors.muted,
     marginTop: 4,
-    marginBottom: 2,
+    marginBottom: 4,
   },
   redeemHint: {
     fontFamily: fonts.body,
     fontSize: 12,
-    color: colors.grayMid,
+    color: colors.muted,
     marginTop: 6,
     marginBottom: 4,
-    paddingHorizontal: 4,
   },
-  errorBox: {
-    backgroundColor: colors.dangerSoft,
-    borderRadius: radii.sm,
-    padding: 12,
-  },
-  errorText: {
-    fontFamily: fonts.body,
-    fontSize: 13,
-    color: colors.danger,
-  },
-  emptyBlock: {
-    alignItems: 'center',
-    paddingTop: 48,
-    gap: 12,
-    paddingHorizontal: 16,
-  },
-  emptyIcon: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: colors.dark3,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 4,
-  },
+  errorBox: { borderWidth: 1, borderColor: 'rgba(184,94,76,0.3)', padding: 12 },
+  errorText: { fontFamily: fonts.body, fontSize: 13, color: colors.terracota },
+
+  emptyBlock: { alignItems: 'center', paddingTop: 48, gap: 12, paddingHorizontal: 16 },
   emptyTitle: {
     fontFamily: fonts.display,
-    fontSize: 22,
-    color: colors.white,
-    letterSpacing: 0.5,
+    fontStyle: 'italic',
+    fontSize: 26,
+    color: colors.paper,
+    letterSpacing: -0.5,
     textAlign: 'center',
   },
   emptySubtitle: {
     fontFamily: fonts.body,
     fontSize: 14,
-    color: colors.grayLight,
+    color: colors.muted,
     textAlign: 'center',
     lineHeight: 20,
     maxWidth: 280,
@@ -358,15 +269,15 @@ const styles = StyleSheet.create({
   emptyBtn: {
     marginTop: 8,
     borderWidth: 1,
-    borderColor: colors.acid,
-    borderRadius: radii.sm,
+    borderColor: colors.champagne,
     paddingVertical: 12,
     paddingHorizontal: 28,
   },
   emptyBtnText: {
     fontFamily: fonts.display,
-    fontSize: 15,
-    letterSpacing: 2,
-    color: colors.acid,
+    fontStyle: 'italic',
+    fontSize: 16,
+    color: colors.champagne,
+    letterSpacing: -0.5,
   },
 });

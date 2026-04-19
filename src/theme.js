@@ -1,63 +1,98 @@
-/** Paleta alineada con web/src/app/globals.css — extendida para app */
+/** trimmerit — Editorial Premium palette */
 export const colors = {
-  acid: '#CDFF00',
-  acidDim: '#a8cc00',
-  acidSoft: 'rgba(205,255,0,0.12)',
-  acidGlow: 'rgba(205,255,0,0.06)',
-  black: '#080808',
-  dark: '#0f0f0f',
-  dark2: '#161616',
-  dark3: '#1c1c1c',
-  gray: '#222222',
-  grayMid: '#555555',
-  grayLight: '#999999',
-  white: '#f0f0f0',
-  danger: '#ff6b6b',
-  dangerSoft: 'rgba(255,107,107,0.1)',
-  overlay: 'rgba(8,8,8,0.92)',
-  card: '#111111',
-  cardBorder: '#242424',
+  // Ink scale
+  ink:        '#0a0a0a',
+  ink2:       '#141210',
+  ink3:       '#1a1613',
+  ink4:       '#221c17',
+
+  // Paper / text
+  paper:      '#f2efe7',
+  paperDim:   '#dcd5c3',
+
+  // Champagne accent (replaces acid)
+  champagne:    '#c8a96a',
+  champagneDim: '#8a7454',
+  champagneSoft:'rgba(200,169,106,0.08)',
+  champagneGlow:'rgba(200,169,106,0.04)',
+
+  // Semantic
+  terracota:  '#b85e4c',
+  olivo:      '#6d7a5a',
+
+  // Muted paper tints
+  muted:      'rgba(242,239,231,0.55)',
+  muted2:     'rgba(242,239,231,0.35)',
+  muted3:     'rgba(242,239,231,0.22)',
+
+  // Borders
+  border:       'rgba(242,239,231,0.12)',
+  borderStrong: 'rgba(242,239,231,0.22)',
+
+  // Legacy aliases used across the codebase
+  black:       '#0a0a0a',
+  dark:        '#141210',
+  dark2:       '#1a1613',
+  dark3:       '#221c17',
+  gray:        '#2a2520',
+  grayMid:     '#6a6058',
+  grayLight:   'rgba(242,239,231,0.55)',
+  white:       '#f2efe7',
+  acid:        '#c8a96a',       // remap acid → champagne for legacy code
+  acidDim:     '#8a7454',
+  acidSoft:    'rgba(200,169,106,0.08)',
+  acidGlow:    'rgba(200,169,106,0.04)',
+  danger:      '#b85e4c',
+  dangerSoft:  'rgba(184,94,76,0.10)',
+  overlay:     'rgba(10,10,10,0.92)',
+  card:        '#141210',
+  cardBorder:  'rgba(242,239,231,0.12)',
 };
 
-/** Radios para feel de app nativa */
+/** Sharp-corner editorial — no rounding except pill */
 export const radii = {
-  xs: 4,
-  sm: 8,
-  md: 12,
-  lg: 16,
-  xl: 24,
+  xs:   0,
+  sm:   0,
+  md:   0,
+  lg:   0,
+  xl:   0,
   pill: 999,
 };
 
-/** Sombras para profundidad */
 export const shadows = {
   sm: {
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.4,
+    shadowOpacity: 0.5,
     shadowRadius: 8,
     elevation: 4,
   },
   md: {
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.5,
+    shadowOpacity: 0.6,
     shadowRadius: 16,
     elevation: 8,
   },
   acid: {
-    shadowColor: '#CDFF00',
+    shadowColor: '#c8a96a',
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.25,
+    shadowOpacity: 0.20,
     shadowRadius: 12,
     elevation: 6,
   },
 };
 
-/** Nombres de familia tras useFonts en App.js */
+/** Font family names after useFonts in App.js */
 export const fonts = {
-  display: 'BebasNeue_400Regular',
-  body: 'BarlowCondensed_400Regular',
-  bodySemi: 'BarlowCondensed_600SemiBold',
-  bodyBold: 'BarlowCondensed_700Bold',
+  display:      'PlayfairDisplay_800ExtraBold_Italic',
+  displayMed:   'PlayfairDisplay_500Medium_Italic',
+  displayReg:   'PlayfairDisplay_400Regular_Italic',
+  body:         'Inter_400Regular',
+  bodySemi:     'Inter_500Medium',
+  bodyBold:     'Inter_600SemiBold',
+  mono:         'DMMono_400Regular',
+  monoLight:    'DMMono_300Light',
+  // legacy aliases
+  bodyBoldLeg:  'Inter_600SemiBold',
 };

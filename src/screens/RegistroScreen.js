@@ -15,9 +15,22 @@ import { supabase, supabaseConfigured } from '../lib/supabase';
 import { signInWithGoogle } from '../lib/googleAuth';
 import { colors, fonts, radii, shadows } from '../theme';
 import { RESET_MAIN_AGENDA, resetToBarberMainTabs } from '../navigation/resetMainTabs';
+import {
+  resolvePostAuthDestination,
+  applyPostAuthDestination,
+  extractGoogleMetadata,
+} from '../navigation/postAuthRouting';
+
+const ROLES = [
+  { id: 'cliente',          icon: '◉', title: 'SOY CLIENTE',         sub: 'Quiero reservar cortes' },
+  { id: 'barbero',          icon: '✂', title: 'SOY BARBERO',         sub: 'Aliado profesional' },
+  { id: 'admin_barberia',   icon: '⊕', title: 'ADMIN BARBERÍA',      sub: 'Gestiono mi barbería y equipo' },
+  { id: 'barbero_empleado', icon: '⊙', title: 'BARBERO COLABORADOR', sub: 'Me uno a una barbería' },
+];
 
 export default function RegistroScreen({ navigation, route }) {
   const redirect = route.params?.redirect;
+  const [step, setStep] = useState('role'); // 'role' | 'method' | 'form'
   const [role, setRole] = useState('cliente');
   const [nombre, setNombre] = useState('');
   const [email, setEmail] = useState('');
@@ -30,6 +43,15 @@ export default function RegistroScreen({ navigation, route }) {
   const [slugFinalSent, setSlugFinalSent] = useState('');
   const [focusedField, setFocusedField] = useState(null);
 
+  const currentRole = ROLES.find((r) => r.id === role) ?? ROLES[0];
+
+  function goBackStep() {
+    setError('');
+    if (step === 'form') setStep('method');
+    else if (step === 'method') setStep('role');
+    else navigation.navigate('Welcome');
+  }
+
   async function handleGoogle() {
     if (!supabaseConfigured) { setError('Configura Supabase.'); return; }
     setError(''); setLoading(true);
@@ -38,18 +60,22 @@ export default function RegistroScreen({ navigation, route }) {
       if (cancelled) { setLoading(false); return; }
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) { setError('No se pudo obtener la sesión.'); setLoading(false); return; }
-      const { data: existing } = await supabase.from('profiles').select('role').eq('id', session.user.id).maybeSingle();
-      const suggested = session.user.user_metadata?.full_name ?? session.user.user_metadata?.name ?? '';
-      if (!existing) {
-        navigation.reset({ index: 0, routes: [{ name: 'CompletarPerfil', params: { suggestedNombre: suggested, redirect, role } }] });
-      } else if (existing.role === 'barbero') {
-        const { data: barbero } = await supabase.from('barberos').select('slug').eq('id', session.user.id).maybeSingle();
-        if (barbero?.slug) { navigation.reset(resetToBarberMainTabs(barbero.slug)); }
-        else { navigation.reset({ index: 0, routes: [{ name: 'CompletarPerfil', params: { suggestedNombre: suggested, redirect, role: 'barbero' } }] }); }
-      } else if (role === 'barbero') {
-        navigation.reset({ index: 0, routes: [{ name: 'CompletarPerfil', params: { suggestedNombre: suggested, redirect, role: 'barbero' } }] });
+
+      const dest = await resolvePostAuthDestination(session);
+
+      if (dest.kind === 'completar') {
+        // Primer registro con Google: fuerza el rol elegido y reenvía la metadata.
+        const metadata = extractGoogleMetadata(session);
+        navigation.reset({
+          index: 0,
+          routes: [{
+            name: 'CompletarPerfil',
+            params: { ...metadata, ...dest.params, role, redirect: redirect ?? null },
+          }],
+        });
       } else {
-        navigation.reset(RESET_MAIN_AGENDA);
+        // Ya tenía perfil: respetamos el destino real (no el rol elegido en este form).
+        applyPostAuthDestination(navigation, dest, { redirect: redirect ?? null });
       }
     } catch (e) { setError(String(e.message ?? e)); }
     setLoading(false);
@@ -123,6 +149,9 @@ export default function RegistroScreen({ navigation, route }) {
     );
   }
 
+  const stepIndex = step === 'role' ? 1 : step === 'method' ? 2 : 3;
+  const totalSteps = step === 'form' ? 3 : 2;
+
   return (
     <View style={styles.root}>
       <SafeAreaView style={styles.safe}>
@@ -131,121 +160,250 @@ export default function RegistroScreen({ navigation, route }) {
 
             {/* Header */}
             <View style={styles.header}>
-              <TouchableOpacity
-                onPress={() => navigation.navigate('Welcome')}
-                style={styles.backBtn}
-              >
-                <Text style={styles.backText}>← INICIO</Text>
+              <TouchableOpacity onPress={goBackStep} style={styles.backBtn}>
+                <Text style={styles.backText}>← {step === 'role' ? 'INICIO' : 'ATRÁS'}</Text>
               </TouchableOpacity>
               <TouchableOpacity onPress={() => navigation.navigate('Welcome')}>
                 <Text style={styles.logo}>BARBER<Text style={styles.logoA}>.IT</Text></Text>
               </TouchableOpacity>
             </View>
 
-            <View style={styles.heroBlock}>
-              <Text style={styles.title}>CREAR{'\n'}CUENTA</Text>
-              <Text style={styles.sub}>
-                ¿Ya tienes cuenta?{' '}
-                <Text style={styles.link} onPress={() => navigation.navigate('Login', { redirect })}>Inicia sesión</Text>
-              </Text>
+            {/* Progress */}
+            <View style={styles.progressRow}>
+              {Array.from({ length: totalSteps }).map((_, i) => (
+                <View
+                  key={i}
+                  style={[
+                    styles.progressDot,
+                    i + 1 === stepIndex && styles.progressDotActive,
+                    i + 1 < stepIndex && styles.progressDotDone,
+                  ]}
+                />
+              ))}
+              <Text style={styles.progressTxt}>PASO {stepIndex} DE {totalSteps}</Text>
             </View>
 
-            {/* Role selector */}
-            <View style={styles.roles}>
-              {[
-                { id: 'cliente', icon: '◉', title: 'SOY CLIENTE', sub: 'Quiero reservar' },
-                { id: 'barbero', icon: '✂', title: 'SOY BARBERO', sub: 'Aliado profesional' },
-                { id: 'admin_barberia', icon: '⊕', title: 'ADMIN BARBERÍA', sub: 'Gestiona tu barbería y equipo' },
-                { id: 'barbero_empleado', icon: '⊙', title: 'BARBERO COLABORADOR', sub: 'Únete a una barbería' },
-              ].map((r) => {
-                const active = role === r.id;
-                return (
-                  <TouchableOpacity
-                    key={r.id}
-                    style={[styles.roleBtn, active && styles.roleBtnOn]}
-                    onPress={() => setRole(r.id)}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={[styles.roleIcon, active && styles.roleIconOn]}>{r.icon}</Text>
-                    <Text style={[styles.roleTitle, active && styles.roleTitleOn]}>{r.title}</Text>
-                    <Text style={[styles.roleSub, active && styles.roleSubOn]}>{r.sub}</Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
+            {step === 'role' && (
+              <StepRole
+                role={role}
+                setRole={setRole}
+                onContinue={() => { setError(''); setStep('method'); }}
+                onGoLogin={() => navigation.navigate('Login', { redirect })}
+              />
+            )}
 
-            {/* Google */}
-            <TouchableOpacity style={styles.google} onPress={handleGoogle} disabled={loading} activeOpacity={0.8}>
-              <View style={styles.googleInner}>
-                <Text style={styles.googleIcon}>G</Text>
-                <Text style={styles.googleTxt}>CONTINUAR CON GOOGLE</Text>
-              </View>
-            </TouchableOpacity>
+            {step === 'method' && (
+              <StepMethod
+                currentRole={currentRole}
+                loading={loading}
+                error={error}
+                onGoogle={handleGoogle}
+                onEmail={() => { setError(''); setStep('form'); }}
+              />
+            )}
 
-            <View style={styles.divider}>
-              <View style={styles.divLine} />
-              <Text style={styles.divTxt}>O CON CORREO</Text>
-              <View style={styles.divLine} />
-            </View>
-
-            {/* Form card */}
-            <View style={styles.card}>
-              <Field label="NOMBRE" value={nombre} onChangeText={setNombre}
-                focused={focusedField === 'nombre'} onFocus={() => setFocusedField('nombre')} onBlur={() => setFocusedField(null)} />
-              <Field label="CORREO" value={email} onChangeText={setEmail} keyboardType="email-address"
-                focused={focusedField === 'email'} onFocus={() => setFocusedField('email')} onBlur={() => setFocusedField(null)} />
-              <Field label="TELÉFONO" value={telefono} onChangeText={setTelefono} keyboardType="phone-pad"
-                focused={focusedField === 'tel'} onFocus={() => setFocusedField('tel')} onBlur={() => setFocusedField(null)} />
-              <Field label="CONTRASEÑA" value={password} onChangeText={setPassword} secureTextEntry
-                focused={focusedField === 'pass'} onFocus={() => setFocusedField('pass')} onBlur={() => setFocusedField(null)} />
-
-              {role === 'barbero' && (
-                <View style={styles.slugWrap}>
-                  <Field
-                    label="URL DE TU PERFIL"
-                    value={slug}
-                    onChangeText={(v) => setSlug(v.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''))}
-                    placeholder="jovan-rivera"
-                    focused={focusedField === 'slug'}
-                    onFocus={() => setFocusedField('slug')}
-                    onBlur={() => setFocusedField(null)}
-                  />
-                  <View style={styles.slugPreview}>
-                    <Text style={styles.slugPreviewLabel}>barberit.vercel.app/barbero/</Text>
-                    <Text style={styles.slugPreviewValue}>{slug || 'tu-nombre'}</Text>
-                  </View>
-                </View>
-              )}
-
-              {error ? (
-                <View style={styles.errBox}>
-                  <Text style={styles.errIcon}>⚠</Text>
-                  <Text style={styles.err}>{error}</Text>
-                </View>
-              ) : null}
-
-              <TouchableOpacity
-                style={[styles.primaryBtn, loading && styles.primaryOff]}
-                onPress={handleSubmit}
-                disabled={loading}
-                activeOpacity={0.88}
-              >
-                <LinearGradient
-                  colors={loading ? [colors.gray, colors.gray] : [colors.acid, colors.acidDim]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={styles.primaryGrad}
-                >
-                  <Text style={styles.primaryTxt}>
-                    {loading ? 'CREANDO...' : role === 'barbero' ? 'CREAR PERFIL BARBERO →' : 'CREAR CUENTA →'}
-                  </Text>
-                </LinearGradient>
-              </TouchableOpacity>
-            </View>
+            {step === 'form' && (
+              <StepForm
+                currentRole={currentRole}
+                nombre={nombre} setNombre={setNombre}
+                email={email} setEmail={setEmail}
+                telefono={telefono} setTelefono={setTelefono}
+                password={password} setPassword={setPassword}
+                slug={slug} setSlug={setSlug}
+                focusedField={focusedField} setFocusedField={setFocusedField}
+                loading={loading}
+                error={error}
+                onSubmit={handleSubmit}
+              />
+            )}
 
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
+    </View>
+  );
+}
+
+/* ────────────────── Paso 1: Rol ────────────────── */
+function StepRole({ role, setRole, onContinue, onGoLogin }) {
+  return (
+    <View>
+      <View style={styles.heroBlock}>
+        <Text style={styles.title}>CREAR{'\n'}CUENTA</Text>
+        <Text style={styles.sub}>
+          ¿Ya tienes cuenta?{' '}
+          <Text style={styles.link} onPress={onGoLogin}>Inicia sesión</Text>
+        </Text>
+      </View>
+
+      <Text style={styles.sectionLbl}>¿CUÁL ES TU ROL EN TRIMMERIT?</Text>
+      <Text style={styles.sectionHint}>Elegí uno para continuar.</Text>
+
+      <View style={styles.roles}>
+        {ROLES.map((r) => {
+          const active = role === r.id;
+          return (
+            <TouchableOpacity
+              key={r.id}
+              style={[styles.roleBtn, active && styles.roleBtnOn]}
+              onPress={() => setRole(r.id)}
+              activeOpacity={0.8}
+            >
+              <Text style={[styles.roleIcon, active && styles.roleIconOn]}>{r.icon}</Text>
+              <Text style={[styles.roleTitle, active && styles.roleTitleOn]}>{r.title}</Text>
+              <Text style={[styles.roleSub, active && styles.roleSubOn]}>{r.sub}</Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+
+      <TouchableOpacity style={styles.primaryBtn} onPress={onContinue} activeOpacity={0.88}>
+        <LinearGradient
+          colors={[colors.acid, colors.acidDim]}
+          start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+          style={styles.primaryGrad}
+        >
+          <Text style={styles.primaryTxt}>CONTINUAR →</Text>
+        </LinearGradient>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+/* ────────────────── Paso 2: Método ────────────────── */
+function StepMethod({ currentRole, loading, error, onGoogle, onEmail }) {
+  return (
+    <View>
+      <View style={styles.heroBlock}>
+        <Text style={styles.title}>¿CÓMO CREAMOS{'\n'}TU CUENTA?</Text>
+        <Text style={styles.sub}>
+          Registrándote como{' '}
+          <Text style={styles.link}>{currentRole.title.toLowerCase()}</Text>.
+        </Text>
+      </View>
+
+      <TouchableOpacity
+        style={[styles.methodCard, loading && styles.primaryOff]}
+        onPress={onGoogle}
+        disabled={loading}
+        activeOpacity={0.85}
+      >
+        <View style={styles.methodIconCircle}>
+          <Text style={styles.methodGoogleIcon}>G</Text>
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.methodTitle}>CONTINUAR CON GOOGLE</Text>
+          <Text style={styles.methodSub}>Un toque, sin contraseña.</Text>
+        </View>
+        <Text style={styles.methodArrow}>→</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={[styles.methodCard, loading && styles.primaryOff]}
+        onPress={onEmail}
+        disabled={loading}
+        activeOpacity={0.85}
+      >
+        <View style={styles.methodIconCircle}>
+          <Text style={styles.methodEmailIcon}>@</Text>
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.methodTitle}>CONTINUAR CON CORREO</Text>
+          <Text style={styles.methodSub}>Te pedimos tus datos en el siguiente paso.</Text>
+        </View>
+        <Text style={styles.methodArrow}>→</Text>
+      </TouchableOpacity>
+
+      {error ? (
+        <View style={styles.errBox}>
+          <Text style={styles.errIcon}>⚠</Text>
+          <Text style={styles.err}>{error}</Text>
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
+/* ────────────────── Paso 3: Formulario (correo) ────────────────── */
+function StepForm({
+  currentRole,
+  nombre, setNombre,
+  email, setEmail,
+  telefono, setTelefono,
+  password, setPassword,
+  slug, setSlug,
+  focusedField, setFocusedField,
+  loading, error,
+  onSubmit,
+}) {
+  const isBarbero = currentRole.id === 'barbero';
+  const titleLine = currentRole.id === 'cliente'   ? 'TUS\nDATOS'
+                  : isBarbero                      ? 'TU PERFIL\nDE BARBERO'
+                  : currentRole.id === 'admin_barberia' ? 'TU CUENTA\nDE ADMIN'
+                  : 'TU CUENTA\nCOLABORADOR';
+
+  return (
+    <View>
+      <View style={styles.heroBlock}>
+        <Text style={styles.title}>{titleLine}</Text>
+        <Text style={styles.sub}>
+          Como <Text style={styles.link}>{currentRole.title.toLowerCase()}</Text>.
+        </Text>
+      </View>
+
+      <View style={styles.card}>
+        <Field label="NOMBRE" value={nombre} onChangeText={setNombre}
+          focused={focusedField === 'nombre'} onFocus={() => setFocusedField('nombre')} onBlur={() => setFocusedField(null)} />
+        <Field label="CORREO" value={email} onChangeText={setEmail} keyboardType="email-address"
+          focused={focusedField === 'email'} onFocus={() => setFocusedField('email')} onBlur={() => setFocusedField(null)} />
+        <Field label="TELÉFONO" value={telefono} onChangeText={setTelefono} keyboardType="phone-pad"
+          focused={focusedField === 'tel'} onFocus={() => setFocusedField('tel')} onBlur={() => setFocusedField(null)} />
+        <Field label="CONTRASEÑA" value={password} onChangeText={setPassword} secureTextEntry
+          focused={focusedField === 'pass'} onFocus={() => setFocusedField('pass')} onBlur={() => setFocusedField(null)} />
+
+        {isBarbero && (
+          <View style={styles.slugWrap}>
+            <Field
+              label="URL DE TU PERFIL"
+              value={slug}
+              onChangeText={(v) => setSlug(v.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''))}
+              placeholder="jovan-rivera"
+              focused={focusedField === 'slug'}
+              onFocus={() => setFocusedField('slug')}
+              onBlur={() => setFocusedField(null)}
+            />
+            <View style={styles.slugPreview}>
+              <Text style={styles.slugPreviewLabel}>barberit.vercel.app/barbero/</Text>
+              <Text style={styles.slugPreviewValue}>{slug || 'tu-nombre'}</Text>
+            </View>
+          </View>
+        )}
+
+        {error ? (
+          <View style={styles.errBox}>
+            <Text style={styles.errIcon}>⚠</Text>
+            <Text style={styles.err}>{error}</Text>
+          </View>
+        ) : null}
+
+        <TouchableOpacity
+          style={[styles.primaryBtn, loading && styles.primaryOff]}
+          onPress={onSubmit}
+          disabled={loading}
+          activeOpacity={0.88}
+        >
+          <LinearGradient
+            colors={loading ? [colors.gray, colors.gray] : [colors.acid, colors.acidDim]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.primaryGrad}
+          >
+            <Text style={styles.primaryTxt}>
+              {loading ? 'CREANDO...' : isBarbero ? 'CREAR PERFIL BARBERO →' : 'CREAR CUENTA →'}
+            </Text>
+          </LinearGradient>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
@@ -313,6 +471,42 @@ const styles = StyleSheet.create({
   sub: { fontFamily: fonts.body, fontSize: 15, color: colors.grayLight },
   link: { color: colors.acid, fontFamily: fonts.bodyBold },
 
+  progressRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 20,
+  },
+  progressDot: {
+    width: 22,
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: colors.cardBorder,
+  },
+  progressDotActive: { backgroundColor: colors.acid },
+  progressDotDone: { backgroundColor: colors.acidDim },
+  progressTxt: {
+    marginLeft: 8,
+    fontFamily: fonts.bodyBold,
+    fontSize: 9,
+    letterSpacing: 2,
+    color: colors.grayMid,
+  },
+
+  sectionLbl: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 11,
+    letterSpacing: 2,
+    color: colors.grayLight,
+    marginBottom: 4,
+  },
+  sectionHint: {
+    fontFamily: fonts.body,
+    fontSize: 13,
+    color: colors.grayMid,
+    marginBottom: 16,
+  },
+
   roles: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 20 },
   roleBtn: {
     width: '47%',
@@ -332,21 +526,34 @@ const styles = StyleSheet.create({
   roleSub: { fontFamily: fonts.body, fontSize: 11, color: colors.grayMid },
   roleSubOn: { color: colors.acidDim },
 
-  google: {
+  methodCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
     borderWidth: 1,
     borderColor: colors.cardBorder,
-    borderRadius: radii.sm,
+    borderRadius: radii.md,
     backgroundColor: colors.dark2,
-    marginBottom: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    marginBottom: 12,
     ...shadows.sm,
   },
-  googleInner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 14, gap: 10 },
-  googleIcon: { fontFamily: fonts.bodyBold, fontSize: 16, color: colors.white },
-  googleTxt: { fontFamily: fonts.bodyBold, fontSize: 13, letterSpacing: 2, color: colors.white },
-
-  divider: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 16 },
-  divLine: { flex: 1, height: 1, backgroundColor: colors.gray },
-  divTxt: { fontFamily: fonts.bodyBold, fontSize: 9, color: colors.grayMid, letterSpacing: 2 },
+  methodIconCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: radii.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    backgroundColor: colors.dark3,
+  },
+  methodGoogleIcon: { fontFamily: fonts.bodyBold, fontSize: 18, color: colors.white },
+  methodEmailIcon: { fontFamily: fonts.display, fontSize: 20, color: colors.acid },
+  methodTitle: { fontFamily: fonts.bodyBold, fontSize: 13, letterSpacing: 2, color: colors.white, marginBottom: 2 },
+  methodSub: { fontFamily: fonts.body, fontSize: 12, color: colors.grayMid },
+  methodArrow: { fontFamily: fonts.display, fontSize: 20, color: colors.grayLight },
 
   card: {
     backgroundColor: colors.dark2,

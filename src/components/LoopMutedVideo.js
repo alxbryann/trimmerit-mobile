@@ -1,23 +1,35 @@
-import { Video, ResizeMode } from 'expo-av';
+import { Platform, View, StyleSheet } from 'react-native';
+import { useVideoPlayer, VideoView } from 'expo-video';
 
 /**
- * Video en bucle, silenciado, sin controles (hero / galería).
- * Usa expo-av (mismo runtime que el resto del proyecto) para evitar fallos si el binario
- * no incluye el módulo nativo de expo-video.
+ * Hero / galería: bucle, mute, sin controles.
+ * useVideoPlayer must always be called (Rules of Hooks) — we pass null when
+ * there is no URI and skip rendering VideoView instead.
  */
 export default function LoopMutedVideo({ uri, style, contentFit = 'cover' }) {
-  if (!uri) return null;
-  const resizeMode =
-    contentFit === 'contain' ? ResizeMode.CONTAIN : ResizeMode.COVER;
+  const trimmed = typeof uri === 'string' ? uri.trim() : '';
+
+  const player = useVideoPlayer(trimmed || null, (p) => {
+    if (!trimmed) return;
+    p.loop = true;
+    p.muted = true;
+    p.audioMixingMode = 'mixWithOthers';
+    p.play();
+  });
+
+  if (!trimmed) return null;
+
   return (
-    <Video
-      source={{ uri }}
-      style={style}
-      resizeMode={resizeMode}
-      isLooping
-      shouldPlay
-      isMuted
-      useNativeControls={false}
-    />
+    <View style={style} collapsable={false} pointerEvents="none">
+      <VideoView
+        player={player}
+        style={StyleSheet.absoluteFillObject}
+        contentFit={contentFit}
+        nativeControls={false}
+        allowsFullscreen={false}
+        allowsPictureInPicture={false}
+        {...(Platform.OS === 'android' ? { surfaceType: 'textureView' } : {})}
+      />
+    </View>
   );
 }

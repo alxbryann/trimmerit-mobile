@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "lastScanned": 1776212885900,
+  "lastScanned": 1776481880300,
   "projectRoot": "/Users/bryanriano/Desktop/barberit-mobile",
   "techStack": {
     "languages": [
@@ -30,8 +30,8 @@
     "devCommand": "npm run start",
     "scripts": {
       "start": "expo start",
-      "android": "expo start --android",
-      "ios": "expo start --ios",
+      "android": "expo run:android",
+      "ios": "expo run:ios",
       "web": "expo start --web"
     }
   },
@@ -48,45 +48,67 @@
       "assets",
       "src"
     ],
-    "gitBranches": null
+    "gitBranches": {
+      "defaultBranch": "main",
+      "branchingStrategy": null
+    }
   },
   "customNotes": [],
   "directoryMap": {
     "assets": {
       "path": "assets",
       "purpose": "Static assets",
-      "fileCount": 4,
-      "lastAccessed": 1776212885811,
+      "fileCount": 6,
+      "lastAccessed": 1776481880278,
       "keyFiles": [
         "adaptive-icon.png",
+        "barber_buzz.caf",
+        "barber_buzz.wav",
         "favicon.png",
-        "icon.png",
-        "splash-icon.png"
+        "icon.png"
       ]
     },
     "dist": {
       "path": "dist",
       "purpose": "Distribution/build output",
       "fileCount": 1,
-      "lastAccessed": 1776212885811,
+      "lastAccessed": 1776481880279,
       "keyFiles": [
         "metadata.json"
+      ]
+    },
+    "ios": {
+      "path": "ios",
+      "purpose": null,
+      "fileCount": 6,
+      "lastAccessed": 1776481880282,
+      "keyFiles": [
+        "Podfile",
+        "Podfile.lock",
+        "Podfile.properties.json"
       ]
     },
     "src": {
       "path": "src",
       "purpose": "Source code",
       "fileCount": 1,
-      "lastAccessed": 1776212885811,
+      "lastAccessed": 1776481880282,
       "keyFiles": [
         "theme.js"
       ]
+    },
+    "supabase": {
+      "path": "supabase",
+      "purpose": null,
+      "fileCount": 0,
+      "lastAccessed": 1776481880282,
+      "keyFiles": []
     },
     "dist/assets": {
       "path": "dist/assets",
       "purpose": "Static assets",
       "fileCount": 35,
-      "lastAccessed": 1776212885813,
+      "lastAccessed": 1776481880283,
       "keyFiles": [
         "0747a1317bbe9c6fc340b889ef8ab3ae",
         "0a328cd9c1afd0afe8e3b1ec5165b1b4",
@@ -97,7 +119,7 @@
       "path": "src/api",
       "purpose": "API routes",
       "fileCount": 1,
-      "lastAccessed": 1776212885831,
+      "lastAccessed": 1776481880283,
       "keyFiles": [
         "notify.js"
       ]
@@ -105,127 +127,137 @@
     "src/components": {
       "path": "src/components",
       "purpose": "UI components",
-      "fileCount": 0,
-      "lastAccessed": 1776212885832,
-      "keyFiles": []
+      "fileCount": 5,
+      "lastAccessed": 1776481880284,
+      "keyFiles": [
+        "ClienteReservaCard.js",
+        "LoopMutedVideo.js",
+        "LoyaltyCard.js"
+      ]
     },
     "src/lib": {
       "path": "src/lib",
       "purpose": "Library code",
-      "fileCount": 3,
-      "lastAccessed": 1776212885834,
+      "fileCount": 6,
+      "lastAccessed": 1776481880284,
       "keyFiles": [
         "googleAuth.js",
-        "oauthRedirect.js",
-        "supabase.js"
+        "mockData.js",
+        "notifications.js"
       ]
     },
     "src/utils": {
       "path": "src/utils",
       "purpose": "Utility functions",
-      "fileCount": 1,
-      "lastAccessed": 1776212885834,
+      "fileCount": 2,
+      "lastAccessed": 1776481880284,
       "keyFiles": [
-        "booking.js"
+        "booking.js",
+        "serviceIcons.js"
+      ]
+    },
+    "supabase/migrations": {
+      "path": "supabase/migrations",
+      "purpose": "Database migrations",
+      "fileCount": 4,
+      "lastAccessed": 1776481880285,
+      "keyFiles": [
+        "20260417_acciones_cliente.sql",
+        "20260417_loyalty_system.sql",
+        "20260417_reserva_solicitudes.sql"
       ]
     }
   },
   "hotPaths": [
     {
-      "path": "src/screens/HomeScreen.js",
-      "accessCount": 11,
-      "lastAccessed": 1776214885587,
-      "type": "file"
-    },
-    {
-      "path": "src/screens/LoginScreen.js",
-      "accessCount": 10,
-      "lastAccessed": 1776214481700,
-      "type": "file"
-    },
-    {
-      "path": "src/lib/googleAuth.js",
-      "accessCount": 8,
-      "lastAccessed": 1776214474678,
-      "type": "file"
-    },
-    {
-      "path": "src/screens/AgendaScreen.js",
-      "accessCount": 3,
-      "lastAccessed": 1776218288193,
+      "path": "src/navigation/MainTabNavigator.js",
+      "accessCount": 7,
+      "lastAccessed": 1776482380377,
       "type": "file"
     },
     {
       "path": "src/theme.js",
-      "accessCount": 2,
-      "lastAccessed": 1776212953745,
+      "accessCount": 3,
+      "lastAccessed": 1776482130277,
       "type": "file"
     },
     {
-      "path": "src/screens/RegistroScreen.js",
+      "path": "App.js",
+      "accessCount": 3,
+      "lastAccessed": 1776482144437,
+      "type": "file"
+    },
+    {
+      "path": "app.config.js",
+      "accessCount": 3,
+      "lastAccessed": 1776482156706,
+      "type": "file"
+    },
+    {
+      "path": "src/screens/HomeScreen.js",
       "accessCount": 2,
-      "lastAccessed": 1776213086171,
+      "lastAccessed": 1776482174681,
+      "type": "file"
+    },
+    {
+      "path": "src/screens/LoginScreen.js",
+      "accessCount": 2,
+      "lastAccessed": 1776482216423,
       "type": "file"
     },
     {
       "path": "src/screens/BarberosScreen.js",
       "accessCount": 2,
-      "lastAccessed": 1776213116638,
+      "lastAccessed": 1776482258177,
       "type": "file"
     },
     {
-      "path": "src/screens/BarberProfileScreen.js",
+      "path": "src/screens/AgendaScreen.js",
       "accessCount": 2,
-      "lastAccessed": 1776213237768,
+      "lastAccessed": 1776482306831,
       "type": "file"
     },
     {
-      "path": "src/screens",
+      "path": "src/screens/LoyaltyCardScreen.js",
       "accessCount": 2,
-      "lastAccessed": 1776213244795,
-      "type": "directory"
-    },
-    {
-      "path": "src/screens/PanelScreen.js",
-      "accessCount": 1,
-      "lastAccessed": 1776212932185,
+      "lastAccessed": 1776482342030,
       "type": "file"
     },
     {
-      "path": "src/screens/EditarScreen.js",
-      "accessCount": 1,
-      "lastAccessed": 1776212932561,
+      "path": "src/components/LoopMutedVideo.js",
+      "accessCount": 2,
+      "lastAccessed": 1776483754992,
       "type": "file"
     },
     {
-      "path": "src/screens/CompletarPerfilScreen.js",
+      "path": "package.json",
       "accessCount": 1,
-      "lastAccessed": 1776212933135,
-      "type": "file"
-    },
-    {
-      "path": "src/lib/oauthRedirect.js",
-      "accessCount": 1,
-      "lastAccessed": 1776213708111,
+      "lastAccessed": 1776481964534,
       "type": "file"
     },
     {
       "path": "src/navigation/AppNavigator.js",
       "accessCount": 1,
-      "lastAccessed": 1776213861972,
+      "lastAccessed": 1776481975260,
       "type": "file"
     },
     {
       "path": "src/lib/supabase.js",
       "accessCount": 1,
-      "lastAccessed": 1776214768603,
+      "lastAccessed": 1776481979854,
       "type": "file"
     },
     {
-      "path": "src",
+      "path": "src/components/LoyaltyCard.js",
       "accessCount": 1,
-      "lastAccessed": 1776218277033,
-      "type": "directory"
+      "lastAccessed": 1776482386100,
+      "type": "file"
+    },
+    {
+      "path": "src/screens/BarberProfileScreen.js",
+      "accessCount": 1,
+      "lastAccessed": 1776483699609,
+      "type": "file"
     }
   ],
   "userDirectives": []

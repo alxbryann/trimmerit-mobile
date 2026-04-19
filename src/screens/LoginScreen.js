@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import {
   View,
   Text,
@@ -8,14 +8,12 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
-  Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
 import { supabase, supabaseConfigured } from '../lib/supabase';
 import { signInWithGoogle } from '../lib/googleAuth';
-import { colors, fonts, radii, shadows } from '../theme';
-import { RESET_MAIN_AGENDA, resetToBarberMainTabs } from '../navigation/resetMainTabs';
+import { colors, fonts } from '../theme';
+import { resolvePostAuthDestination, applyPostAuthDestination } from '../navigation/postAuthRouting';
 
 export default function LoginScreen({ navigation, route }) {
   const redirect = route.params?.redirect;
@@ -26,27 +24,17 @@ export default function LoginScreen({ navigation, route }) {
   const [focusedField, setFocusedField] = useState(null);
 
   async function afterAuthSuccess(userId) {
-    const { data: profile } = await supabase.from('profiles').select('role').eq('id', userId).single();
-
-    if (profile?.role === 'barbero') {
-      const { data: barbero } = await supabase
-        .from('barberos')
-        .select('slug')
-        .eq('id', userId)
-        .maybeSingle();
-      if (!barbero?.slug) {
-        setError('Tu cuenta no tiene perfil de barbero. Confirma el correo o revisa en Supabase la fila en barberos.');
-        return false;
-      }
-      navigation.reset(resetToBarberMainTabs(barbero.slug));
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user || session.user.id !== userId) {
+      setError('No se pudo validar la sesión.');
+      return false;
+    }
+    const dest = await resolvePostAuthDestination(session);
+    if (redirect?.screen && dest.kind === 'route' && dest.name === 'MainTabs') {
+      navigation.reset({ index: 0, routes: [{ name: redirect.screen, params: redirect.params ?? {} }] });
       return true;
     }
-
-    if (redirect?.screen) {
-      navigation.reset({ index: 0, routes: [{ name: redirect.screen, params: redirect.params ?? {} }] });
-    } else {
-      navigation.reset(RESET_MAIN_AGENDA);
-    }
+    applyPostAuthDestination(navigation, dest, { redirect: redirect ?? null });
     return true;
   }
 
@@ -92,34 +80,27 @@ export default function LoginScreen({ navigation, route }) {
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
 
-            {/* Header */}
             <View style={styles.header}>
-              <TouchableOpacity
-                onPress={() => navigation.navigate('Welcome')}
-                style={styles.backBtn}
-              >
-                <Text style={styles.backText}>← INICIO</Text>
-              </TouchableOpacity>
               <TouchableOpacity onPress={() => navigation.navigate('Welcome')}>
-                <Text style={styles.logo}>BARBER<Text style={styles.logoA}>.IT</Text></Text>
+                <Text style={styles.backText}>← inicio</Text>
               </TouchableOpacity>
+              <Text style={styles.logo}>trimmerit<Text style={styles.logoAccent}>.</Text></Text>
             </View>
 
-            {/* Hero text */}
             <View style={styles.heroBlock}>
-              <Text style={styles.title}>BIENVENIDO</Text>
+              <Text style={styles.tagline}>— entrar —</Text>
+              <Text style={styles.title}>bienvenido{'\n'}de vuelta.</Text>
               <Text style={styles.sub}>
-                ¿No tienes cuenta?{' '}
+                ¿No tenés cuenta?{' '}
                 <Text style={styles.link} onPress={() => navigation.navigate('Registro', { redirect })}>
-                  Regístrate
+                  Registrate
                 </Text>
               </Text>
             </View>
 
-            {/* Card form */}
             <View style={styles.card}>
               <Field
-                label="CORREO"
+                label="correo"
                 value={email}
                 onChangeText={setEmail}
                 keyboardType="email-address"
@@ -129,7 +110,7 @@ export default function LoginScreen({ navigation, route }) {
                 autoCapitalize="none"
               />
               <Field
-                label="CONTRASEÑA"
+                label="contraseña"
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry
@@ -140,7 +121,6 @@ export default function LoginScreen({ navigation, route }) {
 
               {error ? (
                 <View style={styles.errBox}>
-                  <Text style={styles.errIcon}>⚠</Text>
                   <Text style={styles.err}>{error}</Text>
                 </View>
               ) : null}
@@ -151,35 +131,24 @@ export default function LoginScreen({ navigation, route }) {
                 disabled={loading}
                 activeOpacity={0.88}
               >
-                <LinearGradient
-                  colors={loading ? [colors.gray, colors.gray] : [colors.acid, colors.acidDim]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={styles.primaryGrad}
-                >
-                  <Text style={styles.primaryTxt}>{loading ? 'ENTRANDO...' : 'ENTRAR →'}</Text>
-                </LinearGradient>
+                <Text style={styles.primaryTxt}>{loading ? 'entrando...' : 'entrar'}</Text>
+                <Text style={styles.primaryArrow}>→</Text>
               </TouchableOpacity>
             </View>
 
-            {/* Divider */}
             <View style={styles.divider}>
               <View style={styles.divLine} />
-              <Text style={styles.divTxt}>O CONTINÚA CON</Text>
+              <Text style={styles.divTxt}>o continuá con</Text>
               <View style={styles.divLine} />
             </View>
 
-            {/* Google */}
             <TouchableOpacity style={styles.google} onPress={handleGoogle} disabled={loading} activeOpacity={0.8}>
-              <View style={styles.googleInner}>
-                <Text style={styles.googleIcon}>G</Text>
-                <Text style={styles.googleTxt}>CONTINUAR CON GOOGLE</Text>
-              </View>
+              <Text style={styles.googleIcon}>G</Text>
+              <Text style={styles.googleTxt}>Google</Text>
             </TouchableOpacity>
 
-            {/* Barbero hint */}
             <View style={styles.hintRow}>
-              <Text style={styles.hint}>¿Eres barbero? </Text>
+              <Text style={styles.hint}>¿Sos barbero? </Text>
               <TouchableOpacity onPress={() => navigation.navigate('Registro')}>
                 <Text style={styles.link}>Únete →</Text>
               </TouchableOpacity>
@@ -200,7 +169,7 @@ function Field({ label, value, onChangeText, keyboardType, secureTextEntry, focu
         value={value}
         onChangeText={onChangeText}
         style={[fieldStyles.input, focused && fieldStyles.inputFocused]}
-        placeholderTextColor={colors.grayMid}
+        placeholderTextColor={colors.muted2}
         keyboardType={keyboardType}
         secureTextEntry={secureTextEntry}
         autoCapitalize={autoCapitalize ?? 'none'}
@@ -214,32 +183,28 @@ function Field({ label, value, onChangeText, keyboardType, secureTextEntry, focu
 const fieldStyles = StyleSheet.create({
   wrap: { marginBottom: 16 },
   lbl: {
-    fontFamily: fonts.bodyBold,
+    fontFamily: fonts.mono,
     fontSize: 10,
-    letterSpacing: 2,
-    color: colors.grayLight,
+    letterSpacing: 3,
+    color: colors.champagne,
     marginBottom: 8,
     textTransform: 'uppercase',
   },
   input: {
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    backgroundColor: colors.dark3,
-    color: colors.white,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+    color: colors.paper,
     fontFamily: fonts.body,
-    fontSize: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderRadius: radii.sm,
+    fontSize: 17,
+    paddingVertical: 10,
   },
   inputFocused: {
-    borderColor: colors.acid,
-    backgroundColor: '#131500',
+    borderBottomColor: colors.champagne,
   },
 });
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.black },
+  root: { flex: 1, backgroundColor: colors.ink },
   safe: { flex: 1 },
   scroll: { padding: 20, paddingBottom: 40 },
 
@@ -247,121 +212,125 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 32,
-  },
-  backBtn: {
-    paddingVertical: 6,
-    paddingHorizontal: 2,
+    marginBottom: 28,
   },
   backText: {
-    fontFamily: fonts.bodyBold,
+    fontFamily: fonts.mono,
     fontSize: 11,
-    letterSpacing: 2,
-    color: colors.grayMid,
+    letterSpacing: 3,
+    textTransform: 'uppercase',
+    color: colors.muted,
   },
-  logo: { fontFamily: fonts.display, fontSize: 22, letterSpacing: 2, color: colors.white },
-  logoA: { color: colors.acid },
+  logo: {
+    fontFamily: fonts.display,
+    fontStyle: 'italic',
+    fontSize: 16,
+    color: colors.paper,
+    letterSpacing: -0.5,
+  },
+  logoAccent: { color: colors.champagne },
 
   heroBlock: { marginBottom: 28 },
+  tagline: {
+    fontFamily: fonts.mono,
+    fontSize: 11,
+    letterSpacing: 3,
+    textTransform: 'uppercase',
+    color: colors.champagne,
+    marginBottom: 8,
+  },
   title: {
     fontFamily: fonts.display,
-    fontSize: 48,
-    color: colors.white,
-    marginBottom: 8,
-    letterSpacing: 1,
-    lineHeight: 46,
+    fontStyle: 'italic',
+    fontSize: 50,
+    lineHeight: 50,
+    color: colors.paper,
+    letterSpacing: -1,
+    marginBottom: 10,
   },
-  sub: { fontFamily: fonts.body, fontSize: 15, color: colors.grayLight },
-  link: { color: colors.acid, fontFamily: fonts.bodyBold },
+  sub: { fontFamily: fonts.body, fontSize: 14, color: colors.muted },
+  link: { color: colors.champagne, fontFamily: fonts.bodySemi },
 
   card: {
-    backgroundColor: colors.dark2,
     borderWidth: 1,
-    borderColor: colors.cardBorder,
-    borderRadius: radii.lg,
+    borderColor: colors.border,
+    backgroundColor: 'rgba(242,239,231,0.02)',
     padding: 20,
     marginBottom: 24,
-    ...shadows.sm,
   },
 
   errBox: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 8,
     borderWidth: 1,
-    borderColor: 'rgba(255,107,107,0.3)',
+    borderColor: 'rgba(184,94,76,0.3)',
     backgroundColor: colors.dangerSoft,
     padding: 12,
-    borderRadius: radii.sm,
     marginBottom: 14,
   },
-  errIcon: { fontSize: 14, color: colors.danger },
-  err: { fontFamily: fonts.body, color: colors.danger, fontSize: 13, flex: 1, lineHeight: 18 },
+  err: { fontFamily: fonts.body, color: colors.terracota, fontSize: 13, lineHeight: 18 },
 
   primary: {
-    borderRadius: radii.sm,
-    overflow: 'hidden',
+    backgroundColor: colors.champagne,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginTop: 4,
-    ...shadows.acid,
   },
   primaryOff: { opacity: 0.55 },
-  primaryGrad: {
-    paddingVertical: 16,
-    alignItems: 'center',
-  },
   primaryTxt: {
     fontFamily: fonts.display,
+    fontStyle: 'italic',
     fontSize: 18,
-    letterSpacing: 3,
-    color: colors.black,
+    color: colors.ink,
+    letterSpacing: -0.5,
+  },
+  primaryArrow: {
+    fontFamily: fonts.display,
+    fontStyle: 'italic',
+    fontSize: 20,
+    color: colors.ink,
   },
 
   divider: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    marginBottom: 16,
+    marginBottom: 14,
   },
-  divLine: { flex: 1, height: 1, backgroundColor: colors.gray },
+  divLine: { flex: 1, height: 1, backgroundColor: colors.border },
   divTxt: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 9,
-    color: colors.grayMid,
-    letterSpacing: 2,
+    fontFamily: fonts.mono,
+    fontSize: 10,
+    color: colors.muted,
+    letterSpacing: 3,
+    textTransform: 'uppercase',
   },
 
   google: {
     borderWidth: 1,
-    borderColor: colors.cardBorder,
-    borderRadius: radii.sm,
-    backgroundColor: colors.dark2,
-    marginBottom: 28,
-    ...shadows.sm,
-  },
-  googleInner: {
+    borderColor: colors.border,
+    paddingVertical: 14,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 14,
     gap: 10,
+    marginBottom: 28,
   },
   googleIcon: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 16,
-    color: colors.white,
-    letterSpacing: 0,
+    fontFamily: fonts.display,
+    fontStyle: 'italic',
+    fontSize: 18,
+    color: colors.paper,
   },
   googleTxt: {
-    fontFamily: fonts.bodyBold,
+    fontFamily: fonts.bodySemi,
     fontSize: 13,
-    letterSpacing: 2,
-    color: colors.white,
+    letterSpacing: 3,
+    textTransform: 'uppercase',
+    color: colors.paper,
   },
 
-  hintRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  hint: { fontFamily: fonts.body, fontSize: 13, color: colors.grayMid },
+  hintRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
+  hint: { fontFamily: fonts.body, fontSize: 13, color: colors.muted },
 });

@@ -2,12 +2,21 @@ import { useEffect } from 'react';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import * as Linking from 'expo-linking';
 import { useFonts } from 'expo-font';
-import { BebasNeue_400Regular } from '@expo-google-fonts/bebas-neue';
 import {
-  BarlowCondensed_400Regular,
-  BarlowCondensed_600SemiBold,
-  BarlowCondensed_700Bold,
-} from '@expo-google-fonts/barlow-condensed';
+  PlayfairDisplay_400Regular_Italic,
+  PlayfairDisplay_500Medium_Italic,
+  PlayfairDisplay_700Bold_Italic,
+  PlayfairDisplay_800ExtraBold_Italic,
+} from '@expo-google-fonts/playfair-display';
+import {
+  DMMono_300Light,
+  DMMono_400Regular,
+} from '@expo-google-fonts/dm-mono';
+import {
+  Inter_400Regular,
+  Inter_500Medium,
+  Inter_600SemiBold,
+} from '@expo-google-fonts/inter';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import AppNavigator from './src/navigation/AppNavigator';
@@ -21,18 +30,15 @@ import {
 } from './src/lib/notifications';
 
 export default function App() {
-  // Inicializar canal de notificaciones al arrancar la app
   useEffect(() => {
     setupNotificationChannel().catch(() => {});
     requestNotificationPermissions().catch(() => {});
   }, []);
 
   useEffect(() => {
-    // Register push token when user is already logged in on app open
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) registerPushToken();
     });
-    // Also register on sign-in
     const { data: authSub } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'SIGNED_IN') registerPushToken();
     });
@@ -53,16 +59,21 @@ export default function App() {
   }, []);
 
   const [fontsLoaded] = useFonts({
-    BebasNeue_400Regular,
-    BarlowCondensed_400Regular,
-    BarlowCondensed_600SemiBold,
-    BarlowCondensed_700Bold,
+    PlayfairDisplay_400Regular_Italic,
+    PlayfairDisplay_500Medium_Italic,
+    PlayfairDisplay_700Bold_Italic,
+    PlayfairDisplay_800ExtraBold_Italic,
+    DMMono_300Light,
+    DMMono_400Regular,
+    Inter_400Regular,
+    Inter_500Medium,
+    Inter_600SemiBold,
   });
 
   if (!fontsLoaded) {
     return (
       <View style={styles.boot}>
-        <ActivityIndicator size="large" color={colors.acid} />
+        <ActivityIndicator size="large" color={colors.champagne} />
       </View>
     );
   }
@@ -78,6 +89,6 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.black },
-  boot: { flex: 1, backgroundColor: colors.black, alignItems: 'center', justifyContent: 'center' },
+  root: { flex: 1, backgroundColor: colors.ink },
+  boot: { flex: 1, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
 });

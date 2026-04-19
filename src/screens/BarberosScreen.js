@@ -6,23 +6,18 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
-  Dimensions,
+  TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
 import { supabase, supabaseConfigured } from '../lib/supabase';
-import { colors, fonts, radii, shadows } from '../theme';
+import { colors, fonts } from '../theme';
 import { initialsFromNombre } from '../utils/booking';
-
-const CARD_ACCENTS = [colors.acid, '#00CFFF', '#FF6B35', '#A855F7'];
-const { width } = Dimensions.get('window');
-const pad = 12;
-const colW = (width - pad * 3) / 2;
 
 export default function BarberosScreen({ navigation }) {
   const [barbers, setBarbers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState(null);
+  const [q, setQ] = useState('');
 
   useEffect(() => {
     if (!supabaseConfigured) {
@@ -32,53 +27,35 @@ export default function BarberosScreen({ navigation }) {
     }
     let cancelled = false;
     const t = setTimeout(() => {
-      if (!cancelled) {
-        setLoading(false);
-        setFetchError('Tiempo de espera agotado.');
-      }
+      if (!cancelled) { setLoading(false); setFetchError('Tiempo de espera agotado.'); }
     }, 8000);
 
-    const selectCols =
-      'id, slug, especialidades, total_cortes, nombre_barberia, profiles(nombre)';
+    const selectCols = 'id, slug, especialidades, total_cortes, nombre_barberia, profiles(nombre)';
 
     async function fetchCatalog() {
       try {
         const { data, error } = await supabase.from('barberos').select(selectCols);
         clearTimeout(t);
         if (cancelled) return;
-
-        if (error) {
-          setFetchError(error.message);
-          setBarbers([]);
-          return;
-        }
+        if (error) { setFetchError(error.message); setBarbers([]); return; }
 
         let list = data ?? [];
         const { data: { session } } = await supabase.auth.getSession();
         const uid = session?.user?.id;
         if (uid) {
           const { data: mine, error: mineErr } = await supabase
-            .from('barberos')
-            .select(selectCols)
-            .eq('id', uid)
-            .maybeSingle();
+            .from('barberos').select(selectCols).eq('id', uid).maybeSingle();
           if (!cancelled && !mineErr && mine && !list.some((b) => b.id === mine.id)) {
             list = [mine, ...list];
           }
         }
-
         setFetchError(null);
         setBarbers(list);
       } catch (e) {
         clearTimeout(t);
-        if (!cancelled) {
-          setFetchError(String(e));
-          setBarbers([]);
-        }
+        if (!cancelled) { setFetchError(String(e)); setBarbers([]); }
       } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
+        if (!cancelled) setLoading(false);
       }
     }
 
@@ -87,54 +64,46 @@ export default function BarberosScreen({ navigation }) {
       if (event === 'TOKEN_REFRESHED') return;
       fetchCatalog();
     });
-
-    return () => {
-      cancelled = true;
-      clearTimeout(t);
-      sub.subscription.unsubscribe();
-    };
+    return () => { cancelled = true; clearTimeout(t); sub.subscription.unsubscribe(); };
   }, []);
+
+  const filtered = barbers.filter((b) => {
+    if (!q) return true;
+    const ql = q.toLowerCase();
+    const nombre = (b.nombre_barberia || b.profiles?.nombre || b.slug || '').toLowerCase();
+    return nombre.includes(ql);
+  });
 
   function renderItem({ item, index }) {
     const nombrePersona = item.profiles?.nombre?.trim() || item.slug.replace(/-/g, ' ');
     const nombre = item.nombre_barberia?.trim() || nombrePersona;
-    const nombreDisplay = nombre.toUpperCase();
     const specialty = item.especialidades?.length > 0 ? item.especialidades.join(' · ') : 'Fade · Diseños · Barba';
-    const accent = CARD_ACCENTS[index % CARD_ACCENTS.length];
     const ini = initialsFromNombre(nombrePersona, item.slug);
+    const featured = index === 0;
 
     return (
       <TouchableOpacity
-        style={[styles.card, { width: colW }]}
+        style={[styles.card, featured && styles.cardFeatured]}
         activeOpacity={0.88}
         onPress={() => navigation.navigate('BarberProfile', { slug: item.slug })}
       >
-        {/* Visual area */}
-        <View style={styles.cardVisual}>
-          <LinearGradient
-            colors={['#111111', '#0d0d0d']}
-            style={StyleSheet.absoluteFill}
-          />
-          {/* Accent top bar */}
-          <View style={[styles.cardAccentBar, { backgroundColor: accent }]} />
-          {/* Big initials */}
-          <Text style={[styles.watermark, { color: accent }]}>{ini}</Text>
-          {/* Cortes badge */}
-          {item.total_cortes > 0 && (
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>{item.total_cortes.toLocaleString()}</Text>
-              <Text style={styles.badgeSub}>cortes</Text>
-            </View>
-          )}
+        <View style={styles.cardTop}>
+          <View style={styles.cardMeta}>
+            <Text style={styles.cardKicker}>{featured ? '— destacado —' : `— ${specialty.split('·')[0].trim().toLowerCase()} —`}</Text>
+            <Text style={styles.cardTitle} numberOfLines={2}>{nombre}</Text>
+            <Text style={styles.cardSub}>por {nombrePersona}</Text>
+          </View>
+          <View style={styles.monoWrap}>
+            <Text style={styles.monoChar}>{ini.charAt(0).toLowerCase()}</Text>
+          </View>
         </View>
 
-        {/* Body */}
-        <View style={styles.cardBody}>
-          <Text style={styles.cardTitle} numberOfLines={2}>{nombreDisplay}</Text>
-          <Text style={styles.cardSub} numberOfLines={2}>{specialty}</Text>
-          <View style={[styles.cardBtn, { borderColor: accent }]}>
-            <Text style={[styles.cardBtnText, { color: accent }]}>VER PERFIL →</Text>
-          </View>
+        {item.total_cortes > 0 && (
+          <Text style={styles.cortesLabel}>★ {item.total_cortes.toLocaleString()} cortes</Text>
+        )}
+
+        <View style={styles.cardFooter}>
+          <Text style={styles.reservarBtn}>reservar →</Text>
         </View>
       </TouchableOpacity>
     );
@@ -143,29 +112,29 @@ export default function BarberosScreen({ navigation }) {
   return (
     <View style={styles.root}>
       <SafeAreaView style={styles.safe} edges={['top']}>
-        {/* Header */}
         <View style={styles.header}>
-          <View style={styles.headerTitle}>
-            <View style={styles.kickerRow}>
-              <View style={styles.kickerDot} />
-              <Text style={styles.kicker}>Barber.it · Bogotá</Text>
-            </View>
-            <Text style={styles.title}>CATÁLOGO{'\n'}DE BARBEROS</Text>
-          </View>
-          <Text style={styles.desc}>
-            Elige tu barbero y entra a su perfil para ver servicios y reservar turno.
-          </Text>
-          {/* Count pill */}
+          <Text style={styles.headerKicker}>— catálogo · n.º 47 —</Text>
+          <Text style={styles.headerTitle}>buena{'\n'}tijera.</Text>
+        </View>
+
+        <View style={styles.searchRow}>
+          <Text style={styles.searchIcon}>⌕</Text>
+          <TextInput
+            value={q}
+            onChangeText={setQ}
+            placeholder="buscar barbero o barbería"
+            placeholderTextColor={colors.muted2}
+            style={styles.searchInput}
+            autoCapitalize="none"
+          />
           {barbers.length > 0 && (
-            <View style={styles.countPill}>
-              <Text style={styles.countText}>{barbers.length} barberos disponibles</Text>
-            </View>
+            <Text style={styles.countText}>{filtered.length} abiertos</Text>
           )}
         </View>
 
         {loading && (
           <View style={styles.center}>
-            <ActivityIndicator size="large" color={colors.acid} />
+            <ActivityIndicator size="large" color={colors.champagne} />
             <Text style={styles.muted}>Cargando barberos…</Text>
           </View>
         )}
@@ -183,7 +152,7 @@ export default function BarberosScreen({ navigation }) {
           <View style={styles.center}>
             <View style={styles.emptyCard}>
               <Text style={styles.emptyIcon}>✦</Text>
-              <Text style={styles.emptyTitle}>AÚN NO HAY BARBEROS</Text>
+              <Text style={styles.emptyTitle}>aún no hay barberos</Text>
               <Text style={styles.muted}>Sé el primero en unirte a la plataforma.</Text>
               <TouchableOpacity onPress={() => navigation.navigate('Registro')} style={styles.linkBtn}>
                 <Text style={styles.linkText}>Registrate como barbero →</Text>
@@ -192,13 +161,11 @@ export default function BarberosScreen({ navigation }) {
           </View>
         )}
 
-        {!loading && !fetchError && barbers.length > 0 && (
+        {!loading && !fetchError && filtered.length > 0 && (
           <FlatList
-            data={barbers}
+            data={filtered}
             keyExtractor={(b) => b.id}
-            numColumns={2}
-            columnWrapperStyle={{ gap: pad, paddingHorizontal: pad, marginBottom: pad }}
-            contentContainerStyle={{ paddingTop: 4, paddingBottom: 40 }}
+            contentContainerStyle={styles.list}
             showsVerticalScrollIndicator={false}
             renderItem={renderItem}
           />
@@ -209,115 +176,153 @@ export default function BarberosScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.black },
+  root: { flex: 1, backgroundColor: colors.ink },
   safe: { flex: 1 },
 
-  header: { paddingHorizontal: 16, paddingBottom: 16 },
-  headerTitle: { marginBottom: 8, paddingTop: 4 },
-  kickerRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 },
-  kickerDot: { width: 5, height: 5, borderRadius: 3, backgroundColor: colors.acid },
-  kicker: { fontFamily: fonts.bodyBold, fontSize: 10, letterSpacing: 3, color: colors.acid },
-  title: {
+  header: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 14 },
+  headerKicker: {
+    fontFamily: fonts.mono,
+    fontSize: 11,
+    letterSpacing: 3,
+    textTransform: 'uppercase',
+    color: colors.champagne,
+    marginBottom: 6,
+  },
+  headerTitle: {
     fontFamily: fonts.display,
-    fontSize: 38,
-    color: colors.white,
-    letterSpacing: 1,
-    // lineHeight debe ser ≥ fontSize; si no, RN recorta ascensores (Bebas Neue)
-    lineHeight: 44,
+    fontStyle: 'italic',
+    fontSize: 48,
+    lineHeight: 46,
+    color: colors.paper,
+    letterSpacing: -1,
   },
-  desc: { fontFamily: fonts.body, fontSize: 14, color: colors.grayLight, lineHeight: 20, marginBottom: 12 },
-  countPill: {
-    alignSelf: 'flex-start',
-    backgroundColor: colors.dark2,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    borderRadius: radii.pill,
-    paddingHorizontal: 12,
-    paddingVertical: 5,
+
+  searchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginHorizontal: 20,
+    marginBottom: 14,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: colors.border,
+    paddingVertical: 12,
   },
-  countText: { fontFamily: fonts.bodyBold, fontSize: 10, color: colors.grayLight, letterSpacing: 1 },
+  searchIcon: { fontSize: 16, color: colors.champagne },
+  searchInput: {
+    flex: 1,
+    fontFamily: fonts.body,
+    fontSize: 15,
+    color: colors.paper,
+    paddingVertical: 0,
+  },
+  countText: {
+    fontFamily: fonts.mono,
+    fontSize: 10,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+    color: colors.muted,
+  },
 
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 },
-  muted: { fontFamily: fonts.body, color: colors.grayMid, textAlign: 'center', fontSize: 14 },
+  muted: { fontFamily: fonts.body, color: colors.muted, textAlign: 'center', fontSize: 14 },
 
   errCard: {
-    backgroundColor: colors.dangerSoft,
     borderWidth: 1,
-    borderColor: 'rgba(255,107,107,0.3)',
-    borderRadius: radii.md,
+    borderColor: 'rgba(184,94,76,0.3)',
     padding: 20,
     alignItems: 'center',
     gap: 8,
     maxWidth: 320,
   },
-  errIcon: { fontSize: 24, color: colors.danger },
-  err: { fontFamily: fonts.body, color: colors.danger, textAlign: 'center', fontSize: 14 },
+  errIcon: { fontSize: 24, color: colors.terracota },
+  err: { fontFamily: fonts.body, color: colors.terracota, textAlign: 'center', fontSize: 14 },
 
   emptyCard: {
-    backgroundColor: colors.dark2,
     borderWidth: 1,
-    borderColor: colors.cardBorder,
-    borderRadius: radii.lg,
+    borderColor: colors.border,
     padding: 28,
     alignItems: 'center',
     gap: 8,
     maxWidth: 320,
   },
-  emptyIcon: { fontSize: 28, color: colors.acid, marginBottom: 4 },
-  emptyTitle: { fontFamily: fonts.display, fontSize: 22, color: colors.white, letterSpacing: 1 },
-  linkBtn: { marginTop: 8 },
-  linkText: { fontFamily: fonts.bodyBold, color: colors.acid, fontSize: 13, letterSpacing: 1 },
-
-  // Card
-  card: {
-    backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    borderRadius: radii.md,
-    overflow: 'hidden',
-    ...shadows.sm,
+  emptyIcon: { fontSize: 28, color: colors.champagne, marginBottom: 4 },
+  emptyTitle: {
+    fontFamily: fonts.display,
+    fontStyle: 'italic',
+    fontSize: 22,
+    color: colors.paper,
+    letterSpacing: -0.5,
   },
-  cardVisual: {
-    aspectRatio: 3 / 4,
+  linkBtn: { marginTop: 8 },
+  linkText: { fontFamily: fonts.bodySemi, color: colors.champagne, fontSize: 13 },
+
+  list: { paddingHorizontal: 20, paddingBottom: 40, gap: 10 },
+
+  card: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: 16,
+    backgroundColor: 'transparent',
+  },
+  cardFeatured: {
+    borderColor: colors.champagneDim,
+    backgroundColor: colors.champagneGlow,
+  },
+  cardTop: { flexDirection: 'row', justifyContent: 'space-between', gap: 12, marginBottom: 10 },
+  cardMeta: { flex: 1 },
+  cardKicker: {
+    fontFamily: fonts.mono,
+    fontSize: 9,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+    color: colors.champagne,
+    marginBottom: 4,
+  },
+  cardTitle: {
+    fontFamily: fonts.display,
+    fontStyle: 'italic',
+    fontSize: 24,
+    lineHeight: 24,
+    color: colors.paper,
+    letterSpacing: -0.5,
+    marginBottom: 3,
+  },
+  cardSub: { fontFamily: fonts.body, fontSize: 12, color: colors.muted },
+  monoWrap: {
+    width: 52,
+    height: 52,
+    backgroundColor: colors.ink3,
     alignItems: 'center',
     justifyContent: 'center',
-    overflow: 'hidden',
-    position: 'relative',
+    flexShrink: 0,
   },
-  cardAccentBar: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 3,
-  },
-  watermark: {
+  monoChar: {
     fontFamily: fonts.display,
-    fontSize: 80,
-    opacity: 0.08,
+    fontStyle: 'italic',
+    fontSize: 32,
+    color: colors.champagne,
+    letterSpacing: -1,
+    lineHeight: 36,
   },
-  badge: {
-    position: 'absolute',
-    bottom: 10,
-    right: 10,
-    backgroundColor: 'rgba(0,0,0,0.8)',
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    borderRadius: radii.xs,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    alignItems: 'center',
+  cortesLabel: {
+    fontFamily: fonts.mono,
+    fontSize: 11,
+    letterSpacing: 1,
+    color: colors.champagne,
+    marginBottom: 10,
   },
-  badgeText: { fontFamily: fonts.display, fontSize: 14, color: colors.white },
-  badgeSub: { fontFamily: fonts.body, fontSize: 9, color: colors.grayLight, letterSpacing: 1 },
-  cardBody: { padding: 12 },
-  cardTitle: { fontFamily: fonts.display, fontSize: 17, color: colors.white, marginBottom: 6, letterSpacing: 0.5 },
-  cardSub: { fontFamily: fonts.body, fontSize: 11, color: colors.grayLight, marginBottom: 12, lineHeight: 14 },
-  cardBtn: {
-    borderWidth: 1,
-    paddingVertical: 9,
-    alignItems: 'center',
-    borderRadius: radii.xs,
+  cardFooter: {
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    paddingTop: 10,
+    alignItems: 'flex-end',
   },
-  cardBtnText: { fontFamily: fonts.bodyBold, fontSize: 10, letterSpacing: 2 },
+  reservarBtn: {
+    fontFamily: fonts.mono,
+    fontSize: 10,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+    color: colors.muted,
+  },
 });

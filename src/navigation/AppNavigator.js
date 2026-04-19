@@ -21,6 +21,7 @@ import EmpleadoBarberiaScreen from '../screens/EmpleadoBarberiaScreen';
 import LoyaltyConfigScreen from '../screens/LoyaltyConfigScreen';
 import { supabase, supabaseConfigured } from '../lib/supabase';
 import { colors } from '../theme';
+import { resolvePostAuthDestination, applyPostAuthDestination } from './postAuthRouting';
 
 const Stack = createNativeStackNavigator();
 
@@ -28,7 +29,10 @@ const navigationRef = createNavigationContainerRef();
 
 export default function AppNavigator() {
   const [bootReady, setBootReady] = useState(false);
-  const [initialRouteName, setInitialRouteName] = useState('Welcome');
+  /** Estado raíz de React Navigation (barbero con slug → tabs en Mi agenda). */
+  const [bootInitialState, setBootInitialState] = useState(undefined);
+  const [stackInitialRoute, setStackInitialRoute] = useState('Welcome');
+  const [completarInitialParams, setCompletarInitialParams] = useState({});
 
   useEffect(() => {
     let cancelled = false;
@@ -36,7 +40,9 @@ export default function AppNavigator() {
     async function boot() {
       if (!supabaseConfigured) {
         if (!cancelled) {
-          setInitialRouteName('Welcome');
+          setBootInitialState(undefined);
+          setStackInitialRoute('Welcome');
+          setCompletarInitialParams({});
           setBootReady(true);
         }
         return;
@@ -44,31 +50,24 @@ export default function AppNavigator() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!cancelled) {
         if (session?.user) {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('role')
-            .eq('id', session.user.id)
-            .maybeSingle();
-          const role = profile?.role;
-          if (role === 'admin_barberia') {
-            const { data: barberiaRow } = await supabase
-              .from('barberias')
-              .select('id')
-              .eq('admin_id', session.user.id)
-              .maybeSingle();
-            setInitialRouteName(barberiaRow ? 'AdminBarberia' : 'CrearBarberia');
-          } else if (role === 'barbero_empleado') {
-            const { data: barberoRow } = await supabase
-              .from('barberos')
-              .select('id, barberia_id')
-              .eq('id', session.user.id)
-              .maybeSingle();
-            setInitialRouteName(barberoRow?.barberia_id ? 'MainTabs' : 'UnirseBarberia');
+          const dest = await resolvePostAuthDestination(session);
+          if (dest.kind === 'reset') {
+            setBootInitialState(dest.state);
+            setStackInitialRoute('Welcome');
+            setCompletarInitialParams({});
+          } else if (dest.kind === 'completar') {
+            setBootInitialState(undefined);
+            setStackInitialRoute('CompletarPerfil');
+            setCompletarInitialParams(dest.params ?? {});
           } else {
-            setInitialRouteName('MainTabs');
+            setBootInitialState(undefined);
+            setStackInitialRoute(dest.name);
+            setCompletarInitialParams({});
           }
         } else {
-          setInitialRouteName('Welcome');
+          setBootInitialState(undefined);
+          setStackInitialRoute('Welcome');
+          setCompletarInitialParams({});
         }
         setBootReady(true);
       }
@@ -76,7 +75,7 @@ export default function AppNavigator() {
 
     boot();
 
-    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: sub } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!navigationRef.isReady()) return;
       if (event === 'SIGNED_OUT') {
         navigationRef.reset({ index: 0, routes: [{ name: 'Welcome' }] });
@@ -86,9 +85,11 @@ export default function AppNavigator() {
         const state = navigationRef.getRootState();
         const route = state?.routes?.[state?.index ?? 0];
         const name = route?.name;
-        if (name === 'Welcome' || name === 'Login' || name === 'Registro') {
-          navigationRef.reset({ index: 0, routes: [{ name: 'MainTabs' }] });
-        }
+        if (name === 'Registro' || name === 'CompletarPerfil') return;
+        if (name !== 'Welcome' && name !== 'Login') return;
+
+        const dest = await resolvePostAuthDestination(session);
+        applyPostAuthDestination(navigationRef, dest);
       }
     });
 
@@ -107,9 +108,9 @@ export default function AppNavigator() {
   }
 
   return (
-    <NavigationContainer ref={navigationRef}>
+    <NavigationContainer ref={navigationRef} initialState={bootInitialState}>
       <Stack.Navigator
-        initialRouteName={initialRouteName}
+        {...(!bootInitialState ? { initialRouteName: stackInitialRoute } : {})}
         screenOptions={{
           headerShown: false,
           contentStyle: { backgroundColor: '#080808' },
@@ -121,7 +122,11 @@ export default function AppNavigator() {
         <Stack.Screen name="BarberProfile" component={BarberProfileScreen} />
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="Registro" component={RegistroScreen} />
-        <Stack.Screen name="CompletarPerfil" component={CompletarPerfilScreen} />
+        <Stack.Screen
+          name="CompletarPerfil"
+          component={CompletarPerfilScreen}
+          initialParams={completarInitialParams}
+        />
         <Stack.Screen name="Panel" component={PanelScreen} />
         <Stack.Screen name="Editar" component={EditarScreen} />
         <Stack.Screen name="ClientePerfil" component={PerfilScreen} />

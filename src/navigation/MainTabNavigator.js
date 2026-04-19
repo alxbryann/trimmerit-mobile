@@ -67,18 +67,18 @@ function EmpleadoLogoutStub() { return <View style={styles.stub} />; }
 const tabScreenOptions = (colors, fonts) => ({ route }) => ({
   headerShown: false,
   tabBarStyle: {
-    backgroundColor: colors.black,
-    borderTopColor: colors.cardBorder,
-    borderTopWidth: 1,
-    paddingTop: 8,
+    backgroundColor: colors.ink,
+    borderTopColor: colors.border,
+    borderTopWidth: 0.5,
+    paddingTop: 10,
     paddingBottom: 0,
   },
-  tabBarActiveTintColor: colors.acid,
-  tabBarInactiveTintColor: colors.grayLight,
+  tabBarActiveTintColor: colors.champagne,
+  tabBarInactiveTintColor: colors.muted,
   tabBarLabelStyle: {
-    fontFamily: fonts.bodyBold,
+    fontFamily: fonts.mono,
     fontSize: 9,
-    letterSpacing: 1.2,
+    letterSpacing: 3,
     marginBottom: 4,
     textTransform: 'uppercase',
   },
@@ -95,15 +95,15 @@ function ClientTabs({ bottomPad }) {
       screenOptions={({ route }) => ({
         ...tabScreenOptions(colors, fonts)({ route }),
         tabBarStyle: {
-          backgroundColor: colors.black,
-          borderTopColor: colors.cardBorder,
-          borderTopWidth: 1,
-          paddingTop: 8,
+          backgroundColor: colors.ink,
+          borderTopColor: colors.border,
+          borderTopWidth: 0.5,
+          paddingTop: 10,
           paddingBottom: bottomPad,
         },
         tabBarIcon: ({ color, focused }) => {
           if (route.name === 'CerrarSesion') {
-            return <Ionicons name="log-out-outline" size={22} color={colors.grayLight} />;
+            return <Ionicons name="log-out-outline" size={22} color={colors.muted} />;
           }
           const map = CLIENT_ICONS[route.name];
           const name = map ? (focused ? map.focused : map.outline) : 'ellipse-outline';
@@ -136,18 +136,18 @@ function BarberTabs({ bottomPad, slug }) {
         screenOptions={({ route }) => ({
           headerShown: false,
           tabBarStyle: {
-            backgroundColor: colors.black,
-            borderTopColor: colors.cardBorder,
-            borderTopWidth: 1,
-            paddingTop: 8,
+            backgroundColor: colors.ink,
+            borderTopColor: colors.border,
+            borderTopWidth: 0.5,
+            paddingTop: 10,
             paddingBottom: bottomPad,
           },
-          tabBarActiveTintColor: colors.acid,
-          tabBarInactiveTintColor: colors.grayLight,
+          tabBarActiveTintColor: colors.champagne,
+          tabBarInactiveTintColor: colors.muted,
           tabBarLabelStyle: {
-            fontFamily: fonts.bodyBold,
+            fontFamily: fonts.mono,
             fontSize: 9,
-            letterSpacing: 1.2,
+            letterSpacing: 3,
             marginBottom: 4,
             textTransform: 'uppercase',
           },
@@ -233,18 +233,18 @@ function EmpleadoTabs({ bottomPad, slug }) {
         screenOptions={({ route }) => ({
           headerShown: false,
           tabBarStyle: {
-            backgroundColor: colors.black,
-            borderTopColor: colors.cardBorder,
-            borderTopWidth: 1,
-            paddingTop: 8,
+            backgroundColor: colors.ink,
+            borderTopColor: colors.border,
+            borderTopWidth: 0.5,
+            paddingTop: 10,
             paddingBottom: bottomPad,
           },
-          tabBarActiveTintColor: colors.acid,
-          tabBarInactiveTintColor: colors.grayLight,
+          tabBarActiveTintColor: colors.champagne,
+          tabBarInactiveTintColor: colors.muted,
           tabBarLabelStyle: {
-            fontFamily: fonts.bodyBold,
+            fontFamily: fonts.mono,
             fontSize: 9,
-            letterSpacing: 1.2,
+            letterSpacing: 3,
             marginBottom: 4,
             textTransform: 'uppercase',
           },
@@ -415,7 +415,7 @@ export default function MainTabNavigator({ navigation }) {
   if (!ready) {
     return (
       <View style={styles.loadingRoot}>
-        <ActivityIndicator size="large" color={colors.acid} />
+        <ActivityIndicator size="large" color={colors.champagne} />
       </View>
     );
   }
@@ -449,9 +449,9 @@ export default function MainTabNavigator({ navigation }) {
 const styles = StyleSheet.create({
   loadingRoot: {
     flex: 1,
-    backgroundColor: colors.black,
+    backgroundColor: colors.ink,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  stub: { flex: 1, backgroundColor: colors.black },
+  stub: { flex: 1, backgroundColor: colors.ink },
 });

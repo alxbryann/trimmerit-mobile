@@ -1,53 +1,34 @@
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-} from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
-import { colors, fonts, radii, shadows } from '../theme';
+import { colors, fonts } from '../theme';
 
-/** Pantalla de bienvenida (sin tab bar): primer arranque o usuario sin sesión. */
 export default function HomeScreen({ navigation }) {
   return (
     <View style={styles.root}>
-      <LinearGradient
-        colors={['#0d0f08', '#080808']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={StyleSheet.absoluteFill}
-      />
-
       <SafeAreaView style={styles.safe}>
         <View style={styles.inner}>
 
           <View style={styles.top}>
-            <Text style={styles.logo}>
-              BARBER<Text style={styles.accent}>.IT</Text>
-            </Text>
+            <Text style={styles.kicker}>trimmerit™{' '}·{' '}vol. 01 · 2026</Text>
           </View>
 
           <View style={styles.middle}>
-            <Text style={styles.phrase}>TU CORTE,{'\n'}TU IDENTIDAD.</Text>
-            <Text style={styles.sub}>Reserva con tu barbero en segundos.</Text>
+            <Text style={styles.tagline}>— the chair, refined —</Text>
+            <Text style={styles.phrase}>tu silla,{'\n'}<Text style={styles.accentPhrase}>agendada.</Text></Text>
+            <View style={styles.rule} />
+            <Text style={styles.sub}>
+              Reservá con tu barbero en segundos. Sin llamadas, sin plantones, sin apps de más.
+            </Text>
           </View>
 
           <View style={styles.bottom}>
             <TouchableOpacity
-              style={styles.primaryWrap}
+              style={styles.primary}
               onPress={() => navigation.navigate('Login')}
               activeOpacity={0.88}
             >
-              <LinearGradient
-                colors={[colors.acid, colors.acidDim]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.primary}
-              >
-                <Text style={styles.primaryText}>INICIAR SESIÓN</Text>
-                <Text style={styles.primaryArrow}>→</Text>
-              </LinearGradient>
+              <Text style={styles.primaryText}>iniciar sesión</Text>
+              <Text style={styles.primaryArrow}>→</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -55,8 +36,10 @@ export default function HomeScreen({ navigation }) {
               onPress={() => navigation.navigate('Registro')}
               activeOpacity={0.8}
             >
-              <Text style={styles.secondaryText}>CREAR CUENTA</Text>
+              <Text style={styles.secondaryText}>crear cuenta</Text>
             </TouchableOpacity>
+
+            <Text style={styles.barberHint}>¿sos barbero? unite al catálogo →</Text>
           </View>
 
         </View>
@@ -66,80 +49,99 @@ export default function HomeScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.black },
+  root: { flex: 1, backgroundColor: colors.ink },
   safe: { flex: 1 },
   inner: {
     flex: 1,
     paddingHorizontal: 28,
-    paddingBottom: 32,
+    paddingBottom: 40,
     justifyContent: 'space-between',
   },
 
-  top: {
-    paddingTop: 20,
-  },
-  logo: {
-    fontFamily: fonts.display,
-    fontSize: 32,
+  top: { paddingTop: 16 },
+  kicker: {
+    fontFamily: fonts.mono,
+    fontSize: 10,
     letterSpacing: 3,
-    color: colors.white,
+    textTransform: 'uppercase',
+    color: colors.muted2,
   },
-  accent: { color: colors.acid },
 
-  middle: {
-    flex: 1,
-    justifyContent: 'center',
+  middle: { flex: 1, justifyContent: 'center' },
+  tagline: {
+    fontFamily: fonts.mono,
+    fontSize: 11,
+    letterSpacing: 4,
+    textTransform: 'uppercase',
+    color: colors.champagne,
+    marginBottom: 18,
   },
   phrase: {
     fontFamily: fonts.display,
-    fontSize: 48,
+    fontStyle: 'italic',
+    fontSize: 58,
     lineHeight: 56,
-    color: colors.white,
-    letterSpacing: 1,
-    marginBottom: 16,
+    color: colors.paper,
+    letterSpacing: -1,
+  },
+  accentPhrase: { color: colors.champagne },
+  rule: {
+    width: 56,
+    height: 1,
+    backgroundColor: colors.champagne,
+    marginTop: 24,
+    marginBottom: 18,
   },
   sub: {
     fontFamily: fonts.body,
-    fontSize: 16,
-    color: colors.grayLight,
-    lineHeight: 22,
+    fontSize: 15,
+    lineHeight: 24,
+    color: colors.muted,
+    maxWidth: 280,
   },
 
-  bottom: { gap: 12 },
-  primaryWrap: {
-    borderRadius: radii.sm,
-    overflow: 'hidden',
-    ...shadows.acid,
-  },
+  bottom: { gap: 10 },
   primary: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    backgroundColor: colors.champagne,
     paddingVertical: 18,
     paddingHorizontal: 24,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   primaryText: {
     fontFamily: fonts.display,
+    fontStyle: 'italic',
     fontSize: 20,
-    letterSpacing: 3,
-    color: colors.black,
+    color: colors.ink,
+    letterSpacing: -0.5,
   },
   primaryArrow: {
     fontFamily: fonts.display,
+    fontStyle: 'italic',
     fontSize: 22,
-    color: colors.black,
+    color: colors.ink,
   },
   secondary: {
     borderWidth: 1,
-    borderColor: colors.cardBorder,
-    borderRadius: radii.sm,
+    borderColor: colors.border,
     paddingVertical: 16,
     alignItems: 'center',
   },
   secondaryText: {
-    fontFamily: fonts.display,
-    fontSize: 18,
+    fontFamily: fonts.bodySemi,
+    fontSize: 13,
     letterSpacing: 3,
-    color: colors.white,
+    textTransform: 'uppercase',
+    color: colors.paper,
+  },
+  barberHint: {
+    textAlign: 'center',
+    marginTop: 6,
+    fontFamily: fonts.mono,
+    fontSize: 10,
+    letterSpacing: 3,
+    textTransform: 'uppercase',
+    color: colors.muted2,
   },
 });
