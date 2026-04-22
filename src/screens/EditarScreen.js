@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import LoopMutedVideo from '../components/LoopMutedVideo';
 import { supabase, supabaseConfigured } from '../lib/supabase';
+import { uploadToS3, deleteFromS3, extractS3Path, validateFile } from '../lib/s3Upload';
 import { colors, fonts, radii } from '../theme';
 import { SERVICE_ICON_OPTIONS, ServiceIonicon, resolveServiceIonicon } from '../utils/serviceIcons';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -147,20 +148,24 @@ export default function EditarScreen({ navigation, route }) {
     });
     if (result.canceled || !result.assets?.[0]) return;
     const asset = result.assets[0];
+    const mimeType = asset.mimeType ?? 'video/mp4';
+
+    // OWASP A03/A04: pre-check cliente antes de intentar la subida
+    const check = validateFile(mimeType, asset.fileSize);
+    if (!check.ok) {
+      Alert.alert('Archivo no válido', check.error);
+      return;
+    }
+
     setUploading(true);
     const ext = asset.uri.split('.').pop()?.split('?')[0] || 'mp4';
     const path = `${barberoId}/hero.${ext}`;
     try {
-      const blob = await (await fetch(asset.uri)).blob();
-      const { error } = await supabase.storage
-        .from('barberos-media')
-        .upload(path, blob, { upsert: true, contentType: asset.mimeType ?? 'video/mp4' });
-      if (!error) {
-        const { data } = supabase.storage.from('barberos-media').getPublicUrl(path);
-        setVideoUrl(data.publicUrl);
-      }
+      const publicUrl = await uploadToS3(asset.uri, path, mimeType, asset.fileSize);
+      setVideoUrl(publicUrl);
     } catch (e) {
       console.warn(e);
+      Alert.alert('Error', e.message ?? 'No se pudo subir el video. Intenta de nuevo.');
     }
     setUploading(false);
   }
@@ -180,20 +185,23 @@ export default function EditarScreen({ navigation, route }) {
       const ext = asset.uri.split('.').pop()?.split('?')[0] || 'jpg';
       const path = `${barberoId}/galeria/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
       const tipo = asset.type === 'video' ? 'video' : 'imagen';
+      const mimeType = asset.mimeType ?? (tipo === 'video' ? 'video/mp4' : 'image/jpeg');
+
+      // OWASP A03/A04: pre-check por cada archivo antes de subir
+      const check = validateFile(mimeType, asset.fileSize);
+      if (!check.ok) {
+        Alert.alert('Archivo no válido', check.error);
+        continue;
+      }
+
       try {
-        const blob = await (await fetch(asset.uri)).blob();
-        const { error } = await supabase.storage.from('barberos-media').upload(path, blob, {
-          contentType: asset.mimeType ?? (tipo === 'video' ? 'video/mp4' : 'image/jpeg'),
-        });
-        if (!error) {
-          const { data: pub } = supabase.storage.from('barberos-media').getPublicUrl(path);
-          const { data: row } = await supabase
-            .from('galeria_cortes')
-            .insert({ barbero_id: barberoId, imagen_url: pub.publicUrl, tipo })
-            .select('id, imagen_url, tipo, descripcion')
-            .single();
-          if (row) setGaleria((prev) => [row, ...prev]);
-        }
+        const publicUrl = await uploadToS3(asset.uri, path, mimeType, asset.fileSize);
+        const { data: row } = await supabase
+          .from('galeria_cortes')
+          .insert({ barbero_id: barberoId, imagen_url: publicUrl, tipo })
+          .select('id, imagen_url, tipo, descripcion')
+          .single();
+        if (row) setGaleria((prev) => [row, ...prev]);
       } catch (e) {
         console.warn(e);
       }
@@ -203,8 +211,8 @@ export default function EditarScreen({ navigation, route }) {
 
   async function deleteFoto(id, url) {
     await supabase.from('galeria_cortes').delete().eq('id', id);
-    const match = url.match(/barberos-media\/(.+)$/);
-    if (match) await supabase.storage.from('barberos-media').remove([match[1]]);
+    const s3Path = extractS3Path(url);
+    if (s3Path) await deleteFromS3(s3Path);
     setGaleria((prev) => prev.filter((f) => f.id !== id));
   }
 

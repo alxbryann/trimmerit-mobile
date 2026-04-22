@@ -22,6 +22,7 @@ export default {
     },
   },
   android: {
+    package: 'com.barberit.app',
     adaptiveIcon: {
       foregroundImage: './assets/adaptive-icon.png',
       backgroundColor: '#0a0a0a',
@@ -43,6 +44,7 @@ export default {
     'expo-video',
     'expo-web-browser',
     'expo-font',
+    '@react-native-community/datetimepicker',
     [
       'expo-notifications',
       {
