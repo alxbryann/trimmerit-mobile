@@ -1,0 +1,8 @@
+# https://supabase.com/docs/guides/cli/config
+# Enlaza el proyecto con: supabase link --project-ref <ref>
+
+[functions.create-booking-payment]
+verify_jwt = true
+
+[functions.complete-booking-payment]
+verify_jwt = true

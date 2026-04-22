@@ -140,11 +140,11 @@ export default function CrearBarberiaScreen({ navigation }) {
               <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
                 <Text style={styles.backText}>← ATRÁS</Text>
               </TouchableOpacity>
-              <Text style={styles.logo}>BARBER<Text style={styles.logoA}>.IT</Text></Text>
+              <Text style={styles.logo}>TRIMMER<Text style={styles.logoA}>IT</Text></Text>
             </View>
 
             <View style={styles.heroBlock}>
-              <Text style={styles.title}>TU{'\n'}BARBERÍA</Text>
+              <Text style={styles.title}>TU{'\n'}LOCAL TRIMMERIT</Text>
               <Text style={styles.sub}>Configura tu espacio.</Text>
             </View>
 
@@ -153,7 +153,7 @@ export default function CrearBarberiaScreen({ navigation }) {
                 label="NOMBRE"
                 value={nombre}
                 onChangeText={handleNombreChange}
-                placeholder="Mi Barbería"
+                placeholder="Mi local"
                 focused={focusedField === 'nombre'}
                 onFocus={() => setFocusedField('nombre')}
                 onBlur={() => setFocusedField(null)}
@@ -193,7 +193,7 @@ export default function CrearBarberiaScreen({ navigation }) {
                 onChangeText={setDescripcion}
                 multiline
                 numberOfLines={3}
-                placeholder="Describe tu barbería..."
+                placeholder="Describe tu local..."
                 focused={focusedField === 'desc'}
                 onFocus={() => setFocusedField('desc')}
                 onBlur={() => setFocusedField(null)}
@@ -220,7 +220,7 @@ export default function CrearBarberiaScreen({ navigation }) {
                 >
                   {loading
                     ? <ActivityIndicator color={colors.black} />
-                    : <Text style={styles.primaryTxt}>CREAR BARBERÍA →</Text>
+                    : <Text style={styles.primaryTxt}>CREAR LOCAL →</Text>
                   }
                 </LinearGradient>
               </TouchableOpacity>

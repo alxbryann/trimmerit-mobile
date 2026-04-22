@@ -1,12 +1,12 @@
 /**
- * CLIENTE MOCK DE SUPABASE — BarberIT
+ * CLIENTE MOCK DE SUPABASE — Trimmerit
  *
  * Replica la API de @supabase/supabase-js con datos en memoria.
  * Se activa con EXPO_PUBLIC_USE_MOCK=true en el .env
  *
  * Cuentas de prueba:
  *   cliente@test.com  / test123   → Juan Mesa (cliente)
- *   barbero@test.com  / test123   → Carlos Barbero (barbero)
+ *   barbero@test.com  / test123   → Carlos Méndez (barbero)
  *   barbero2@test.com / test123   → Luisa Mendoza (barbero)
  */
 
@@ -24,7 +24,7 @@ const MOCK_USERS = {
     id: MOCK_IDS.userCarlos,
     email: 'barbero@test.com',
     password: 'test123',
-    user_metadata: { nombre: 'Carlos Barbero', role: 'barbero' },
+    user_metadata: { nombre: 'Carlos Méndez', role: 'barbero' },
   },
   'barbero2@test.com': {
     id: MOCK_IDS.userLuisa,
@@ -338,7 +338,7 @@ const RPC_HANDLERS = {
       barberos: mockState.db.barberos?.find((b) => b.id === reserva.barbero_id)
         ? { nombre_barberia: mockState.db.barberos.find((b) => b.id === reserva.barbero_id).nombre_barberia,
             slug: mockState.db.barberos.find((b) => b.id === reserva.barbero_id).slug }
-        : { nombre_barberia: 'Barbería', slug: '' },
+        : { nombre_barberia: 'Trimmerit', slug: '' },
       profiles: mockState.db.profiles?.find((p) => p.id === reserva.cliente_id)
         ? { nombre: mockState.db.profiles.find((p) => p.id === reserva.cliente_id).nombre }
         : { nombre: 'Cliente' },
@@ -378,7 +378,7 @@ const RPC_HANDLERS = {
       barberos: mockState.db.barberos?.find((b) => b.id === reserva.barbero_id)
         ? { nombre_barberia: mockState.db.barberos.find((b) => b.id === reserva.barbero_id).nombre_barberia,
             slug: mockState.db.barberos.find((b) => b.id === reserva.barbero_id).slug }
-        : { nombre_barberia: 'Barbería', slug: '' },
+        : { nombre_barberia: 'Trimmerit', slug: '' },
       profiles: mockState.db.profiles?.find((p) => p.id === reserva.cliente_id)
         ? { nombre: mockState.db.profiles.find((p) => p.id === reserva.cliente_id).nombre }
         : { nombre: 'Cliente' },
@@ -455,7 +455,7 @@ const RPC_HANDLERS = {
       leido_barbero: false,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
-      barberos: { nombre_barberia: barbero?.nombre_barberia ?? 'Barbería', slug: barbero?.slug ?? '' },
+      barberos: { nombre_barberia: barbero?.nombre_barberia ?? 'Trimmerit', slug: barbero?.slug ?? '' },
       profiles: { nombre: cliente?.nombre ?? 'Cliente' },
     };
     mockState.db.reserva_solicitudes = [...(mockState.db.reserva_solicitudes ?? []), sol];
@@ -499,7 +499,7 @@ const RPC_HANDLERS = {
       leido_barbero: false,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
-      barberos: { nombre_barberia: barbero?.nombre_barberia ?? 'Barbería', slug: barbero?.slug ?? '' },
+      barberos: { nombre_barberia: barbero?.nombre_barberia ?? 'Trimmerit', slug: barbero?.slug ?? '' },
       profiles: { nombre: cliente?.nombre ?? 'Cliente' },
     };
     mockState.db.reserva_solicitudes = [...(mockState.db.reserva_solicitudes ?? []), sol];

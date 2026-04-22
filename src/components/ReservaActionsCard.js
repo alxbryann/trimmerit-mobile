@@ -1,5 +1,5 @@
 /**
- * ReservaActionsCard — Card de cita para el barbero
+ * ReservaActionsCard — Card de cita para el profesional
  *
  * Estados:
  *  collapsed  → muestra resumen + botón "REVISAR"
@@ -11,7 +11,7 @@
  *  onCompletar    : (reservaId, sellarFidelizacion: bool) => Promise
  *  onCancelar     : (reservaId, razon: string) => Promise
  *  onAplazar      : (reservaId, razon, nuevaFecha, nuevaHora) => Promise
- *  tienePrograma  : bool — si la barbería tiene programa de fidelización activo
+ *  tienePrograma  : bool — si el local tiene programa de fidelización activo
  */
 
 import { useState } from 'react';

@@ -53,7 +53,7 @@ export default function LoyaltyConfigScreen({ navigation }) {
     if (!barbero) { setLoading(false); return; }
 
     setBarberoId(barbero.id);
-    setNombreBarberia(barbero.nombre_barberia?.trim() || barbero.profiles?.nombre || 'Mi Barbería');
+    setNombreBarberia(barbero.nombre_barberia?.trim() || barbero.profiles?.nombre || 'Mi local');
 
     // Cargar programa existente
     const { data: prog } = await supabase

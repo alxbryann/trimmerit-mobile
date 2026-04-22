@@ -310,7 +310,7 @@ export default function EditarScreen({ navigation, route }) {
 
         <Section n="01" label="INFO BÁSICA" />
         <Field label="NOMBRE COMPLETO" value={nombre} onChangeText={setNombre} />
-        <Field label="NOMBRE DE LA BARBERÍA" value={nombreBarberia} onChangeText={setNombreBarberia} />
+        <Field label="NOMBRE DEL LOCAL" value={nombreBarberia} onChangeText={setNombreBarberia} />
         <Field label="BIO (opcional)" value={bio} onChangeText={setBio} multiline />
         <Field
           label="ESPECIALIDADES (coma)"

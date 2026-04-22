@@ -75,21 +75,33 @@ export default function AppNavigator() {
 
     boot();
 
-    const { data: sub } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (!navigationRef.isReady()) return;
-      if (event === 'SIGNED_OUT') {
-        navigationRef.reset({ index: 0, routes: [{ name: 'Welcome' }] });
-        return;
-      }
-      if (event === 'SIGNED_IN' && session?.user) {
-        const state = navigationRef.getRootState();
-        const route = state?.routes?.[state?.index ?? 0];
-        const name = route?.name;
+    /** Tras OAuth el contenedor a veces aún no está listo; el nombre vía getRootState() puede fallar. */
+    function navigateAfterSignIn(sess) {
+      const attempt = (n = 0) => {
+        if (!navigationRef.isReady()) {
+          if (n < 50) setTimeout(() => attempt(n + 1), 40);
+          return;
+        }
+        const name = navigationRef.getCurrentRoute()?.name;
         if (name === 'Registro' || name === 'CompletarPerfil') return;
         if (name !== 'Welcome' && name !== 'Login') return;
 
-        const dest = await resolvePostAuthDestination(session);
-        applyPostAuthDestination(navigationRef, dest);
+        resolvePostAuthDestination(sess).then((dest) => {
+          applyPostAuthDestination(navigationRef, dest);
+        });
+      };
+      attempt();
+    }
+
+    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT') {
+        if (navigationRef.isReady()) {
+          navigationRef.reset({ index: 0, routes: [{ name: 'Welcome' }] });
+        }
+        return;
+      }
+      if (event === 'SIGNED_IN' && session?.user) {
+        navigateAfterSignIn(session);
       }
     });
 

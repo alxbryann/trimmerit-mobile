@@ -1,5 +1,5 @@
 /**
- * NOTIFICACIONES — BarberIT
+ * NOTIFICACIONES — Trimmerit
  *
  * Notificaciones locales (schedule): útiles para avisos in-app.
  *

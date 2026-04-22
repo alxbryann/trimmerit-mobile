@@ -21,6 +21,7 @@ export default function LoginScreen({ navigation, route }) {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [oauthLoading, setOauthLoading] = useState(false);
   const [focusedField, setFocusedField] = useState(null);
 
   async function afterAuthSuccess(userId) {
@@ -55,23 +56,29 @@ export default function LoginScreen({ navigation, route }) {
   async function handleGoogle() {
     if (!supabaseConfigured) { setError('Configura Supabase en las variables de entorno.'); return; }
     setError('');
-    setLoading(true);
+    setOauthLoading(true);
     try {
       const { cancelled, session } = await signInWithGoogle();
-      if (cancelled) { setLoading(false); return; }
-      if (!session?.user) { setError('No se pudo obtener la sesión.'); setLoading(false); return; }
+      if (cancelled) return;
+      if (!session?.user) { setError('No se pudo obtener la sesión.'); return; }
+
+      // La sesión ya está en Supabase; quitar el spinner ANTES de red/DB. Si `profiles`
+      // o la navegación tardan, no debe quedar “Conectando…” para siempre (al recargar
+      // igual entrás porque la sesión persistió).
+      setOauthLoading(false);
+
       const { data: existing } = await supabase.from('profiles').select('role').eq('id', session.user.id).maybeSingle();
       if (!existing) {
         const nombre = session.user.user_metadata?.full_name ?? session.user.user_metadata?.name ?? '';
         navigation.reset({ index: 0, routes: [{ name: 'CompletarPerfil', params: { suggestedNombre: nombre, redirect: redirect ?? null } }] });
-        setLoading(false);
         return;
       }
       await afterAuthSuccess(session.user.id);
     } catch (e) {
       setError(String(e.message ?? e));
+    } finally {
+      setOauthLoading(false);
     }
-    setLoading(false);
   }
 
   return (
@@ -84,7 +91,7 @@ export default function LoginScreen({ navigation, route }) {
               <TouchableOpacity onPress={() => navigation.navigate('Welcome')}>
                 <Text style={styles.backText}>← inicio</Text>
               </TouchableOpacity>
-              <Text style={styles.logo}>trimmerit<Text style={styles.logoAccent}>.</Text></Text>
+              <Text style={styles.logo}>TRIMMER<Text style={styles.logoAccent}>IT</Text></Text>
             </View>
 
             <View style={styles.heroBlock}>
@@ -126,9 +133,9 @@ export default function LoginScreen({ navigation, route }) {
               ) : null}
 
               <TouchableOpacity
-                style={[styles.primary, loading && styles.primaryOff]}
+                style={[styles.primary, (loading || oauthLoading) && styles.primaryOff]}
                 onPress={handleSubmit}
-                disabled={loading}
+                disabled={loading || oauthLoading}
                 activeOpacity={0.88}
               >
                 <Text style={styles.primaryTxt}>{loading ? 'entrando...' : 'entrar'}</Text>
@@ -142,13 +149,18 @@ export default function LoginScreen({ navigation, route }) {
               <View style={styles.divLine} />
             </View>
 
-            <TouchableOpacity style={styles.google} onPress={handleGoogle} disabled={loading} activeOpacity={0.8}>
+            <TouchableOpacity
+              style={[styles.google, oauthLoading && styles.primaryOff]}
+              onPress={handleGoogle}
+              disabled={loading || oauthLoading}
+              activeOpacity={0.8}
+            >
               <Text style={styles.googleIcon}>G</Text>
-              <Text style={styles.googleTxt}>Google</Text>
+              <Text style={styles.googleTxt}>{oauthLoading ? 'Conectando…' : 'Google'}</Text>
             </TouchableOpacity>
 
             <View style={styles.hintRow}>
-              <Text style={styles.hint}>¿Sos barbero? </Text>
+              <Text style={styles.hint}>¿Sos profesional? </Text>
               <TouchableOpacity onPress={() => navigation.navigate('Registro')}>
                 <Text style={styles.link}>Únete →</Text>
               </TouchableOpacity>

@@ -72,7 +72,10 @@ export async function signInWithGoogle() {
   if (error) throw error;
   if (!data?.url) throw new Error('No OAuth URL');
 
-  const result = await WebBrowser.openAuthSessionAsync(data.url, 'barberit://auth/callback');
+  // Debe coincidir exactamente con `redirectTo` de signInWithOAuth. Si usas HTTPS
+  // (EXPO_PUBLIC_SITE_URL → …/auth/mobile-callback) y aquí pasas barberit://, iOS no
+  // reconoce el cierre del ASWebAuthenticationSession y la promesa no termina.
+  const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
 
   if (result.type !== 'success' || !result.url) {
     return { cancelled: true };

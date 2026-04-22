@@ -16,7 +16,7 @@ import * as Clipboard from 'expo-clipboard';
 import { supabase } from '../lib/supabase';
 import { colors, fonts, radii, shadows } from '../theme';
 
-const TABS = ['Mi Panel', 'Barberos', 'Ajustes'];
+const TABS = ['Mi Panel', 'Colaboradores', 'Ajustes'];
 const CODE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
 function generateCode() {
@@ -80,7 +80,7 @@ export default function AdminBarberiaScreen({ navigation }) {
           .in('id', ids);
         const merged = (barberRows ?? []).map((row) => {
           const p = (profiles ?? []).find((pr) => pr.id === row.id) ?? {};
-          return { ...row, nombre: p.nombre ?? 'Barbero', role: p.role };
+          return { ...row, nombre: p.nombre ?? 'Colaborador', role: p.role };
         });
         if (!cancelled) setBarberos(merged);
       } else {
@@ -128,14 +128,14 @@ export default function AdminBarberiaScreen({ navigation }) {
   async function handleShare() {
     if (!code) return;
     await Share.share({
-      message: `Únete a ${barberia.nombre} en Barberit 💈\nUsa el código: ${code}\n(válido por 5 minutos)`,
+      message: `Únete a ${barberia.nombre} en Trimmerit 💈\nUsa el código: ${code}\n(válido por 5 minutos)`,
     });
   }
 
   async function handleEliminarBarbero(barbero) {
     Alert.alert(
-      'Eliminar barbero',
-      `¿Eliminar a ${barbero.nombre} de tu barbería?`,
+      'Eliminar colaborador',
+      `¿Eliminar a ${barbero.nombre} de tu equipo en Trimmerit?`,
       [
         { text: 'Cancelar', style: 'cancel' },
         {
@@ -149,7 +149,7 @@ export default function AdminBarberiaScreen({ navigation }) {
             if (!error) {
               setBarberos((prev) => prev.filter((b) => b.id !== barbero.id));
             } else {
-              Alert.alert('Error', 'No se pudo eliminar el barbero.');
+              Alert.alert('Error', 'No se pudo eliminar al colaborador.');
             }
           },
         },
@@ -206,7 +206,7 @@ export default function AdminBarberiaScreen({ navigation }) {
       <SafeAreaView style={styles.safe} edges={['top']}>
 
         <View style={styles.header}>
-          <Text style={styles.logo}>BARBER<Text style={styles.logoA}>.IT</Text></Text>
+          <Text style={styles.logo}>TRIMMER<Text style={styles.logoA}>IT</Text></Text>
           <TouchableOpacity onPress={handleSignOut} style={styles.signOutBtn}>
             <Text style={styles.signOutTxt}>CERRAR SESIÓN</Text>
           </TouchableOpacity>
@@ -253,7 +253,7 @@ export default function AdminBarberiaScreen({ navigation }) {
                   </>
                 ) : (
                   <>
-                    <Text style={styles.noCodeTxt}>Genera un código para que{'\n'}tus barberos puedan unirse.</Text>
+                    <Text style={styles.noCodeTxt}>Genera un código para que{'\n'}tus colaboradores puedan unirse.</Text>
                     <TouchableOpacity
                       style={[styles.generateBtn, codeLoading && { opacity: 0.55 }]}
                       onPress={handleGenerateCode}
@@ -267,7 +267,7 @@ export default function AdminBarberiaScreen({ navigation }) {
                     </TouchableOpacity>
                   </>
                 )}
-                <Text style={styles.inviteHint}>El código dura 5 minutos y es de un solo uso por barbero</Text>
+                <Text style={styles.inviteHint}>El código dura 5 minutos y es de un solo uso por colaborador</Text>
               </View>
 
               {/* Stats row */}
@@ -294,7 +294,7 @@ export default function AdminBarberiaScreen({ navigation }) {
             <View>
               <View style={styles.sectionHeader}>
                 <Text style={styles.sectionNum}>⏰</Text>
-                <Text style={styles.sectionTitle}>HORARIO DE BARBERÍA</Text>
+                <Text style={styles.sectionTitle}>HORARIO DEL LOCAL</Text>
               </View>
               <View style={styles.horarioCard}>
                 <View style={styles.horarioRow}>
@@ -437,12 +437,12 @@ function BarberosSection({ barberos, onEliminar }) {
     <View>
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionNum}>{String(barberos.length).padStart(2, '0')}</Text>
-        <Text style={styles.sectionTitle}>MIS BARBEROS</Text>
+        <Text style={styles.sectionTitle}>MIS COLABORADORES</Text>
       </View>
       {barberos.length === 0 ? (
         <View style={styles.emptyState}>
           <Text style={styles.emptyIcon}>✂</Text>
-          <Text style={styles.emptyTxt}>Aún no tienes barberos.{'\n'}Genera un código e invítalos.</Text>
+          <Text style={styles.emptyTxt}>Aún no tienes colaboradores.{'\n'}Genera un código e invítalos.</Text>
         </View>
       ) : (
         barberos.map((b) => (
@@ -450,7 +450,7 @@ function BarberosSection({ barberos, onEliminar }) {
             <View style={styles.statusDot} />
             <View style={{ flex: 1 }}>
               <Text style={styles.barberoName}>{b.nombre}</Text>
-              <Text style={styles.barberoBadge}>BARBERO COLABORADOR</Text>
+              <Text style={styles.barberoBadge}>COLABORADOR TRIMMERIT</Text>
             </View>
             <TouchableOpacity style={styles.eliminarBtn} onPress={() => onEliminar(b)} activeOpacity={0.75}>
               <Text style={styles.eliminarTxt}>ELIMINAR</Text>

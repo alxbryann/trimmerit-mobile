@@ -119,7 +119,7 @@ export default function AgendaScreen({ navigation }) {
 
   function renderCard(r) {
     const b = r.barberos;
-    const nombreBarberia = b?.nombre_barberia?.trim() || b?.slug?.replace(/-/g, ' ') || 'Barbería';
+    const nombreBarberia = b?.nombre_barberia?.trim() || b?.slug?.replace(/-/g, ' ') || 'Trimmerit';
     const nombreBarbero  = b?.profiles?.nombre?.trim() || null;
     const badgeStyle = estadoBadgeStyle(r.estado);
     return (
@@ -172,7 +172,7 @@ export default function AgendaScreen({ navigation }) {
               <View style={styles.emptyBlock}>
                 <Text style={styles.muted}>Aún no tenés reservas.</Text>
                 <TouchableOpacity onPress={() => navigation.navigate('Catalogo')} style={styles.linkBtn}>
-                  <Text style={styles.linkText}>Ir al catálogo de barberos →</Text>
+                  <Text style={styles.linkText}>Ir al catálogo Trimmerit →</Text>
                 </TouchableOpacity>
               </View>
             ) : (
@@ -190,7 +190,7 @@ export default function AgendaScreen({ navigation }) {
                     ) : (
                       pendientes.map((r) => {
                         const b = r.barberos;
-                        const barberiaNombre = b?.nombre_barberia?.trim() || b?.slug?.replace(/-/g, ' ') || 'Barbería';
+                        const barberiaNombre = b?.nombre_barberia?.trim() || b?.slug?.replace(/-/g, ' ') || 'Trimmerit';
                         const barberoNombre  = b?.profiles?.nombre?.trim() || null;
                         if ((r.estado ?? '').toLowerCase() === 'pendiente') {
                           return (

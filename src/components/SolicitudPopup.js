@@ -39,7 +39,7 @@ export default function SolicitudPopup({
   const esAplazamiento       = solicitud.tipo === 'aplazamiento';
   const esCancelacionCliente = solicitud.tipo === 'cancelacion_cliente';
   const esCambioCliente      = solicitud.tipo === 'cambio_cliente';
-  const nombreBarberia = solicitud.barberos?.nombre_barberia || 'La barbería';
+  const nombreBarberia = solicitud.barberos?.nombre_barberia || 'Trimmerit';
   const nombreCliente  = solicitud.profiles?.nombre || 'El cliente';
 
   // Para el barbero que ve la respuesta del cliente
@@ -73,7 +73,7 @@ export default function SolicitudPopup({
           <Text style={styles.subtitle}>{nombreBarberia} canceló tu cita.</Text>
 
           <View style={styles.razonBox}>
-            <Text style={styles.razonLabel}>RAZÓN DEL BARBERO</Text>
+            <Text style={styles.razonLabel}>RAZÓN DEL PROFESIONAL</Text>
             <Text style={styles.razon}>{solicitud.razon}</Text>
           </View>
 

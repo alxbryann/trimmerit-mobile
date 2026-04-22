@@ -222,7 +222,7 @@ export default function PanelScreen({ navigation, route }) {
     }
 
     // Notificación local (actúa como simulación de push al cliente)
-    await notifCancelacionAlCliente(barberiaNombre || 'La barbería');
+    await notifCancelacionAlCliente(barberiaNombre || 'Trimmerit');
 
     setReservas((prev) =>
       prev.map((r) => (r.id === reservaId ? { ...r, estado: 'cancelada' } : r))
@@ -248,7 +248,7 @@ export default function PanelScreen({ navigation, route }) {
     const [y, m, d] = nuevaFecha.split('-').map(Number);
     const dateObj = new Date(y, m - 1, d);
     const fechaLabel = `${DAY_NAMES[dateObj.getDay()]} ${d} de ${MON_NAMES[m - 1]}`;
-    await notifAplazamientoAlCliente(barberiaNombre || 'La barbería', fechaLabel, nuevaHora);
+    await notifAplazamientoAlCliente(barberiaNombre || 'Trimmerit', fechaLabel, nuevaHora);
 
     setReservas((prev) =>
       prev.map((r) => (r.id === reservaId ? { ...r, estado: 'aplazamiento_pendiente' } : r))

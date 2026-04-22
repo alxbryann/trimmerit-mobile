@@ -17,7 +17,7 @@ export default function HomeScreen({ navigation }) {
             <Text style={styles.phrase}>tu silla,{'\n'}<Text style={styles.accentPhrase}>agendada.</Text></Text>
             <View style={styles.rule} />
             <Text style={styles.sub}>
-              Reservá con tu barbero en segundos. Sin llamadas, sin plantones, sin apps de más.
+              Reservá con Trimmerit en segundos. Sin llamadas, sin plantones, sin apps de más.
             </Text>
           </View>
 
@@ -39,7 +39,7 @@ export default function HomeScreen({ navigation }) {
               <Text style={styles.secondaryText}>crear cuenta</Text>
             </TouchableOpacity>
 
-            <Text style={styles.barberHint}>¿sos barbero? unite al catálogo →</Text>
+            <Text style={styles.barberHint}>¿sos profesional? unite al catálogo →</Text>
           </View>
 
         </View>

@@ -15,7 +15,7 @@ import { colors, fonts, radii, shadows } from '../theme';
  *  - accentColor     : string (hex, opcional — usa colors.acid por defecto)
  */
 export default function LoyaltyCard({
-  nombreBarberia = 'Barbería',
+  nombreBarberia = 'Trimmerit',
   sellosAcumulados = 0,
   sellosRequeridos = 10,
   beneficioDesc = '',

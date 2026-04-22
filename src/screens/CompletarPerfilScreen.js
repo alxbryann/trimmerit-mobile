@@ -13,17 +13,17 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase, supabaseConfigured } from '../lib/supabase';
 import { colors, fonts } from '../theme';
-import { RESET_MAIN_AGENDA, resetToBarberMainTabs } from '../navigation/resetMainTabs';
+import { RESET_MAIN_AGENDA } from '../navigation/resetMainTabs';
 
 const ROLES = [
   { id: 'cliente', title: 'SOY CLIENTE', sub: 'Reservar citas' },
-  { id: 'barbero', title: 'SOY BARBERO', sub: 'Perfil profesional' },
-  { id: 'admin_barberia', title: 'ADMIN BARBERÍA', sub: 'Crear tu barbería' },
+  { id: 'admin_barberia', title: 'DUEÑO TRIMMERIT', sub: 'Creá tu local' },
   { id: 'barbero_empleado', title: 'COLABORADOR', sub: 'Unirme con código' },
 ];
 
 function normalizeIntentRole(r) {
-  if (r === 'barbero' || r === 'cliente' || r === 'admin_barberia' || r === 'barbero_empleado') return r;
+  if (r === 'barbero') return 'admin_barberia';
+  if (r === 'cliente' || r === 'admin_barberia' || r === 'barbero_empleado') return r;
   return null;
 }
 
@@ -35,7 +35,6 @@ export default function CompletarPerfilScreen({ navigation, route }) {
   const [role, setRole] = useState(() => intentRole ?? 'cliente');
   const [nombre, setNombre] = useState(suggestedNombre);
   const [telefono, setTelefono] = useState('');
-  const [slug, setSlug] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [sessionInfo, setSessionInfo] = useState({
@@ -47,7 +46,6 @@ export default function CompletarPerfilScreen({ navigation, route }) {
   const roleLocked = intentRole != null;
   const showRolePicker = !roleLocked;
   const isClienteFlow = role === 'cliente';
-  const needsBarberSlug = role === 'barbero';
   const needsNombreField = role !== 'cliente';
 
   useEffect(() => {
@@ -65,13 +63,6 @@ export default function CompletarPerfilScreen({ navigation, route }) {
     });
   }, [navigation]);
 
-  useEffect(() => {
-    if (role !== 'barbero') return;
-    const s = (suggestedNombre || sessionInfo.nombre || '').trim();
-    if (!s) return;
-    setNombre((prev) => (prev.trim() ? prev : s));
-  }, [role, suggestedNombre, sessionInfo.nombre]);
-
   async function handleSubmit() {
     if (!supabaseConfigured) {
       setError('Configura Supabase.');
@@ -84,15 +75,6 @@ export default function CompletarPerfilScreen({ navigation, route }) {
     if (role === 'cliente') {
       if (!tel) {
         setError('Ingresá tu número de teléfono.');
-        return;
-      }
-    } else if (role === 'barbero') {
-      if (!nameBarber) {
-        setError('Ingresá tu nombre.');
-        return;
-      }
-      if (!tel) {
-        setError('Ingresá tu teléfono.');
         return;
       }
     } else if (role === 'admin_barberia' || role === 'barbero_empleado') {
@@ -119,16 +101,6 @@ export default function CompletarPerfilScreen({ navigation, route }) {
       (sessionInfo.email ? sessionInfo.email.split('@')[0] : '') ||
       'Cliente';
     const nombreParaPerfil = role === 'cliente' ? clientNameFallback : nameBarber;
-    const slugFinal =
-      role === 'barbero'
-        ? (slug || nameBarber.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''))
-        : '';
-
-    if (role === 'barbero' && !slugFinal) {
-      setError('Definí la URL de tu perfil o completá tu nombre.');
-      setLoading(false);
-      return;
-    }
 
     const { error: profileErr } = await supabase.from('profiles').upsert({
       id: userId,
@@ -141,18 +113,7 @@ export default function CompletarPerfilScreen({ navigation, route }) {
       setLoading(false);
       return;
     }
-    if (role === 'barbero') {
-      const { error: barberErr } = await supabase.from('barberos').upsert({
-        id: userId,
-        slug: slugFinal,
-      });
-      if (barberErr) {
-        setError(barberErr.message);
-        setLoading(false);
-        return;
-      }
-      navigation.reset(resetToBarberMainTabs(slugFinal));
-    } else if (role === 'admin_barberia') {
+    if (role === 'admin_barberia') {
       navigation.reset({ index: 0, routes: [{ name: 'CrearBarberia' }] });
     } else if (role === 'barbero_empleado') {
       navigation.reset({ index: 0, routes: [{ name: 'UnirseBarberia' }] });
@@ -245,18 +206,6 @@ export default function CompletarPerfilScreen({ navigation, route }) {
             ) : null}
 
             <Field label="TELÉFONO" value={telefono} onChangeText={setTelefono} keyboardType="phone-pad" />
-
-            {needsBarberSlug ? (
-              <View style={{ marginBottom: 14 }}>
-                <Field
-                  label="URL DE TU PERFIL"
-                  value={slug}
-                  onChangeText={(v) =>
-                    setSlug(v.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''))
-                  }
-                />
-              </View>
-            ) : null}
 
             {error ? (
               <View style={styles.errBox}>

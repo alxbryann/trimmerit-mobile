@@ -1,5 +1,4 @@
 import { supabase } from '../lib/supabase';
-import { resetToBarberMainTabs } from './resetMainTabs';
 
 /**
  * Decide la pantalla tras autenticación (arranque, OAuth o login).
@@ -56,18 +55,13 @@ export async function resolvePostAuthDestination(session) {
     return { kind: 'route', name: barberoRow?.barberia_id ? 'MainTabs' : 'UnirseBarberia' };
   }
   if (role === 'barbero') {
-    const { data: barbero } = await supabase
-      .from('barberos')
-      .select('slug')
-      .eq('id', userId)
+    // Legacy: independent barbers are treated as barberia owners
+    const { data: barberiaRow } = await supabase
+      .from('barberias')
+      .select('id')
+      .eq('admin_id', userId)
       .maybeSingle();
-    if (!barbero?.slug) {
-      return {
-        kind: 'completar',
-        params: { ...metadata, role: 'barbero' },
-      };
-    }
-    return { kind: 'reset', state: resetToBarberMainTabs(barbero.slug) };
+    return { kind: 'route', name: barberiaRow ? 'AdminBarberia' : 'CrearBarberia' };
   }
   return { kind: 'route', name: 'MainTabs' };
 }

@@ -78,12 +78,16 @@ export default function App() {
     );
   }
 
+  const navigatorTree = (
+    <View style={styles.root}>
+      <StatusBar style="light" />
+      <AppNavigator />
+    </View>
+  );
+
   return (
     <SafeAreaProvider>
-      <View style={styles.root}>
-        <StatusBar style="light" />
-        <AppNavigator />
-      </View>
+      {navigatorTree}
     </SafeAreaProvider>
   );
 }

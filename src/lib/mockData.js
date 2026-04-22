@@ -1,5 +1,5 @@
 /**
- * DATOS DUMMY — BarberIT Mock
+ * DATOS DUMMY — Trimmerit Mock
  *
  * Dos usuarios de prueba:
  *   cliente@test.com  / test123  → Juan (cliente)
@@ -50,7 +50,7 @@ export function buildInitialDB() {
       },
       {
         id: MOCK_IDS.userCarlos,
-        nombre: 'Carlos Barbero',
+        nombre: 'Carlos Méndez',
         telefono: '3009876543',
         role: 'barbero',
       },
@@ -75,18 +75,18 @@ export function buildInitialDB() {
         bio: 'Especialista en cortes clásicos y modernos. Más de 8 años de experiencia.',
         especialidades: ['fade', 'undercut', 'barba'],
         video_url: null,
-        nombre_barberia: 'Barbería El Clásico',
+        nombre_barberia: 'El Clásico',
         rating: 4.8,
         total_cortes: 312,
         color_primario: '#CDFF00',
         color_secundario: '#080808',
         // relación embebida (usado por Agenda cliente, catálogo)
-        profiles: { nombre: 'Carlos Barbero' },
+        profiles: { nombre: 'Carlos Méndez' },
       },
       {
         id: MOCK_IDS.barberoLuisa,
         slug: 'luisa-mendoza',
-        bio: 'Barbería urbana con estilo. Cortes creativos y diseños únicos.',
+        bio: 'Local urbano con estilo. Cortes creativos y diseños únicos.',
         especialidades: ['diseño', 'coloración', 'trenzas'],
         video_url: null,
         nombre_barberia: 'Studio Luisa',
@@ -117,7 +117,7 @@ export function buildInitialDB() {
         precio: 25000,
         estado: 'completada',
         // embebido para pantalla Agenda (cliente)
-        barberos: { nombre_barberia: 'Barbería El Clásico', slug: 'carlos-barbero', profiles: { nombre: 'Carlos Barbero' } },
+        barberos: { nombre_barberia: 'El Clásico', slug: 'carlos-barbero', profiles: { nombre: 'Carlos Méndez' } },
       },
       {
         id: MOCK_IDS.res2,
@@ -128,7 +128,7 @@ export function buildInitialDB() {
         hora: '14:00',
         precio: 35000,
         estado: 'completada',
-        barberos: { nombre_barberia: 'Barbería El Clásico', slug: 'carlos-barbero', profiles: { nombre: 'Carlos Barbero' } },
+        barberos: { nombre_barberia: 'El Clásico', slug: 'carlos-barbero', profiles: { nombre: 'Carlos Méndez' } },
       },
       {
         id: MOCK_IDS.res3,
@@ -151,7 +151,7 @@ export function buildInitialDB() {
         precio: 25000,
         // cancelada para disparar sol1 al cliente
         estado: 'cancelada',
-        barberos: { nombre_barberia: 'Barbería El Clásico', slug: 'carlos-barbero', profiles: { nombre: 'Carlos Barbero' } },
+        barberos: { nombre_barberia: 'El Clásico', slug: 'carlos-barbero', profiles: { nombre: 'Carlos Méndez' } },
       },
       {
         id: MOCK_IDS.res5,
@@ -162,7 +162,7 @@ export function buildInitialDB() {
         hora: '15:30',
         precio: 15000,
         estado: 'pendiente',
-        barberos: { nombre_barberia: 'Barbería El Clásico', slug: 'carlos-barbero', profiles: { nombre: 'Carlos Barbero' } },
+        barberos: { nombre_barberia: 'El Clásico', slug: 'carlos-barbero', profiles: { nombre: 'Carlos Méndez' } },
       },
       {
         // Cita de Juan para hoy — Carlos ya propuso aplazamiento (sol2), estado consistente
@@ -174,7 +174,7 @@ export function buildInitialDB() {
         hora: '10:00',
         precio: 35000,
         estado: 'aplazamiento_pendiente',
-        barberos: { nombre_barberia: 'Barbería El Clásico', slug: 'carlos-barbero', profiles: { nombre: 'Carlos Barbero' } },
+        barberos: { nombre_barberia: 'El Clásico', slug: 'carlos-barbero', profiles: { nombre: 'Carlos Méndez' } },
       },
     ],
 
@@ -229,7 +229,7 @@ export function buildInitialDB() {
           beneficio_tipo: 'corte_gratis',
           activo: true,
         },
-        barberos: { nombre_barberia: 'Barbería El Clásico', profiles: { nombre: 'Carlos Barbero' } },
+        barberos: { nombre_barberia: 'El Clásico', profiles: { nombre: 'Carlos Méndez' } },
         // relación para LoyaltyConfigScreen (profile del cliente)
         profiles: { nombre: 'Juan Mesa', telefono: '3001234567' },
       },
@@ -264,7 +264,7 @@ export function buildInitialDB() {
           beneficio_tipo: 'corte_gratis',
           activo: true,
         },
-        barberos: { nombre_barberia: 'Barbería El Clásico', profiles: { nombre: 'Carlos Barbero' } },
+        barberos: { nombre_barberia: 'El Clásico', profiles: { nombre: 'Carlos Méndez' } },
         profiles: { nombre: 'Pedro Gómez', telefono: '3007778888' },
       },
     ],
@@ -292,7 +292,7 @@ export function buildInitialDB() {
         created_at: new Date(Date.now() - 2 * 3600000).toISOString(),
         updated_at: new Date(Date.now() - 2 * 3600000).toISOString(),
         // relaciones embebidas para el popup
-        barberos: { nombre_barberia: 'Barbería El Clásico', slug: 'carlos-barbero' },
+        barberos: { nombre_barberia: 'El Clásico', slug: 'carlos-barbero' },
         profiles: { nombre: 'Juan Mesa' },
       },
       {
@@ -310,7 +310,7 @@ export function buildInitialDB() {
         leido_barbero: true,
         created_at: new Date(Date.now() - 1 * 3600000).toISOString(),
         updated_at: new Date(Date.now() - 1 * 3600000).toISOString(),
-        barberos: { nombre_barberia: 'Barbería El Clásico', slug: 'carlos-barbero' },
+        barberos: { nombre_barberia: 'El Clásico', slug: 'carlos-barbero' },
         profiles: { nombre: 'Juan Mesa' },
       },
       {
@@ -328,7 +328,7 @@ export function buildInitialDB() {
         leido_barbero: false,     // ← Carlos no lo ha leído → dispara popup en panel
         created_at: new Date(Date.now() - 30 * 60000).toISOString(),
         updated_at: new Date(Date.now() - 20 * 60000).toISOString(),
-        barberos: { nombre_barberia: 'Barbería El Clásico', slug: 'carlos-barbero' },
+        barberos: { nombre_barberia: 'El Clásico', slug: 'carlos-barbero' },
         profiles: { nombre: 'Pedro Gómez' },
       },
       {
@@ -348,7 +348,7 @@ export function buildInitialDB() {
         leido_barbero: false,
         created_at: new Date(Date.now() - 10 * 60000).toISOString(),
         updated_at: new Date(Date.now() - 10 * 60000).toISOString(),
-        barberos: { nombre_barberia: 'Barbería El Clásico', slug: 'carlos-barbero' },
+        barberos: { nombre_barberia: 'El Clásico', slug: 'carlos-barbero' },
         profiles: { nombre: 'Juan Mesa' },
       },
       {
@@ -368,7 +368,7 @@ export function buildInitialDB() {
         leido_barbero: false,
         created_at: new Date(Date.now() - 5 * 60000).toISOString(),
         updated_at: new Date(Date.now() - 5 * 60000).toISOString(),
-        barberos: { nombre_barberia: 'Barbería El Clásico', slug: 'carlos-barbero' },
+        barberos: { nombre_barberia: 'El Clásico', slug: 'carlos-barbero' },
         profiles: { nombre: 'Juan Mesa' },
       },
     ],

@@ -80,7 +80,7 @@ export default function LoyaltyCardScreen({ navigation }) {
   }, [load]);
 
   function nombreBarberia(card) {
-    return card.barberos?.nombre_barberia?.trim() || card.barberos?.profiles?.nombre || 'Barbería';
+    return card.barberos?.nombre_barberia?.trim() || card.barberos?.profiles?.nombre || 'Trimmerit';
   }
 
   function isCompletada(card) {
@@ -103,7 +103,7 @@ export default function LoyaltyCardScreen({ navigation }) {
         <Text style={styles.headerKicker}>— lealtad —</Text>
         <Text style={styles.headerTitle}>sellos.</Text>
         <Text style={styles.headerSub}>
-          Un sello por cada corte completado. La tarjeta la lleva tu barbero en la app.
+          Un sello por cada corte completado. La tarjeta la lleva tu profesional en la app.
         </Text>
       </View>
 
@@ -130,8 +130,8 @@ export default function LoyaltyCardScreen({ navigation }) {
         ) : cards.length === 0 ? (
           <EmptyState
             title="sin tarjetas todavía"
-            subtitle="Reservá y completá cortes en barberías con programa de fidelización para acumular sellos."
-            action="ver barberías →"
+            subtitle="Reservá y completá cortes en locales Trimmerit con programa de fidelización para acumular sellos."
+            action="ver locales →"
             onAction={() => navigation.navigate('Catalogo')}
           />
         ) : (

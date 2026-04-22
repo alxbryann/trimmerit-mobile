@@ -122,7 +122,7 @@ export default function BarberosScreen({ navigation }) {
           <TextInput
             value={q}
             onChangeText={setQ}
-            placeholder="buscar barbero o barbería"
+            placeholder="buscar local o profesional"
             placeholderTextColor={colors.muted2}
             style={styles.searchInput}
             autoCapitalize="none"
@@ -135,7 +135,7 @@ export default function BarberosScreen({ navigation }) {
         {loading && (
           <View style={styles.center}>
             <ActivityIndicator size="large" color={colors.champagne} />
-            <Text style={styles.muted}>Cargando barberos…</Text>
+            <Text style={styles.muted}>Cargando catálogo…</Text>
           </View>
         )}
 
@@ -152,10 +152,10 @@ export default function BarberosScreen({ navigation }) {
           <View style={styles.center}>
             <View style={styles.emptyCard}>
               <Text style={styles.emptyIcon}>✦</Text>
-              <Text style={styles.emptyTitle}>aún no hay barberos</Text>
+              <Text style={styles.emptyTitle}>aún no hay profesionales</Text>
               <Text style={styles.muted}>Sé el primero en unirte a la plataforma.</Text>
               <TouchableOpacity onPress={() => navigation.navigate('Registro')} style={styles.linkBtn}>
-                <Text style={styles.linkText}>Registrate como barbero →</Text>
+                <Text style={styles.linkText}>Registrate como profesional →</Text>
               </TouchableOpacity>
             </View>
           </View>

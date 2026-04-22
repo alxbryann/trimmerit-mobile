@@ -31,7 +31,7 @@ export function getOAuthRedirectUri() {
     const httpsRedirect = `${base}/auth/mobile-callback`;
     if (__DEV__) {
       console.log(
-        '[Barber.it OAuth] redirect_to (HTTPS). Añade en Supabase Redirect URLs:\n',
+        '[Trimmerit OAuth] redirect_to (HTTPS). Añade en Supabase Redirect URLs:\n',
         httpsRedirect
       );
     }
@@ -41,7 +41,7 @@ export function getOAuthRedirectUri() {
   const uri = Linking.createURL('auth/callback');
   if (__DEV__) {
     console.log(
-      '[Barber.it OAuth] Sin EXPO_PUBLIC_SITE_URL; usando deep link:',
+      '[Trimmerit OAuth] Sin EXPO_PUBLIC_SITE_URL; usando deep link:',
       uri,
       '\nPara OAuth estable, configura EXPO_PUBLIC_SITE_URL + página /auth/mobile-callback en la web.'
     );

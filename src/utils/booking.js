@@ -118,17 +118,18 @@ export function getDays() {
 
 export function heroNameLines(raw) {
   const s = raw.trim().replace(/-/g, ' ');
-  if (!s) return { primary: '', secondary: 'BARBER' };
+  const brand = 'TRIMMERIT';
+  if (!s) return { primary: '', secondary: brand };
   const upper = s.toUpperCase();
   const parts = upper.split(/\s+/).filter(Boolean);
   if (parts.length >= 2) {
     return { primary: parts[0], secondary: parts.slice(1).join(' ') };
   }
   const one = parts[0];
-  if (one.length > 6 && one.endsWith('BARBER')) {
-    return { primary: one.slice(0, -6), secondary: 'BARBER' };
+  if (one.length > brand.length && one.endsWith(brand)) {
+    return { primary: one.slice(0, -brand.length), secondary: brand };
   }
-  return { primary: one, secondary: 'BARBER' };
+  return { primary: one, secondary: brand };
 }
 
 export function fmtPrice(price) {

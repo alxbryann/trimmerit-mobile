@@ -5,7 +5,7 @@
 import React from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
-/** Opciones del selector en edición de perfil (orden = uso típico en barbería). */
+/** Opciones del selector en edición de perfil (orden = uso típico en corte y estilo). */
 export const SERVICE_ICON_OPTIONS = [
   { value: 'cut-outline', hint: 'Corte / tijeras' },
   { value: 'brush-outline', hint: 'Barba / perfilado' },

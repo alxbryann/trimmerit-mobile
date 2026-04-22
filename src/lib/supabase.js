@@ -13,7 +13,7 @@ const useMock =
   extra.useMock === true;
 
 if (useMock) {
-  console.log('[BarberIT] 🧪 MOCK MODE activo — usando datos dummy');
+  console.log('[Trimmerit] 🧪 MOCK MODE activo — usando datos dummy');
 }
 
 // ── Supabase real ─────────────────────────────────────────────────────────────

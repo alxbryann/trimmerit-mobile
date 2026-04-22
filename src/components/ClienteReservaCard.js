@@ -123,7 +123,7 @@ export default function ClienteReservaCard({
       {/* ── Cabecera de la card ── */}
       <Text style={styles.cardTitle} numberOfLines={1}>{barberiaNombre.toUpperCase()}</Text>
       {barberoNombre ? (
-        <Text style={styles.cardBarbero}>por {barberoNombre}</Text>
+        <Text style={styles.cardBarbero}>con {barberoNombre}</Text>
       ) : null}
       <Text style={styles.cardMeta}>
         {fmtFecha(reserva.fecha)} · {reserva.hora ?? '—'}

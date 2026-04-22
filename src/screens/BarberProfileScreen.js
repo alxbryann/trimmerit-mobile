@@ -35,6 +35,7 @@ import { sendPushNotification } from '../lib/notifications';
 
 const { width: W } = Dimensions.get('window');
 
+
 export default function BarberProfileScreen({ navigation, route }) {
   const slug = route.params?.slug;
   const previewFromEdit = route.params?.previewFromEdit === true;
@@ -174,23 +175,7 @@ export default function BarberProfileScreen({ navigation, route }) {
   const service = services.find((s) => s.id === selectedService);
   const day = days[selectedDay] ?? null;
 
-  async function handleConfirmar() {
-    if (!selectedService || selectedDay == null || !selectedTime || !barbero) return;
-    if (!user) {
-      await AsyncStorage.setItem(`reserva_draft_${slug}`, JSON.stringify({ selectedService, selectedDay, selectedTime }));
-      navigation.navigate('Login', { redirect: { screen: 'BarberProfile', params: { slug } } });
-      return;
-    }
-    setReservaLoading(true);
-    const d = days[selectedDay];
-    const fecha = d.fullDate.toISOString().split('T')[0];
-    const servicioIdDb = service?.id && isUuidString(service.id) ? service.id : null;
-    const { error: insertError } = await supabase.from('reservas').insert({
-      cliente_id: user.id, barbero_id: barbero.id, servicio_id: servicioIdDb,
-      fecha, hora: selectedTime, precio: service?.price ?? null, estado: 'pendiente',
-    });
-    if (insertError) { console.warn(insertError); setReservaLoading(false); return; }
-
+  async function runPostReserva(fecha) {
     try {
       const { data: barberoProfile } = await supabase
         .from('profiles')
@@ -213,9 +198,28 @@ export default function BarberProfileScreen({ navigation, route }) {
       });
     } catch (e) {
       console.warn('[reserva] post-insert:', e);
-    } finally {
-      setReservaLoading(false);
     }
+  }
+
+  async function handleConfirmar() {
+    if (!selectedService || selectedDay == null || !selectedTime || !barbero) return;
+    if (!user) {
+      await AsyncStorage.setItem(`reserva_draft_${slug}`, JSON.stringify({ selectedService, selectedDay, selectedTime }));
+      navigation.navigate('Login', { redirect: { screen: 'BarberProfile', params: { slug } } });
+      return;
+    }
+    setReservaLoading(true);
+    const d = days[selectedDay];
+    const fecha = d.fullDate.toISOString().split('T')[0];
+    const servicioIdDb = service?.id && isUuidString(service.id) ? service.id : null;
+    const { error: insertError } = await supabase.from('reservas').insert({
+      cliente_id: user.id, barbero_id: barbero.id, servicio_id: servicioIdDb,
+      fecha, hora: selectedTime, precio: service?.price ?? null, estado: 'pendiente',
+    });
+    if (insertError) { console.warn(insertError); setReservaLoading(false); return; }
+
+    await runPostReserva(fecha);
+    setReservaLoading(false);
     setConfirmed(true);
   }
 
@@ -232,7 +236,7 @@ export default function BarberProfileScreen({ navigation, route }) {
     return (
       <SafeAreaView style={styles.centerFill}>
         <Text style={styles.hero404}>404</Text>
-        <Text style={styles.hero404Sub}>BARBERO NO ENCONTRADO</Text>
+        <Text style={styles.hero404Sub}>PERFIL NO ENCONTRADO</Text>
         <Text style={styles.muted}>No encontramos este perfil</Text>
         <TouchableOpacity
           onPress={() => navigation.navigate('MainTabs', { screen: 'Catalogo' })}
@@ -326,7 +330,7 @@ export default function BarberProfileScreen({ navigation, route }) {
           <View style={styles.heroText}>
             <View style={styles.heroKickerRow}>
               <View style={styles.heroKickerDot} />
-              <Text style={styles.kicker}>Barbero · Bogotá</Text>
+              <Text style={styles.kicker}>Trimmerit · Bogotá</Text>
             </View>
             <Text style={styles.heroName}>{heroPrimary}</Text>
             {heroSecondary ? <Text style={styles.heroNameAcid}>{heroSecondary}</Text> : null}
@@ -473,7 +477,7 @@ export default function BarberProfileScreen({ navigation, route }) {
           {/* PASO 3: Resumen */}
           <Step n="03" label="TU RESUMEN" />
           <View style={styles.summary}>
-            <SummaryRow label="Barbero" value={barbero.nombre.toUpperCase()} />
+            <SummaryRow label="Profesional" value={barbero.nombre.toUpperCase()} />
             <View style={styles.sep} />
             <SummaryRow
               label="Fecha y hora"
@@ -500,28 +504,27 @@ export default function BarberProfileScreen({ navigation, route }) {
             </View>
           )}
 
-          {/* Confirm button */}
           <TouchableOpacity
-            style={[styles.confirm, (!selectedService || !selectedTime || reservaLoading) && styles.confirmOff]}
-            disabled={!selectedService || !selectedTime || reservaLoading}
-            onPress={handleConfirmar}
-            activeOpacity={0.88}
-          >
-            <LinearGradient
-              colors={(!selectedService || !selectedTime || reservaLoading) ? [colors.dark3, colors.dark3] : [colors.acid, colors.acidDim]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.confirmGrad}
+              style={[styles.confirm, (!selectedService || !selectedTime || reservaLoading) && styles.confirmOff]}
+              disabled={!selectedService || !selectedTime || reservaLoading}
+              onPress={handleConfirmar}
+              activeOpacity={0.88}
             >
-              <Text style={[styles.confirmText, (!selectedService || !selectedTime) && styles.confirmTextOff]}>
-                {reservaLoading
-                  ? 'RESERVANDO...'
-                  : selectedService && selectedTime
-                    ? user ? 'CONFIRMAR RESERVA →' : 'INICIA SESIÓN PARA RESERVAR'
-                    : 'COMPLETA LOS PASOS'}
-              </Text>
-            </LinearGradient>
-          </TouchableOpacity>
+              <LinearGradient
+                colors={(!selectedService || !selectedTime || reservaLoading) ? [colors.dark3, colors.dark3] : [colors.acid, colors.acidDim]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.confirmGrad}
+              >
+                <Text style={[styles.confirmText, (!selectedService || !selectedTime) && styles.confirmTextOff]}>
+                  {reservaLoading
+                    ? 'RESERVANDO...'
+                    : selectedService && selectedTime
+                      ? user ? 'CONFIRMAR RESERVA →' : 'INICIA SESIÓN PARA RESERVAR'
+                      : 'COMPLETA LOS PASOS'}
+                </Text>
+              </LinearGradient>
+            </TouchableOpacity>
         </View>
       </ScrollView>
 

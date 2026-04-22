@@ -90,7 +90,7 @@ export default function UnirseBarberiaScreen({ navigation }) {
               <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
                 <Text style={styles.backText}>← ATRÁS</Text>
               </TouchableOpacity>
-              <Text style={styles.logo}>BARBER<Text style={styles.logoA}>.IT</Text></Text>
+              <Text style={styles.logo}>TRIMMER<Text style={styles.logoA}>IT</Text></Text>
             </View>
 
             <View style={styles.heroBlock}>

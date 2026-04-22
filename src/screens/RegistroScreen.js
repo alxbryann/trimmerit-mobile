@@ -14,7 +14,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { supabase, supabaseConfigured } from '../lib/supabase';
 import { signInWithGoogle } from '../lib/googleAuth';
 import { colors, fonts, radii, shadows } from '../theme';
-import { RESET_MAIN_AGENDA, resetToBarberMainTabs } from '../navigation/resetMainTabs';
+import { RESET_MAIN_AGENDA } from '../navigation/resetMainTabs';
 import {
   resolvePostAuthDestination,
   applyPostAuthDestination,
@@ -23,9 +23,8 @@ import {
 
 const ROLES = [
   { id: 'cliente',          icon: '◉', title: 'SOY CLIENTE',         sub: 'Quiero reservar cortes' },
-  { id: 'barbero',          icon: '✂', title: 'SOY BARBERO',         sub: 'Aliado profesional' },
-  { id: 'admin_barberia',   icon: '⊕', title: 'ADMIN BARBERÍA',      sub: 'Gestiono mi barbería y equipo' },
-  { id: 'barbero_empleado', icon: '⊙', title: 'BARBERO COLABORADOR', sub: 'Me uno a una barbería' },
+  { id: 'admin_barberia',   icon: '⊕', title: 'DUEÑO TRIMMERIT',     sub: 'Gestiono mi local y equipo' },
+  { id: 'barbero_empleado', icon: '⊙', title: 'COLABORADOR',         sub: 'Me uno a un local con código' },
 ];
 
 export default function RegistroScreen({ navigation, route }) {
@@ -36,11 +35,9 @@ export default function RegistroScreen({ navigation, route }) {
   const [email, setEmail] = useState('');
   const [telefono, setTelefono] = useState('');
   const [password, setPassword] = useState('');
-  const [slug, setSlug] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
-  const [slugFinalSent, setSlugFinalSent] = useState('');
   const [focusedField, setFocusedField] = useState(null);
 
   const currentRole = ROLES.find((r) => r.id === role) ?? ROLES[0];
@@ -54,12 +51,13 @@ export default function RegistroScreen({ navigation, route }) {
 
   async function handleGoogle() {
     if (!supabaseConfigured) { setError('Configura Supabase.'); return; }
-    setError(''); setLoading(true);
+    setError('');
+    setLoading(true);
     try {
       const { cancelled } = await signInWithGoogle();
-      if (cancelled) { setLoading(false); return; }
+      if (cancelled) return;
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user) { setError('No se pudo obtener la sesión.'); setLoading(false); return; }
+      if (!session?.user) { setError('No se pudo obtener la sesión.'); return; }
 
       const dest = await resolvePostAuthDestination(session);
 
@@ -77,28 +75,26 @@ export default function RegistroScreen({ navigation, route }) {
         // Ya tenía perfil: respetamos el destino real (no el rol elegido en este form).
         applyPostAuthDestination(navigation, dest, { redirect: redirect ?? null });
       }
-    } catch (e) { setError(String(e.message ?? e)); }
-    setLoading(false);
+    } catch (e) {
+      setError(String(e.message ?? e));
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function handleSubmit() {
     if (!supabaseConfigured) { setError('Configura Supabase.'); return; }
     setError(''); setLoading(true);
-    const slugFinal = slug || nombre.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
     const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
       email, password,
-      options: { data: { nombre, role, telefono, ...(role === 'barbero' ? { slug: slugFinal } : {}) } },
+      options: { data: { nombre, role, telefono } },
     });
     if (signUpError) { setError(signUpError.message); setLoading(false); return; }
     if (signUpData.session && signUpData.user) {
       const userId = signUpData.user.id;
       const { error: profileErr } = await supabase.from('profiles').upsert({ id: userId, role, nombre, telefono });
       if (profileErr) { setError(profileErr.message); setLoading(false); return; }
-      if (role === 'barbero') {
-        const { error: barberErr } = await supabase.from('barberos').upsert({ id: userId, slug: slugFinal });
-        if (barberErr) { setError(barberErr.message); setLoading(false); return; }
-        navigation.reset(resetToBarberMainTabs(slugFinal));
-      } else if (role === 'admin_barberia') {
+      if (role === 'admin_barberia') {
         navigation.reset({ index: 0, routes: [{ name: 'CrearBarberia' }] });
       } else if (role === 'barbero_empleado') {
         navigation.reset({ index: 0, routes: [{ name: 'UnirseBarberia' }] });
@@ -107,7 +103,6 @@ export default function RegistroScreen({ navigation, route }) {
         else { navigation.reset(RESET_MAIN_AGENDA); }
       }
     } else if (signUpData.user) {
-      setSlugFinalSent(slugFinal);
       setEmailSent(true);
     } else {
       setError('Ocurrió un error. Intenta iniciar sesión.');
@@ -120,7 +115,7 @@ export default function RegistroScreen({ navigation, route }) {
       <View style={styles.root}>
         <SafeAreaView style={styles.safe}>
           <ScrollView contentContainerStyle={styles.scroll}>
-            <Text style={styles.logo}>BARBER<Text style={styles.logoA}>.IT</Text></Text>
+            <Text style={styles.logo}>TRIMMER<Text style={styles.logoA}>IT</Text></Text>
             <View style={styles.successCard}>
               <View style={styles.successIcon}>
                 <Text style={styles.successIconText}>✓</Text>
@@ -130,9 +125,7 @@ export default function RegistroScreen({ navigation, route }) {
                 Te enviamos un link a{'\n'}
                 <Text style={{ color: colors.white, fontFamily: fonts.bodyBold }}>{email}</Text>
                 {'\n\n'}
-                {role === 'barbero'
-                  ? `Tras confirmar, tu perfil estará en barberit.vercel.app/barbero/${slugFinalSent}`
-                  : 'Tras confirmar, ya puedes iniciar sesión.'}
+                {'Tras confirmar, ya puedes iniciar sesión.'}
               </Text>
               <TouchableOpacity style={styles.primaryBtn} onPress={() => navigation.navigate('Login')}>
                 <LinearGradient colors={[colors.acid, colors.acidDim]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.primaryGrad}>
@@ -164,7 +157,7 @@ export default function RegistroScreen({ navigation, route }) {
                 <Text style={styles.backText}>← {step === 'role' ? 'INICIO' : 'ATRÁS'}</Text>
               </TouchableOpacity>
               <TouchableOpacity onPress={() => navigation.navigate('Welcome')}>
-                <Text style={styles.logo}>BARBER<Text style={styles.logoA}>.IT</Text></Text>
+                <Text style={styles.logo}>TRIMMER<Text style={styles.logoA}>IT</Text></Text>
               </TouchableOpacity>
             </View>
 
@@ -209,7 +202,6 @@ export default function RegistroScreen({ navigation, route }) {
                 email={email} setEmail={setEmail}
                 telefono={telefono} setTelefono={setTelefono}
                 password={password} setPassword={setPassword}
-                slug={slug} setSlug={setSlug}
                 focusedField={focusedField} setFocusedField={setFocusedField}
                 loading={loading}
                 error={error}
@@ -331,15 +323,12 @@ function StepForm({
   email, setEmail,
   telefono, setTelefono,
   password, setPassword,
-  slug, setSlug,
   focusedField, setFocusedField,
   loading, error,
   onSubmit,
 }) {
-  const isBarbero = currentRole.id === 'barbero';
-  const titleLine = currentRole.id === 'cliente'   ? 'TUS\nDATOS'
-                  : isBarbero                      ? 'TU PERFIL\nDE BARBERO'
-                  : currentRole.id === 'admin_barberia' ? 'TU CUENTA\nDE ADMIN'
+  const titleLine = currentRole.id === 'cliente'        ? 'TUS\nDATOS'
+                  : currentRole.id === 'admin_barberia' ? 'TU CUENTA\nDE DUEÑO'
                   : 'TU CUENTA\nCOLABORADOR';
 
   return (
@@ -361,24 +350,6 @@ function StepForm({
         <Field label="CONTRASEÑA" value={password} onChangeText={setPassword} secureTextEntry
           focused={focusedField === 'pass'} onFocus={() => setFocusedField('pass')} onBlur={() => setFocusedField(null)} />
 
-        {isBarbero && (
-          <View style={styles.slugWrap}>
-            <Field
-              label="URL DE TU PERFIL"
-              value={slug}
-              onChangeText={(v) => setSlug(v.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''))}
-              placeholder="jovan-rivera"
-              focused={focusedField === 'slug'}
-              onFocus={() => setFocusedField('slug')}
-              onBlur={() => setFocusedField(null)}
-            />
-            <View style={styles.slugPreview}>
-              <Text style={styles.slugPreviewLabel}>barberit.vercel.app/barbero/</Text>
-              <Text style={styles.slugPreviewValue}>{slug || 'tu-nombre'}</Text>
-            </View>
-          </View>
-        )}
-
         {error ? (
           <View style={styles.errBox}>
             <Text style={styles.errIcon}>⚠</Text>
@@ -399,7 +370,7 @@ function StepForm({
             style={styles.primaryGrad}
           >
             <Text style={styles.primaryTxt}>
-              {loading ? 'CREANDO...' : isBarbero ? 'CREAR PERFIL BARBERO →' : 'CREAR CUENTA →'}
+              {loading ? 'CREANDO...' : 'CREAR CUENTA →'}
             </Text>
           </LinearGradient>
         </TouchableOpacity>

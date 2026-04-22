@@ -314,22 +314,15 @@ export default function MainTabNavigator({ navigation }) {
         .eq('id', session.user.id)
         .maybeSingle();
 
-      if (profile?.role === 'barbero') {
-        const { data: b } = await supabase
-          .from('barberos')
-          .select('slug')
-          .eq('id', session.user.id)
-          .maybeSingle();
-        if (b?.slug) {
-          if (!cancelled) {
-            setBarberSlug(b.slug);
-            setEmpleadoSlug(null);
-            setIsBarber(true);
-            setRole('barbero');
-            setReady(true);
-          }
-          return;
+      if (profile?.role === 'admin_barberia' || profile?.role === 'barbero') {
+        if (!cancelled) {
+          setIsBarber(false);
+          setBarberSlug(null);
+          setEmpleadoSlug(null);
+          setRole('admin_barberia');
+          setReady(true);
         }
+        return;
       }
 
       if (profile?.role === 'barbero_empleado') {
