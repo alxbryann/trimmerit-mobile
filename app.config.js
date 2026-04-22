@@ -22,6 +22,7 @@ export default {
     },
   },
   android: {
+    package: 'com.barberit.app',
     adaptiveIcon: {
       foregroundImage: './assets/adaptive-icon.png',
       backgroundColor: '#080808',
@@ -42,6 +43,7 @@ export default {
   plugins: [
     'expo-web-browser',
     'expo-font',
+    '@react-native-community/datetimepicker',
     [
       'expo-notifications',
       {
@@ -56,14 +58,6 @@ export default {
       {
         photosPermission:
           'Barber.it accede a tu galería para el video hero y fotos de cortes.',
-      },
-    ],
-    [
-      'expo-notifications',
-      {
-        icon: './assets/icon.png',
-        color: '#CDFF00',
-        sounds: [],
       },
     ],
   ],
