@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "lastScanned": 1776736085235,
+  "lastScanned": 1776889835797,
   "projectRoot": "/Users/bryanriano/Desktop/barberit-mobile",
   "techStack": {
     "languages": [
@@ -10,6 +10,14 @@
         "confidence": "high",
         "markers": [
           "package.json"
+        ]
+      },
+      {
+        "name": "TypeScript",
+        "version": null,
+        "confidence": "high",
+        "markers": [
+          "tsconfig.json"
         ]
       }
     ],
@@ -59,7 +67,7 @@
       "path": "assets",
       "purpose": "Static assets",
       "fileCount": 6,
-      "lastAccessed": 1776736085206,
+      "lastAccessed": 1776889835780,
       "keyFiles": [
         "adaptive-icon.png",
         "barber_buzz.caf",
@@ -72,7 +80,7 @@
       "path": "dist",
       "purpose": "Distribution/build output",
       "fileCount": 1,
-      "lastAccessed": 1776736085207,
+      "lastAccessed": 1776889835780,
       "keyFiles": [
         "metadata.json"
       ]
@@ -81,7 +89,7 @@
       "path": "ios",
       "purpose": null,
       "fileCount": 6,
-      "lastAccessed": 1776736085220,
+      "lastAccessed": 1776889835783,
       "keyFiles": [
         "Podfile",
         "Podfile.lock",
@@ -92,7 +100,7 @@
       "path": "src",
       "purpose": "Source code",
       "fileCount": 1,
-      "lastAccessed": 1776736085221,
+      "lastAccessed": 1776889835784,
       "keyFiles": [
         "theme.js"
       ]
@@ -101,7 +109,7 @@
       "path": "supabase",
       "purpose": null,
       "fileCount": 1,
-      "lastAccessed": 1776736085221,
+      "lastAccessed": 1776889835784,
       "keyFiles": [
         "config.toml"
       ]
@@ -110,18 +118,25 @@
       "path": "dist/assets",
       "purpose": "Static assets",
       "fileCount": 35,
-      "lastAccessed": 1776736085222,
+      "lastAccessed": 1776889835785,
       "keyFiles": [
         "0747a1317bbe9c6fc340b889ef8ab3ae",
         "0a328cd9c1afd0afe8e3b1ec5165b1b4",
         "0abc11955dc269acff39ccd5921d6daa"
       ]
     },
+    "ios/build": {
+      "path": "ios/build",
+      "purpose": "Build output",
+      "fileCount": 0,
+      "lastAccessed": 1776889835785,
+      "keyFiles": []
+    },
     "src/api": {
       "path": "src/api",
       "purpose": "API routes",
       "fileCount": 1,
-      "lastAccessed": 1776736085223,
+      "lastAccessed": 1776889835785,
       "keyFiles": [
         "notify.js"
       ]
@@ -130,7 +145,7 @@
       "path": "src/components",
       "purpose": "UI components",
       "fileCount": 5,
-      "lastAccessed": 1776736085223,
+      "lastAccessed": 1776889835785,
       "keyFiles": [
         "ClienteReservaCard.js",
         "LoopMutedVideo.js",
@@ -141,7 +156,7 @@
       "path": "src/lib",
       "purpose": "Library code",
       "fileCount": 7,
-      "lastAccessed": 1776736085223,
+      "lastAccessed": 1776889835786,
       "keyFiles": [
         "googleAuth.js",
         "mockData.js",
@@ -152,7 +167,7 @@
       "path": "src/utils",
       "purpose": "Utility functions",
       "fileCount": 2,
-      "lastAccessed": 1776736085223,
+      "lastAccessed": 1776889835786,
       "keyFiles": [
         "booking.js",
         "serviceIcons.js"
@@ -162,7 +177,7 @@
       "path": "supabase/migrations",
       "purpose": "Database migrations",
       "fileCount": 5,
-      "lastAccessed": 1776736085224,
+      "lastAccessed": 1776889835787,
       "keyFiles": [
         "20260417_acciones_cliente.sql",
         "20260417_loyalty_system.sql",
@@ -170,121 +185,6 @@
       ]
     }
   },
-  "hotPaths": [
-    {
-      "path": "src/screens/RegistroScreen.js",
-      "accessCount": 18,
-      "lastAccessed": 1776736368339,
-      "type": "file"
-    },
-    {
-      "path": "src/screens/BarberProfileScreen.js",
-      "accessCount": 16,
-      "lastAccessed": 1776737029063,
-      "type": "file"
-    },
-    {
-      "path": "src/screens/CompletarPerfilScreen.js",
-      "accessCount": 12,
-      "lastAccessed": 1776736409064,
-      "type": "file"
-    },
-    {
-      "path": "App.js",
-      "accessCount": 8,
-      "lastAccessed": 1776736941742,
-      "type": "file"
-    },
-    {
-      "path": "src/navigation/postAuthRouting.js",
-      "accessCount": 4,
-      "lastAccessed": 1776736419653,
-      "type": "file"
-    },
-    {
-      "path": "src/navigation/MainTabNavigator.js",
-      "accessCount": 4,
-      "lastAccessed": 1776736425005,
-      "type": "file"
-    },
-    {
-      "path": "",
-      "accessCount": 4,
-      "lastAccessed": 1776737033103,
-      "type": "directory"
-    },
-    {
-      "path": "app.config.js",
-      "accessCount": 3,
-      "lastAccessed": 1776736952538,
-      "type": "file"
-    },
-    {
-      "path": "src",
-      "accessCount": 2,
-      "lastAccessed": 1776736432551,
-      "type": "directory"
-    },
-    {
-      "path": "src/screens/LoginScreen.js",
-      "accessCount": 1,
-      "lastAccessed": 1776736168500,
-      "type": "file"
-    },
-    {
-      "path": "src/navigation/AppNavigator.js",
-      "accessCount": 1,
-      "lastAccessed": 1776736171781,
-      "type": "file"
-    },
-    {
-      "path": "src/screens/CrearBarberiaScreen.js",
-      "accessCount": 1,
-      "lastAccessed": 1776736174837,
-      "type": "file"
-    },
-    {
-      "path": "src/screens/UnirseBarberiaScreen.js",
-      "accessCount": 1,
-      "lastAccessed": 1776736175056,
-      "type": "file"
-    },
-    {
-      "path": "src/screens/AdminBarberiaScreen.js",
-      "accessCount": 1,
-      "lastAccessed": 1776736175295,
-      "type": "file"
-    },
-    {
-      "path": "src/screens/EmpleadoBarberiaScreen.js",
-      "accessCount": 1,
-      "lastAccessed": 1776736179401,
-      "type": "file"
-    },
-    {
-      "path": "src/screens/PanelScreen.js",
-      "accessCount": 1,
-      "lastAccessed": 1776736179826,
-      "type": "file"
-    },
-    {
-      "path": "src/navigation",
-      "accessCount": 1,
-      "lastAccessed": 1776736432707,
-      "type": "directory"
-    },
-    {
-      "path": "src/screens",
-      "accessCount": 1,
-      "lastAccessed": 1776736436311,
-      "type": "directory"
-    },
-    {
-      "path": "src/lib/stripeBooking.js",
-      "accessCount": 1,
-      "lastAccessed": 1776736835603,
-      "type": "file"
-    }
-  ],
+  "hotPaths": [],
   "userDirectives": []
 }

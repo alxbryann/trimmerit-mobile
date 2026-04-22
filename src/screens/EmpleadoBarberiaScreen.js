@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   View,
   Text,
@@ -113,10 +114,12 @@ export default function EmpleadoBarberiaScreen({ navigation, route }) {
     })();
   }, [navigation, barberiaName]);
 
-  useEffect(() => {
-    if (!barberoId) return;
-    loadReservas();
-  }, [barberoId, loadReservas]);
+  useFocusEffect(
+    useCallback(() => {
+      if (!barberoId) return;
+      loadReservas();
+    }, [barberoId, loadReservas])
+  );
 
   // Reload agenda when a push notification arrives (new booking)
   useEffect(() => {

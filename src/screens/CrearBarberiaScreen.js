@@ -109,14 +109,19 @@ export default function CrearBarberiaScreen({ navigation }) {
     setLoading(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setError('No autenticado.'); setLoading(false); return; }
-    const { error: insertErr } = await supabase.from('barberias').insert({
-      nombre: nombre.trim(),
-      slug: slug.trim(),
-      admin_id: user.id,
-      direccion: direccion.trim() || null,
-      telefono: telefono.trim() || null,
-      descripcion: descripcion.trim() || null,
-    });
+    const slugTrim = slug.trim();
+    const { data: created, error: insertErr } = await supabase
+      .from('barberias')
+      .insert({
+        nombre: nombre.trim(),
+        slug: slugTrim,
+        admin_id: user.id,
+        direccion: direccion.trim() || null,
+        telefono: telefono.trim() || null,
+        descripcion: descripcion.trim() || null,
+      })
+      .select('id, slug')
+      .single();
     if (insertErr) {
       if (insertErr.message?.includes('unique') || insertErr.code === '23505') {
         setError('Ese slug ya está tomado. Elige otro.');
@@ -126,8 +131,19 @@ export default function CrearBarberiaScreen({ navigation }) {
       setLoading(false);
       return;
     }
+    const { error: barberoErr } = await supabase.from('barberos').upsert({
+      id: user.id,
+      barberia_id: created.id,
+      slug: created.slug,
+      nombre_barberia: nombre.trim(),
+    });
+    if (barberoErr) {
+      setError(barberoErr.message);
+      setLoading(false);
+      return;
+    }
     setLoading(false);
-    navigation.replace('AdminBarberia');
+    navigation.replace('MainTabs');
   }
 
   return (

@@ -1,4 +1,5 @@
-import { useEffect, useState, useRef } from 'react';
+import { useCallback, useEffect, useState, useRef } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   View,
   Text,
@@ -39,58 +40,72 @@ export default function AdminBarberiaScreen({ navigation }) {
   const [pickerHour, setPickerHour] = useState(9);
   const [pickerMinute, setPickerMinute] = useState(0);
 
-  useEffect(() => {
-    let cancelled = false;
-    async function load() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { navigation.replace('Login'); return; }
-      const { data: b } = await supabase
-        .from('barberias')
-        .select('*')
-        .eq('admin_id', user.id)
-        .maybeSingle();
-      if (!b) { navigation.replace('CrearBarberia'); return; }
-      if (!cancelled) {
-        setBarberia(b);
-        if (b.hora_apertura || b.hora_cierre) {
-          setHorario({
-            apertura: b.hora_apertura ?? '09:00',
-            cierre: b.hora_cierre ?? '20:00',
+  const firstLocalFocus = useRef(true);
+
+  useFocusEffect(
+    useCallback(() => {
+      let cancelled = false;
+      async function load() {
+        if (firstLocalFocus.current) {
+          setLoading(true);
+        }
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) { navigation.replace('Login'); return; }
+        const { data: b } = await supabase
+          .from('barberias')
+          .select('*')
+          .eq('admin_id', user.id)
+          .maybeSingle();
+        if (!b) { navigation.replace('CrearBarberia'); return; }
+        if (!cancelled) {
+          setBarberia(b);
+          if (b.hora_apertura || b.hora_cierre) {
+            setHorario({
+              apertura: b.hora_apertura ?? '09:00',
+              cierre: b.hora_cierre ?? '20:00',
+            });
+          }
+        }
+
+        if (b.invite_code && b.invite_code_expires_at) {
+          const expiry = new Date(b.invite_code_expires_at);
+          if (expiry > new Date()) {
+            if (!cancelled) { setCode(b.invite_code); setCodeExpiry(expiry); }
+          } else if (!cancelled) {
+            setCode(null);
+            setCodeExpiry(null);
+          }
+        } else if (!cancelled) {
+          setCode(null);
+          setCodeExpiry(null);
+        }
+
+        const { data: barberRows } = await supabase
+          .from('barberos')
+          .select('id, slug, barberia_id')
+          .eq('barberia_id', b.id);
+        const colaboradorRows = (barberRows ?? []).filter((row) => row.id !== user.id);
+        const ids = colaboradorRows.map((r) => r.id);
+        if (ids.length > 0) {
+          const { data: profiles } = await supabase
+            .from('profiles')
+            .select('id, nombre, role')
+            .in('id', ids);
+          const merged = colaboradorRows.map((row) => {
+            const p = (profiles ?? []).find((pr) => pr.id === row.id) ?? {};
+            return { ...row, nombre: p.nombre ?? 'Colaborador', role: p.role };
           });
+          if (!cancelled) setBarberos(merged);
+        } else {
+          if (!cancelled) setBarberos([]);
         }
+        firstLocalFocus.current = false;
+        if (!cancelled) setLoading(false);
       }
-
-      // Restore active code if not expired
-      if (b.invite_code && b.invite_code_expires_at) {
-        const expiry = new Date(b.invite_code_expires_at);
-        if (expiry > new Date()) {
-          if (!cancelled) { setCode(b.invite_code); setCodeExpiry(expiry); }
-        }
-      }
-
-      const { data: barberRows } = await supabase
-        .from('barberos')
-        .select('id, slug, barberia_id')
-        .eq('barberia_id', b.id);
-      const ids = (barberRows ?? []).map((r) => r.id);
-      if (ids.length > 0) {
-        const { data: profiles } = await supabase
-          .from('profiles')
-          .select('id, nombre, role')
-          .in('id', ids);
-        const merged = (barberRows ?? []).map((row) => {
-          const p = (profiles ?? []).find((pr) => pr.id === row.id) ?? {};
-          return { ...row, nombre: p.nombre ?? 'Colaborador', role: p.role };
-        });
-        if (!cancelled) setBarberos(merged);
-      } else {
-        if (!cancelled) setBarberos([]);
-      }
-      if (!cancelled) setLoading(false);
-    }
-    load();
-    return () => { cancelled = true; };
-  }, [navigation]);
+      load();
+      return () => { cancelled = true; };
+    }, [navigation])
+  );
 
   // Countdown timer
   useEffect(() => {

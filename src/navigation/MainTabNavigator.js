@@ -38,8 +38,36 @@ const BARBER_ICONS = {
 
 const ADMIN_ICONS = {
   MiPanel: { focused: 'grid', outline: 'grid-outline' },
+  MiAgenda: { focused: 'calendar', outline: 'calendar-outline' },
+  MiPerfil: { focused: 'person', outline: 'person-outline' },
   CerrarSesion: { focused: 'log-out-outline', outline: 'log-out-outline' },
 };
+
+/** Crea o recupera el registro en `barberos` del dueño (misma lógica que colaborador / agenda). */
+async function ensureAdminBarbero(userId) {
+  const { data: existing } = await supabase
+    .from('barberos')
+    .select('slug')
+    .eq('id', userId)
+    .maybeSingle();
+  if (existing?.slug) return existing.slug;
+
+  const { data: b } = await supabase
+    .from('barberias')
+    .select('id, slug, nombre')
+    .eq('admin_id', userId)
+    .maybeSingle();
+  if (!b) return null;
+
+  const { error } = await supabase.from('barberos').upsert({
+    id: userId,
+    barberia_id: b.id,
+    slug: b.slug,
+    nombre_barberia: b.nombre?.trim() || null,
+  });
+  if (error) return null;
+  return b.slug;
+}
 
 const EMPLEADO_ICONS = {
   MiAgenda: { focused: 'calendar', outline: 'calendar-outline' },
@@ -174,50 +202,54 @@ function BarberTabs({ bottomPad, slug }) {
   );
 }
 
-function AdminBarberTabs({ bottomPad }) {
+function AdminBarberTabs({ bottomPad, slug }) {
   async function onLogoutPress() {
     await supabase.auth.signOut();
   }
 
   return (
-    <Tab.Navigator
-      initialRouteName="MiPanel"
-      screenOptions={({ route }) => ({
-        headerShown: false,
-        tabBarStyle: {
-          backgroundColor: colors.black,
-          borderTopColor: colors.cardBorder,
-          borderTopWidth: 1,
-          paddingTop: 8,
-          paddingBottom: bottomPad,
-        },
-        tabBarActiveTintColor: colors.acid,
-        tabBarInactiveTintColor: colors.grayLight,
-        tabBarLabelStyle: {
-          fontFamily: fonts.bodyBold,
-          fontSize: 9,
-          letterSpacing: 1.2,
-          marginBottom: 4,
-          textTransform: 'uppercase',
-        },
-        tabBarIcon: ({ color, focused }) => {
-          if (route.name === 'CerrarSesion') {
-            return <Ionicons name="log-out-outline" size={22} color={colors.grayLight} />;
-          }
-          const map = ADMIN_ICONS[route.name];
-          const name = map ? (focused ? map.focused : map.outline) : 'ellipse-outline';
-          return <Ionicons name={name} size={22} color={color} />;
-        },
-      })}
-    >
-      <Tab.Screen name="MiPanel" component={AdminBarberiaScreen} options={{ tabBarLabel: 'Mi Panel' }} />
-      <Tab.Screen
-        name="CerrarSesion"
-        component={AdminLogoutStub}
-        options={{ tabBarLabel: 'Cerrar sesión', tabBarActiveTintColor: colors.grayLight }}
-        listeners={{ tabPress: (e) => { e.preventDefault(); onLogoutPress(); } }}
-      />
-    </Tab.Navigator>
+    <BarberSlugContext.Provider value={slug}>
+      <Tab.Navigator
+        initialRouteName="MiPanel"
+        screenOptions={({ route }) => ({
+          headerShown: false,
+          tabBarStyle: {
+            backgroundColor: colors.black,
+            borderTopColor: colors.cardBorder,
+            borderTopWidth: 1,
+            paddingTop: 8,
+            paddingBottom: bottomPad,
+          },
+          tabBarActiveTintColor: colors.acid,
+          tabBarInactiveTintColor: colors.grayLight,
+          tabBarLabelStyle: {
+            fontFamily: fonts.bodyBold,
+            fontSize: 8,
+            letterSpacing: 0.8,
+            marginBottom: 4,
+            textTransform: 'uppercase',
+          },
+          tabBarIcon: ({ color, focused }) => {
+            if (route.name === 'CerrarSesion') {
+              return <Ionicons name="log-out-outline" size={22} color={colors.grayLight} />;
+            }
+            const map = ADMIN_ICONS[route.name];
+            const name = map ? (focused ? map.focused : map.outline) : 'ellipse-outline';
+            return <Ionicons name={name} size={22} color={color} />;
+          },
+        })}
+      >
+        <Tab.Screen name="MiPanel" component={AdminBarberiaScreen} options={{ tabBarLabel: 'Local' }} />
+        <Tab.Screen name="MiAgenda" component={BarberPanelTab} options={{ tabBarLabel: 'Agenda' }} />
+        <Tab.Screen name="MiPerfil" component={BarberEditarTab} options={{ tabBarLabel: 'Perfil' }} />
+        <Tab.Screen
+          name="CerrarSesion"
+          component={AdminLogoutStub}
+          options={{ tabBarLabel: 'Cerrar sesión', tabBarActiveTintColor: colors.grayLight }}
+          listeners={{ tabPress: (e) => { e.preventDefault(); onLogoutPress(); } }}
+        />
+      </Tab.Navigator>
+    </BarberSlugContext.Provider>
   );
 }
 
@@ -278,6 +310,7 @@ export default function MainTabNavigator({ navigation }) {
   const [isBarber, setIsBarber] = useState(false);
   const [barberSlug, setBarberSlug] = useState(null);
   const [empleadoSlug, setEmpleadoSlug] = useState(null);
+  const [adminBarberSlug, setAdminBarberSlug] = useState(null);
   const [role, setRole] = useState(null);
 
   const [clientSolicitudQueue, setClientSolicitudQueue] = useState([]);
@@ -292,6 +325,7 @@ export default function MainTabNavigator({ navigation }) {
           setIsBarber(false);
           setBarberSlug(null);
           setEmpleadoSlug(null);
+          setAdminBarberSlug(null);
           setRole(null);
           setReady(true);
         }
@@ -303,6 +337,7 @@ export default function MainTabNavigator({ navigation }) {
           setIsBarber(false);
           setBarberSlug(null);
           setEmpleadoSlug(null);
+          setAdminBarberSlug(null);
           setRole(null);
           setReady(true);
         }
@@ -315,10 +350,12 @@ export default function MainTabNavigator({ navigation }) {
         .maybeSingle();
 
       if (profile?.role === 'admin_barberia' || profile?.role === 'barbero') {
+        const slug = await ensureAdminBarbero(session.user.id);
         if (!cancelled) {
           setIsBarber(false);
           setBarberSlug(null);
           setEmpleadoSlug(null);
+          setAdminBarberSlug(slug);
           setRole('admin_barberia');
           setReady(true);
         }
@@ -335,6 +372,7 @@ export default function MainTabNavigator({ navigation }) {
           setIsBarber(false);
           setBarberSlug(null);
           setEmpleadoSlug(bEmp?.slug ?? null);
+          setAdminBarberSlug(null);
           setRole('barbero_empleado');
           setReady(true);
         }
@@ -355,6 +393,7 @@ export default function MainTabNavigator({ navigation }) {
         setIsBarber(false);
         setBarberSlug(null);
         setEmpleadoSlug(null);
+        setAdminBarberSlug(null);
         setRole(profile?.role ?? null);
         setReady(true);
       }
@@ -418,7 +457,7 @@ export default function MainTabNavigator({ navigation }) {
       {isBarber && barberSlug ? (
         <BarberTabs bottomPad={bottomPad} slug={barberSlug} />
       ) : role === 'admin_barberia' ? (
-        <AdminBarberTabs bottomPad={bottomPad} />
+        <AdminBarberTabs bottomPad={bottomPad} slug={adminBarberSlug} />
       ) : role === 'barbero_empleado' ? (
         <EmpleadoTabs bottomPad={bottomPad} slug={empleadoSlug} />
       ) : (

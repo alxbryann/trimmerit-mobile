@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   View,
   Text,
@@ -136,13 +137,10 @@ export default function PanelScreen({ navigation, route }) {
       .eq('barbero_id', bId)
       .eq('leido_barbero', false)
       .order('updated_at', { ascending: true });
-    if (data?.length) {
-      // Solo incluir las que tienen estado final (no las pendientes de respuesta del cliente)
-      const visibles = data.filter(
-        (s) => s.estado === 'aceptado' || s.estado === 'rechazado'
-      );
-      if (visibles.length) setSolicitudQueue(visibles);
-    }
+    const visibles = (data ?? []).filter(
+      (s) => s.estado === 'aceptado' || s.estado === 'rechazado'
+    );
+    setSolicitudQueue(visibles);
   }, []);
 
   // ─── Auth + init ───────────────────────────────────────────────────────────
@@ -177,12 +175,14 @@ export default function PanelScreen({ navigation, route }) {
     })();
   }, [slug, navigation]);
 
-  useEffect(() => {
-    if (!barberoId) return;
-    loadReservas();
-    checkPrograma(barberoId);
-    checkSolicitudesBarbero(barberoId);
-  }, [barberoId, loadReservas, checkPrograma, checkSolicitudesBarbero]);
+  useFocusEffect(
+    useCallback(() => {
+      if (!barberoId) return;
+      loadReservas();
+      checkPrograma(barberoId);
+      checkSolicitudesBarbero(barberoId);
+    }, [barberoId, loadReservas, checkPrograma, checkSolicitudesBarbero])
+  );
 
   // ─── Handlers ─────────────────────────────────────────────────────────────
 

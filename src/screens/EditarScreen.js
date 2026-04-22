@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   View,
   Text,
@@ -47,67 +48,91 @@ export default function EditarScreen({ navigation, route }) {
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(true);
   const [authError, setAuthError] = useState(false);
+  const firstPerfilFocus = useRef(true);
 
-  useEffect(() => {
-    if (!supabaseConfigured) {
-      setLoading(false);
-      return;
-    }
-    (async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        navigation.replace('Login');
-        return;
-      }
-      const { data: barbero, error } = await supabase
-        .from('barberos')
-        .select('id, slug, bio, especialidades, video_url, nombre_barberia, profiles(nombre)')
-        .eq('id', user.id)
-        .maybeSingle();
-
-      if (error || !barbero) {
-        setAuthError(true);
+  useFocusEffect(
+    useCallback(() => {
+      if (!supabaseConfigured) {
         setLoading(false);
-        return;
+        return undefined;
       }
-      if (barbero.slug !== slug) {
-        navigation.setParams({ slug: barbero.slug });
-        return;
-      }
+      let cancelled = false;
+      (async () => {
+        if (firstPerfilFocus.current) setLoading(true);
+        setAuthError(false);
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          navigation.replace('Login');
+          return;
+        }
+        const { data: barbero, error } = await supabase
+          .from('barberos')
+          .select('id, slug, bio, especialidades, video_url, nombre_barberia, barberia_id, profiles(nombre)')
+          .eq('id', user.id)
+          .maybeSingle();
 
-      setBarberoId(barbero.id);
-      setNombre(barbero.profiles?.nombre ?? '');
-      setNombreBarberia(barbero.nombre_barberia?.trim() ?? '');
-      setBio(barbero.bio ?? '');
-      setEspecialidades((barbero.especialidades ?? []).join(', '));
-      setVideoUrl(barbero.video_url ?? '');
+        if (error || !barbero) {
+          if (!cancelled) {
+            setAuthError(true);
+            setLoading(false);
+          }
+          return;
+        }
+        if (barbero.slug !== slug) {
+          navigation.setParams({ slug: barbero.slug });
+          if (!cancelled) setLoading(false);
+          return;
+        }
 
-      const { data: svcs } = await supabase
-        .from('servicios')
-        .select('*')
-        .eq('barbero_id', barbero.id)
-        .eq('activo', true);
+        if (!cancelled) {
+          setBarberoId(barbero.id);
+          setNombre(barbero.profiles?.nombre ?? '');
+          let localNombre = barbero.nombre_barberia?.trim() ?? '';
+          if (!localNombre && barbero.barberia_id) {
+            const { data: bria } = await supabase
+              .from('barberias')
+              .select('nombre')
+              .eq('id', barbero.barberia_id)
+              .maybeSingle();
+            if (bria?.nombre?.trim()) localNombre = bria.nombre.trim();
+          }
+          setNombreBarberia(localNombre);
+          setBio(barbero.bio ?? '');
+          setEspecialidades((barbero.especialidades ?? []).join(', '));
+          setVideoUrl(barbero.video_url ?? '');
+        }
 
-      if (svcs?.length) {
-        setServicios(svcs.map(normalizeServicioIcon));
-      } else {
-        setServicios([
-          { nombre: 'CORTE CLÁSICO', precio: 40000, duracion_min: 45, icono: 'cut-outline', activo: true, isNew: true },
-          { nombre: 'BARBA', precio: 30000, duracion_min: 30, icono: 'brush-outline', activo: true, isNew: true },
-          { nombre: 'COMBO FULL', precio: 65000, duracion_min: 75, icono: 'layers-outline', activo: true, isNew: true },
-        ]);
-      }
+        const { data: svcs } = await supabase
+          .from('servicios')
+          .select('*')
+          .eq('barbero_id', barbero.id)
+          .eq('activo', true);
 
-      const { data: gal } = await supabase
-        .from('galeria_cortes')
-        .select('id, imagen_url, tipo, descripcion')
-        .eq('barbero_id', barbero.id)
-        .order('created_at', { ascending: false });
-      if (gal) setGaleria(gal);
+        if (cancelled) return;
 
-      setLoading(false);
-    })();
-  }, [slug, navigation]);
+        if (svcs?.length) {
+          setServicios(svcs.map(normalizeServicioIcon));
+        } else {
+          setServicios([
+            { nombre: 'CORTE CLÁSICO', precio: 40000, duracion_min: 45, icono: 'cut-outline', activo: true, isNew: true },
+            { nombre: 'BARBA', precio: 30000, duracion_min: 30, icono: 'brush-outline', activo: true, isNew: true },
+            { nombre: 'COMBO FULL', precio: 65000, duracion_min: 75, icono: 'layers-outline', activo: true, isNew: true },
+          ]);
+        }
+
+        const { data: gal } = await supabase
+          .from('galeria_cortes')
+          .select('id, imagen_url, tipo, descripcion')
+          .eq('barbero_id', barbero.id)
+          .order('created_at', { ascending: false });
+        if (gal) setGaleria(gal);
+
+        firstPerfilFocus.current = false;
+        if (!cancelled) setLoading(false);
+      })();
+      return () => { cancelled = true; };
+    }, [slug, navigation])
+  );
 
   async function pickHeroVideo() {
     if (!barberoId) return;

@@ -44,7 +44,7 @@ export async function resolvePostAuthDestination(session) {
       .select('id')
       .eq('admin_id', userId)
       .maybeSingle();
-    return { kind: 'route', name: barberiaRow ? 'AdminBarberia' : 'CrearBarberia' };
+    return { kind: 'route', name: barberiaRow ? 'MainTabs' : 'CrearBarberia' };
   }
   if (role === 'barbero_empleado') {
     const { data: barberoRow } = await supabase
@@ -61,7 +61,7 @@ export async function resolvePostAuthDestination(session) {
       .select('id')
       .eq('admin_id', userId)
       .maybeSingle();
-    return { kind: 'route', name: barberiaRow ? 'AdminBarberia' : 'CrearBarberia' };
+    return { kind: 'route', name: barberiaRow ? 'MainTabs' : 'CrearBarberia' };
   }
   return { kind: 'route', name: 'MainTabs' };
 }
