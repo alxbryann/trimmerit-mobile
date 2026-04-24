@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -9,9 +9,12 @@ import {
   TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { supabase, supabaseConfigured } from '../lib/supabase';
 import { colors, fonts } from '../theme';
 import { initialsFromNombre } from '../utils/booking';
+
+const SELECT_COLS = 'id, slug, especialidades, total_cortes, nombre_barberia, profiles(nombre)';
 
 export default function BarberosScreen({ navigation }) {
   const [barbers, setBarbers] = useState([]);
@@ -19,53 +22,67 @@ export default function BarberosScreen({ navigation }) {
   const [fetchError, setFetchError] = useState(null);
   const [q, setQ] = useState('');
 
-  useEffect(() => {
+  const fetchCatalog = useCallback(async (opts = {}) => {
+    const silent = Boolean(opts.silent);
+    if (!silent) setLoading(true);
+
     if (!supabaseConfigured) {
       setLoading(false);
       setFetchError('Configura EXPO_PUBLIC_SUPABASE_URL y EXPO_PUBLIC_SUPABASE_ANON_KEY.');
       return;
     }
-    let cancelled = false;
+
+    const isActive = typeof opts.isActive === 'function' ? opts.isActive : () => true;
     const t = setTimeout(() => {
-      if (!cancelled) { setLoading(false); setFetchError('Tiempo de espera agotado.'); }
+      if (isActive()) {
+        setLoading(false);
+        setFetchError('Tiempo de espera agotado.');
+      }
     }, 8000);
 
-    const selectCols = 'id, slug, especialidades, total_cortes, nombre_barberia, profiles(nombre)';
+    try {
+      const { data, error } = await supabase.from('barberos').select(SELECT_COLS);
+      clearTimeout(t);
+      if (!isActive()) return;
+      if (error) { setFetchError(error.message); setBarbers([]); return; }
 
-    async function fetchCatalog() {
-      try {
-        const { data, error } = await supabase.from('barberos').select(selectCols);
-        clearTimeout(t);
-        if (cancelled) return;
-        if (error) { setFetchError(error.message); setBarbers([]); return; }
-
-        let list = data ?? [];
-        const { data: { session } } = await supabase.auth.getSession();
-        const uid = session?.user?.id;
-        if (uid) {
-          const { data: mine, error: mineErr } = await supabase
-            .from('barberos').select(selectCols).eq('id', uid).maybeSingle();
-          if (!cancelled && !mineErr && mine && !list.some((b) => b.id === mine.id)) {
-            list = [mine, ...list];
-          }
+      let list = data ?? [];
+      const { data: { session } } = await supabase.auth.getSession();
+      const uid = session?.user?.id;
+      if (uid) {
+        const { data: mine, error: mineErr } = await supabase
+          .from('barberos').select(SELECT_COLS).eq('id', uid).maybeSingle();
+        if (isActive() && !mineErr && mine && !list.some((b) => b.id === mine.id)) {
+          list = [mine, ...list];
         }
-        setFetchError(null);
-        setBarbers(list);
-      } catch (e) {
-        clearTimeout(t);
-        if (!cancelled) { setFetchError(String(e)); setBarbers([]); }
-      } finally {
-        if (!cancelled) setLoading(false);
       }
+      if (!isActive()) return;
+      setFetchError(null);
+      setBarbers(list);
+    } catch (e) {
+      clearTimeout(t);
+      if (isActive()) { setFetchError(String(e)); setBarbers([]); }
+    } finally {
+      clearTimeout(t);
+      if (isActive()) setLoading(false);
     }
+  }, []);
 
-    fetchCatalog();
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      fetchCatalog({ isActive: () => active });
+      return () => { active = false; };
+    }, [fetchCatalog])
+  );
+
+  useEffect(() => {
     const { data: sub } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'TOKEN_REFRESHED') return;
-      fetchCatalog();
+      fetchCatalog({ silent: true });
     });
-    return () => { cancelled = true; clearTimeout(t); sub.subscription.unsubscribe(); };
-  }, []);
+    return () => { sub.subscription.unsubscribe(); };
+  }, [fetchCatalog]);
 
   const filtered = barbers.filter((b) => {
     if (!q) return true;

@@ -50,7 +50,7 @@ export default {
       {
         icon: './assets/icon.png',
         color: '#c8a96a',
-        sounds: ['./assets/barber_buzz.caf', './assets/barber_buzz.wav'],
+        sounds: ['./assets/barber_buzz.wav'],
       },
     ],
     [

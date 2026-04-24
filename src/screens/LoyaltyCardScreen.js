@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { supabase, supabaseConfigured } from '../lib/supabase';
 import { colors, fonts } from '../theme';
 import LoyaltyCard from '../components/LoyaltyCard';
@@ -67,8 +68,13 @@ export default function LoyaltyCardScreen({ navigation }) {
     if (!silent) setLoading(false);
   }, []);
 
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load])
+  );
+
   useEffect(() => {
-    load();
     const { data: sub } = supabase.auth.onAuthStateChange(() => load({ silent: true }));
     return () => sub.subscription.unsubscribe();
   }, [load]);

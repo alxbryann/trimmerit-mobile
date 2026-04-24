@@ -9,6 +9,7 @@ import {
   RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { supabase, supabaseConfigured } from '../lib/supabase';
 import { colors, fonts } from '../theme';
 import { fmtPrice } from '../utils/booking';
@@ -73,8 +74,13 @@ export default function AgendaScreen({ navigation }) {
     if (!silent) setLoading(false);
   }, []);
 
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load])
+  );
+
   useEffect(() => {
-    load();
     const { data: sub } = supabase.auth.onAuthStateChange(() => { setLoading(true); load(); });
     return () => sub.subscription.unsubscribe();
   }, [load]);

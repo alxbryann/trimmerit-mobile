@@ -165,7 +165,11 @@ export default function BarberProfileScreen({ navigation, route }) {
     if (!user || !barbero || !pendingReseña || ratingSelected === 0) return;
     setRatingSending(true);
     await supabase.from('reseñas').insert({ reserva_id: pendingReseña.reservaId, cliente_id: user.id, barbero_id: barbero.id, estrellas: ratingSelected, comentario: ratingComentario.trim() || null });
-    const { data: updated } = await supabase.from('barberos').select('rating, total_cortes').eq('id', barbero.id).single();
+    const [{ data: updated }] = await Promise.all([
+      supabase.from('barberos').select('rating, total_cortes').eq('id', barbero.id).single(),
+      supabase.rpc('check_and_award_achievements', { p_user_id: user.id, p_category: 'cliente' }),
+      supabase.rpc('check_and_award_achievements', { p_user_id: barbero.id, p_category: 'barbero' }),
+    ]);
     if (updated) setBarbero((prev) => prev ? { ...prev, rating: updated.rating, total_cortes: updated.total_cortes } : prev);
     setRatingSending(false);
     setRatingDone(true);

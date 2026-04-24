@@ -26,6 +26,8 @@ const Notifications = isExpoGoAndroid ? null : require('expo-notifications');
 if (Notifications) {
   Notifications.setNotificationHandler({
     handleNotification: async () => ({
+      shouldShowBanner: true,
+      shouldShowList: true,
       shouldShowAlert: true,
       shouldPlaySound: true,
       shouldSetBadge: false,
@@ -128,30 +130,56 @@ export function notifCambioAlBarbero(nombreCliente, nuevaFecha, nuevaHora) {
 }
 
 const EXPO_PUSH_URL = 'https://exp.host/--/api/v2/push/send';
+const EXPO_RECEIPTS_URL = 'https://exp.host/--/api/v2/push/getReceipts';
+
+function wait(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 /**
  * Registra el token Expo Push del dispositivo en `profiles.push_token` (sesión actual).
  */
 export async function registerPushToken() {
-  if (!supabaseConfigured || Platform.OS === 'web' || !Notifications) return;
+  if (!supabaseConfigured || Platform.OS === 'web' || !Notifications) {
+    console.warn('[Notifications] No se puede registrar push token en este entorno.');
+    return;
+  }
   try {
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.user) return;
-    if (!Device.isDevice) return;
+    if (!session?.user) {
+      console.warn('[Notifications] No hay sesión para registrar push token.');
+      return;
+    }
+    if (!Device.isDevice) {
+      console.warn('[Notifications] Push remoto requiere dispositivo físico.');
+      return;
+    }
 
     const granted = await requestNotificationPermissions();
-    if (!granted) return;
+    if (!granted) {
+      console.warn('[Notifications] Permisos de notificación no otorgados.');
+      return;
+    }
 
     const projectId =
       Constants.expoConfig?.extra?.eas?.projectId ??
+      Constants.easConfig?.projectId ??
       Constants.expoConfig?.extra?.easProjectId;
+    if (!projectId) {
+      console.warn('[Notifications] Falta EAS projectId para obtener Expo push token.');
+      return;
+    }
     const tokenRes = await Notifications.getExpoPushTokenAsync(
-      projectId ? { projectId } : undefined,
+      { projectId },
     );
     const token = tokenRes?.data;
-    if (!token) return;
+    if (!token) {
+      console.warn('[Notifications] Expo no retornó push token.');
+      return;
+    }
 
     await supabase.from('profiles').update({ push_token: token }).eq('id', session.user.id);
+    console.log('[Notifications] Push token registrado:', token);
   } catch (e) {
     console.warn('[Notifications] registerPushToken:', e?.message ?? e);
   }
@@ -161,9 +189,12 @@ export async function registerPushToken() {
  * Envía notificación remota vía API de Expo Push (token tipo ExponentPushToken[...]).
  */
 export async function sendPushNotification({ to, title, body, data = {} }) {
-  if (!to || typeof to !== 'string') return;
+  if (!to || typeof to !== 'string') {
+    console.warn('[Notifications] No hay push token de destino.');
+    return null;
+  }
   try {
-    await fetch(EXPO_PUSH_URL, {
+    const res = await fetch(EXPO_PUSH_URL, {
       method: 'POST',
       headers: {
         Accept: 'application/json',
@@ -177,7 +208,35 @@ export async function sendPushNotification({ to, title, body, data = {} }) {
         sound: 'default',
       }),
     });
+    const json = await res.json().catch(() => null);
+    if (!res.ok || json?.data?.status === 'error') {
+      console.warn('[Notifications] Expo push rechazado:', json ?? res.status);
+    } else {
+      console.log('[Notifications] Expo push enviado:', json);
+    }
+
+    const ticketId = json?.data?.id;
+    if (!ticketId) return { ticket: json, receipt: null };
+
+    await wait(1500);
+    const receiptRes = await fetch(EXPO_RECEIPTS_URL, {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ ids: [ticketId] }),
+    });
+    const receiptJson = await receiptRes.json().catch(() => null);
+    const receipt = receiptJson?.data?.[ticketId] ?? null;
+    if (!receiptRes.ok || receipt?.status === 'error') {
+      console.warn('[Notifications] Expo push receipt error:', receiptJson ?? receiptRes.status);
+    } else {
+      console.log('[Notifications] Expo push receipt:', receiptJson);
+    }
+    return { ticket: json, receipt };
   } catch (e) {
     console.warn('[Notifications] sendPushNotification:', e?.message ?? e);
+    return null;
   }
 }
