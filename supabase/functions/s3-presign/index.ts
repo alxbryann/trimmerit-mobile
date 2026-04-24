@@ -91,7 +91,7 @@ Deno.serve(async (req) => {
 
   // ── S3 client ─────────────────────────────────────────────────────────────
   const region = Deno.env.get('AWS_REGION') ?? 'sa-east-1';
-  const bucket = Deno.env.get('AWS_S3_BUCKET') ?? 'barberit-media';
+  const bucket = Deno.env.get('AWS_S3_BUCKET') ?? 'trimmerit-media';
 
   const s3 = new S3Client({
     region,

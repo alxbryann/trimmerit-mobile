@@ -5,14 +5,14 @@ import Constants from 'expo-constants';
  * URL de retorno OAuth para signInWithOAuth → redirectTo.
  *
  * Estrategia recomendada (evita quedarse en la web en el navegador embebido):
- * define EXPO_PUBLIC_SITE_URL con tu dominio (ej. https://barberit.vercel.app).
+ * define EXPO_PUBLIC_SITE_URL con tu dominio (ej. https://trimmerit.vercel.app).
  * Se usará `${SITE_URL}/auth/mobile-callback` (HTTPS). Esa ruta existe en Next
- * y reenvía a barberit:// con el mismo hash/query.
+ * y reenvía a trimmerit:// con el mismo hash/query.
  *
  * En Supabase → Redirect URLs añade exactamente esa URL HTTPS, por ejemplo:
- *   https://barberit.vercel.app/auth/mobile-callback
+ *   https://trimmerit.vercel.app/auth/mobile-callback
  *
- * Opcional: exp://** y barberit://** si sigues usando deep links directos.
+ * Opcional: exp://** y trimmerit://** si sigues usando deep links directos.
  *
  * Override total: EXPO_PUBLIC_OAUTH_REDIRECT_URI
  */

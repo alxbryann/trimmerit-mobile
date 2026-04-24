@@ -17,7 +17,7 @@ import RankBadge from '../components/RankBadge';
 
 // Rangos de clientes (basado en visitas completadas)
 const CLIENT_RANKS = [
-  { rank_level: 1, rank_name: 'Nuevo',    badge_emoji: '✂️', min_cortes: 0,  description: 'Bienvenido a BarberIT' },
+  { rank_level: 1, rank_name: 'Nuevo',    badge_emoji: '✂️', min_cortes: 0,  description: 'Bienvenido a Trimmerit' },
   { rank_level: 2, rank_name: 'Regular',  badge_emoji: '⭐', min_cortes: 5,  description: '5+ cortes completados' },
   { rank_level: 3, rank_name: 'Fiel',     badge_emoji: '🏅', min_cortes: 15, description: '15+ cortes — cliente de confianza' },
   { rank_level: 4, rank_name: 'VIP',      badge_emoji: '👑', min_cortes: 30, description: '30+ cortes — acceso prioritario' },

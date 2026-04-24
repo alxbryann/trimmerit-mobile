@@ -243,7 +243,7 @@ export default function PanelScreen({ navigation, route }) {
         title: `❌ Reserva cancelada por ${profesionalNombre}`,
         body: razonCancelacion
           ? `${profesionalNombre} canceló tu cita. Razón: ${razonCancelacion}`
-          : `${profesionalNombre} canceló tu cita. Abrí la app para más detalles.`,
+          : `${profesionalNombre} canceló tu cita. Abre la app para más detalles.`,
         data: { tipo: 'cancelacion', reservaId, razon: razonCancelacion },
       });
       const receiptError = pushResult?.receipt?.details?.error;

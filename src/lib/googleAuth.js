@@ -12,7 +12,7 @@ export { getOAuthRedirectUri } from './oauthRedirect';
 
 /**
  * Extrae tokens (implicit) o code (PKCE) de la URL final del proveedor.
- * Acepta exp://, barberit:// y también https:// (p. ej. Site URL si falló el allowlist).
+ * Acepta exp://, trimmerit:// y también https:// (p. ej. Site URL si falló el allowlist).
  */
 function extractOAuthFromUrl(urlString) {
   if (!urlString || typeof urlString !== 'string') return null;
@@ -40,7 +40,7 @@ function extractOAuthFromUrl(urlString) {
   return null;
 }
 
-/** Si la app se abre con barberit://auth/callback#… tras la página web de respaldo. */
+/** Si la app se abre con trimmerit://auth/callback#… tras la página web de respaldo. */
 export async function finalizeOAuthFromUrl(urlString) {
   const parsed = extractOAuthFromUrl(urlString);
   if (parsed?.kind === 'tokens') {
@@ -73,7 +73,7 @@ export async function signInWithGoogle() {
   if (!data?.url) throw new Error('No OAuth URL');
 
   // Debe coincidir exactamente con `redirectTo` de signInWithOAuth. Si usas HTTPS
-  // (EXPO_PUBLIC_SITE_URL → …/auth/mobile-callback) y aquí pasas barberit://, iOS no
+  // (EXPO_PUBLIC_SITE_URL → …/auth/mobile-callback) y aquí pasas trimmerit://, iOS no
   // reconoce el cierre del ASWebAuthenticationSession y la promesa no termina.
   const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
 
@@ -88,6 +88,6 @@ export async function signInWithGoogle() {
   }
 
   throw new Error(
-    'No se pudo leer la sesión. Añade en Supabase Redirect URLs la URL HTTPS de callback (ver EXPO_PUBLIC_SITE_URL + /auth/mobile-callback) y exp://** / barberit://** si usas deep links.'
+    'No se pudo leer la sesión. Añade en Supabase Redirect URLs la URL HTTPS de callback (ver EXPO_PUBLIC_SITE_URL + /auth/mobile-callback) y exp://** / trimmerit://** si usas deep links.'
   );
 }

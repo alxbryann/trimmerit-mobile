@@ -462,7 +462,7 @@ export default function EditarScreen({ navigation, route }) {
             <View>
               <Text style={styles.loyaltyBtnTitle}>Programa de puntos</Text>
               <Text style={styles.loyaltyBtnSubtitle}>
-                Configurá sellos, beneficios y canje de premios
+                Configura sellos, beneficios y canje de premios
               </Text>
             </View>
           </View>

@@ -53,7 +53,7 @@ export async function requestNotificationPermissions() {
  */
 export async function setupNotificationChannel() {
   if (Platform.OS !== 'android' || !Notifications) return;
-  await Notifications.setNotificationChannelAsync('barberit-reservas', {
+  await Notifications.setNotificationChannelAsync('trimmerit-reservas', {
     name: 'Reservas',
     importance: Notifications.AndroidImportance.HIGH,
     vibrationPattern: [0, 250, 250, 250],
@@ -77,7 +77,7 @@ export async function sendLocalNotification(title, body, data = {}) {
         body,
         data,
         sound: true,
-        ...(Platform.OS === 'android' && { channelId: 'barberit-reservas' }),
+        ...(Platform.OS === 'android' && { channelId: 'trimmerit-reservas' }),
       },
       trigger: null,
     });
@@ -90,7 +90,7 @@ export async function sendLocalNotification(title, body, data = {}) {
 export function notifCancelacionAlCliente(nombreBarberia) {
   return sendLocalNotification(
     '❌ Reserva cancelada',
-    `${nombreBarberia} canceló tu cita. Abrí la app para más detalles.`,
+    `${nombreBarberia} canceló tu cita. Abre la app para más detalles.`,
     { tipo: 'cancelacion' }
   );
 }

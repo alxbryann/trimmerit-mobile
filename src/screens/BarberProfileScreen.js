@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   View,
   Text,
@@ -145,21 +146,40 @@ export default function BarberProfileScreen({ navigation, route }) {
   }, [slug]);
 
   const barberoId = barbero?.id ?? null;
+  const isOwner = Boolean(user && barberoId && user.id === barberoId);
 
-  useEffect(() => {
-    if (!user || !barberoId) return;
-    async function check() {
-      const { data: reservasComp } = await supabase.from('reservas').select('id')
-        .eq('cliente_id', user.id).eq('barbero_id', barberoId).eq('estado', 'completada');
-      if (!reservasComp?.length) return;
-      const ids = reservasComp.map((r) => r.id);
-      const { data: reseñasExist } = await supabase.from('reseñas').select('reserva_id').in('reserva_id', ids);
-      const reseñadas = new Set((reseñasExist ?? []).map((r) => r.reserva_id));
-      const sinReseña = ids.find((id) => !reseñadas.has(id));
-      if (sinReseña) setPendingReseña({ reservaId: sinReseña });
+  const checkPendingResena = useCallback(async () => {
+    if (!user || !barberoId) {
+      setPendingReseña(null);
+      return;
     }
-    check();
-  }, [user, barberoId]);
+    if (previewFromEdit || isOwner) {
+      setPendingReseña(null);
+      return;
+    }
+    const { data: reservasComp } = await supabase
+      .from('reservas')
+      .select('id')
+      .eq('cliente_id', user.id)
+      .eq('barbero_id', barberoId)
+      .eq('estado', 'completada');
+    if (!reservasComp?.length) {
+      setPendingReseña(null);
+      return;
+    }
+    const ids = reservasComp.map((r) => r.id);
+    const { data: reseñasExist } = await supabase.from('reseñas').select('reserva_id').in('reserva_id', ids);
+    const reseñadas = new Set((reseñasExist ?? []).map((r) => r.reserva_id));
+    const sinReseña = ids.find((id) => !reseñadas.has(id));
+    if (sinReseña) setPendingReseña({ reservaId: sinReseña });
+    else setPendingReseña(null);
+  }, [user, barberoId, previewFromEdit, isOwner]);
+
+  useFocusEffect(
+    useCallback(() => {
+      checkPendingResena();
+    }, [checkPendingResena]),
+  );
 
   async function handleEnviarReseña() {
     if (!user || !barbero || !pendingReseña || ratingSelected === 0) return;
@@ -278,8 +298,6 @@ export default function BarberProfileScreen({ navigation, route }) {
       </View>
     );
   }
-
-  const isOwner = user && user.id === barbero.id;
 
   return (
     <View style={styles.root}>

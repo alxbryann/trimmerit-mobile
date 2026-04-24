@@ -179,7 +179,7 @@ export default function CrearBarberiaScreen({ navigation }) {
                 value={slug}
                 onChangeText={(v) => setSlug(slugify(v))}
                 placeholder="mi-barberia"
-                hint={`Tu URL: barberit.vercel.app/barberia/${slug || 'mi-barberia'}`}
+                hint={`Tu URL: trimmerit.vercel.app/barberia/${slug || 'mi-barberia'}`}
                 focused={focusedField === 'slug'}
                 onFocus={() => setFocusedField('slug')}
                 onBlur={() => setFocusedField(null)}

@@ -1,5 +1,5 @@
 -- ============================================================
--- SOLICITUDES DE CAMBIO EN RESERVAS — BarberIT
+-- SOLICITUDES DE CAMBIO EN RESERVAS — Trimmerit
 -- Maneja cancelaciones y aplazamientos propuestos por el barbero
 -- ============================================================
 

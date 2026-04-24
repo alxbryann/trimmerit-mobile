@@ -45,6 +45,8 @@ const PENDIENTES_ESTADOS = new Set(['pendiente', 'aplazamiento_pendiente']);
 export default function AgendaScreen({ navigation }) {
   const [session, setSession] = useState(null);
   const [rows, setRows] = useState([]);
+  /** Reservas completadas sin fila en `reseñas` (el cliente aún no calificó). */
+  const [sinResenaIds, setSinResenaIds] = useState(() => new Set());
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [err, setErr] = useState(null);
@@ -61,7 +63,12 @@ export default function AgendaScreen({ navigation }) {
     setErr(null);
     const { data: { session: s } } = await supabase.auth.getSession();
     setSession(s);
-    if (!s?.user) { setRows([]); if (!silent) setLoading(false); return; }
+    if (!s?.user) {
+      setRows([]);
+      setSinResenaIds(new Set());
+      if (!silent) setLoading(false);
+      return;
+    }
 
     const { data, error } = await supabase
       .from('reservas')
@@ -69,8 +76,28 @@ export default function AgendaScreen({ navigation }) {
       .eq('cliente_id', s.user.id)
       .order('fecha', { ascending: true });
 
-    if (error) { setErr(error.message); setRows([]); }
-    else { const list = data ?? []; list.sort(cmpFechaAsc); setRows(list); }
+    if (error) {
+      setErr(error.message);
+      setRows([]);
+      setSinResenaIds(new Set());
+    } else {
+      const list = data ?? [];
+      list.sort(cmpFechaAsc);
+      setRows(list);
+      const completedIds = list
+        .filter((r) => (r.estado ?? '').toLowerCase() === 'completada')
+        .map((r) => r.id);
+      if (completedIds.length === 0) {
+        setSinResenaIds(new Set());
+      } else {
+        const { data: revRows } = await supabase
+          .from('reseñas')
+          .select('reserva_id')
+          .in('reserva_id', completedIds);
+        const conResena = new Set((revRows ?? []).map((x) => x.reserva_id));
+        setSinResenaIds(new Set(completedIds.filter((id) => !conResena.has(id))));
+      }
+    }
     if (!silent) setLoading(false);
   }, []);
 
@@ -123,10 +150,12 @@ export default function AgendaScreen({ navigation }) {
     return styles.badgePending;
   }
 
-  function renderCard(r) {
+  function renderCard(r, opts = {}) {
+    const { showCalificar = false } = opts;
     const b = r.barberos;
     const nombreBarberia = b?.nombre_barberia?.trim() || b?.slug?.replace(/-/g, ' ') || 'Trimmerit';
     const nombreBarbero  = b?.profiles?.nombre?.trim() || null;
+    const slug = b?.slug?.trim() || null;
     const badgeStyle = estadoBadgeStyle(r.estado);
     return (
       <View key={r.id} style={styles.card}>
@@ -141,6 +170,15 @@ export default function AgendaScreen({ navigation }) {
         {r.precio != null && Number.isFinite(Number(r.precio)) && (
           <Text style={styles.precio}>${fmtPrice(Number(r.precio))}</Text>
         )}
+        {showCalificar && slug ? (
+          <TouchableOpacity
+            style={styles.rateCta}
+            onPress={() => navigation.navigate('BarberProfile', { slug })}
+            activeOpacity={0.88}
+          >
+            <Text style={styles.rateCtaText}>Calificar visita →</Text>
+          </TouchableOpacity>
+        ) : null}
       </View>
     );
   }
@@ -161,7 +199,7 @@ export default function AgendaScreen({ navigation }) {
           </View>
         ) : !session?.user ? (
           <ScrollView contentContainerStyle={styles.emptyScroll}>
-            <Text style={styles.muted}>Iniciá sesión para ver tus reservas.</Text>
+            <Text style={styles.muted}>Inicia sesión para ver tus reservas.</Text>
             <TouchableOpacity style={styles.primaryOutline} onPress={() => navigation.navigate('Login')}>
               <Text style={styles.primaryOutlineText}>iniciar sesión →</Text>
             </TouchableOpacity>
@@ -176,7 +214,7 @@ export default function AgendaScreen({ navigation }) {
               <Text style={styles.err}>{err}</Text>
             ) : rows.length === 0 ? (
               <View style={styles.emptyBlock}>
-                <Text style={styles.muted}>Aún no tenés reservas.</Text>
+                <Text style={styles.muted}>Aún no tienes reservas.</Text>
                 <TouchableOpacity onPress={() => navigation.navigate('Catalogo')} style={styles.linkBtn}>
                   <Text style={styles.linkText}>Ir al catálogo Trimmerit →</Text>
                 </TouchableOpacity>
@@ -218,7 +256,11 @@ export default function AgendaScreen({ navigation }) {
                     {anteriores.length === 0 ? (
                       <Text style={styles.emptySection}>Sin citas anteriores.</Text>
                     ) : (
-                      anteriores.map(renderCard)
+                      anteriores.map((r) => {
+                        const puede =
+                          (r.estado ?? '').toLowerCase() === 'completada' && sinResenaIds.has(r.id);
+                        return renderCard(r, { showCalificar: puede });
+                      })
                     )}
                   </>
                 );
@@ -311,6 +353,22 @@ const styles = StyleSheet.create({
   },
   cardBarbero: { fontFamily: fonts.body, fontSize: 12, color: colors.muted },
   precio: { fontFamily: fonts.mono, fontSize: 13, color: colors.champagne, marginTop: 4 },
+
+  rateCta: {
+    marginTop: 12,
+    alignSelf: 'flex-start',
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderWidth: 1,
+    borderColor: colors.champagne,
+  },
+  rateCtaText: {
+    fontFamily: fonts.bodySemi,
+    fontSize: 12,
+    letterSpacing: 1,
+    color: colors.champagne,
+    textTransform: 'uppercase',
+  },
 
   badge: { paddingHorizontal: 8, paddingVertical: 3 },
   badgeText: { fontFamily: fonts.mono, fontSize: 9, letterSpacing: 2, color: colors.ink },

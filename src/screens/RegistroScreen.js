@@ -229,7 +229,7 @@ function StepRole({ role, setRole, onContinue, onGoLogin }) {
       </View>
 
       <Text style={styles.sectionLbl}>¿CUÁL ES TU ROL EN TRIMMERIT?</Text>
-      <Text style={styles.sectionHint}>Elegí uno para continuar.</Text>
+      <Text style={styles.sectionHint}>Elige uno para continuar.</Text>
 
       <View style={styles.roles}>
         {ROLES.map((r) => {

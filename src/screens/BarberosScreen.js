@@ -172,7 +172,7 @@ export default function BarberosScreen({ navigation }) {
               <Text style={styles.emptyTitle}>aún no hay profesionales</Text>
               <Text style={styles.muted}>Sé el primero en unirte a la plataforma.</Text>
               <TouchableOpacity onPress={() => navigation.navigate('Registro')} style={styles.linkBtn}>
-                <Text style={styles.linkText}>Registrate como profesional →</Text>
+                <Text style={styles.linkText}>Regístrate como profesional →</Text>
               </TouchableOpacity>
             </View>
           </View>
