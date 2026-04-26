@@ -11,13 +11,11 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { supabase, supabaseConfigured } from '../lib/supabase';
-import { colors, fonts } from '../theme';
-import { fmtPrice } from '../utils/booking';
+import { fonts } from '../theme';
+import { useColors } from '../theme/ThemeContext';
+import { fmtPrice, resolveLocalDisplayName } from '../utils/booking';
 import ClienteReservaCard from '../components/ClienteReservaCard';
-import {
-  notifCancelacionAlBarbero,
-  notifCambioAlBarbero,
-} from '../lib/notifications';
+import { sendPushNotification } from '../lib/notifications';
 
 function fmtFecha(ymd) {
   if (!ymd || typeof ymd !== 'string') return '—';
@@ -43,237 +41,8 @@ function cmpFechaAsc(a, b) {
 const PENDIENTES_ESTADOS = new Set(['pendiente', 'aplazamiento_pendiente']);
 
 export default function AgendaScreen({ navigation }) {
-  const [session, setSession] = useState(null);
-  const [rows, setRows] = useState([]);
-  /** Reservas completadas sin fila en `reseñas` (el cliente aún no calificó). */
-  const [sinResenaIds, setSinResenaIds] = useState(() => new Set());
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [err, setErr] = useState(null);
-
-  const load = useCallback(async (opts = {}) => {
-    const silent = Boolean(opts.silent);
-    if (!silent) setLoading(true);
-    if (!supabaseConfigured) {
-      setErr('Configura Supabase.');
-      setRows([]);
-      if (!silent) setLoading(false);
-      return;
-    }
-    setErr(null);
-    const { data: { session: s } } = await supabase.auth.getSession();
-    setSession(s);
-    if (!s?.user) {
-      setRows([]);
-      setSinResenaIds(new Set());
-      if (!silent) setLoading(false);
-      return;
-    }
-
-    const { data, error } = await supabase
-      .from('reservas')
-      .select('id, fecha, hora, precio, estado, barberos ( nombre_barberia, slug, profiles ( nombre ) )')
-      .eq('cliente_id', s.user.id)
-      .order('fecha', { ascending: true });
-
-    if (error) {
-      setErr(error.message);
-      setRows([]);
-      setSinResenaIds(new Set());
-    } else {
-      const list = data ?? [];
-      list.sort(cmpFechaAsc);
-      setRows(list);
-      const completedIds = list
-        .filter((r) => (r.estado ?? '').toLowerCase() === 'completada')
-        .map((r) => r.id);
-      if (completedIds.length === 0) {
-        setSinResenaIds(new Set());
-      } else {
-        const { data: revRows } = await supabase
-          .from('reseñas')
-          .select('reserva_id')
-          .in('reserva_id', completedIds);
-        const conResena = new Set((revRows ?? []).map((x) => x.reserva_id));
-        setSinResenaIds(new Set(completedIds.filter((id) => !conResena.has(id))));
-      }
-    }
-    if (!silent) setLoading(false);
-  }, []);
-
-  useFocusEffect(
-    useCallback(() => {
-      load();
-    }, [load])
-  );
-
-  useEffect(() => {
-    const { data: sub } = supabase.auth.onAuthStateChange(() => { setLoading(true); load(); });
-    return () => sub.subscription.unsubscribe();
-  }, [load]);
-
-  async function onRefresh() {
-    setRefreshing(true);
-    await load({ silent: true });
-    setRefreshing(false);
-  }
-
-  async function handleCancelarCliente(reservaId) {
-    const { data, error } = await supabase.rpc('cancelar_reserva_cliente', { p_reserva_id: reservaId });
-    if (error || !data?.ok) return;
-    const nombreCliente = session?.user?.user_metadata?.nombre ?? session?.user?.email ?? 'El cliente';
-    const reserva = rows.find((r) => r.id === reservaId);
-    await notifCancelacionAlBarbero(nombreCliente, reserva?.fecha ?? '');
-    load({ silent: true });
-  }
-
-  async function handleCambiarCliente(reservaId, nuevaFecha, nuevaHora) {
-    const { data, error } = await supabase.rpc('cambiar_reserva_cliente', {
-      p_reserva_id: reservaId, p_nueva_fecha: nuevaFecha, p_nueva_hora: nuevaHora,
-    });
-    if (error || !data?.ok) return;
-    const nombreCliente = session?.user?.user_metadata?.nombre ?? session?.user?.email ?? 'El cliente';
-    const DAY_NAMES = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
-    const MON_NAMES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-    const [y, m, d] = nuevaFecha.split('-').map(Number);
-    const dateObj = new Date(y, m - 1, d);
-    const fechaLabel = `${DAY_NAMES[dateObj.getDay()]} ${d} de ${MON_NAMES[m - 1]}`;
-    await notifCambioAlBarbero(nombreCliente, fechaLabel, nuevaHora);
-    load({ silent: true });
-  }
-
-  function estadoBadgeStyle(estado) {
-    const e = (estado ?? '').toLowerCase();
-    if (e === 'completada') return styles.badgeOk;
-    if (e === 'cancelada')  return styles.badgeCanceled;
-    if (e === 'aplazamiento_pendiente') return styles.badgeAplaz;
-    return styles.badgePending;
-  }
-
-  function renderCard(r, opts = {}) {
-    const { showCalificar = false } = opts;
-    const b = r.barberos;
-    const nombreBarberia = b?.nombre_barberia?.trim() || b?.slug?.replace(/-/g, ' ') || 'Trimmerit';
-    const nombreBarbero  = b?.profiles?.nombre?.trim() || null;
-    const slug = b?.slug?.trim() || null;
-    const badgeStyle = estadoBadgeStyle(r.estado);
-    return (
-      <View key={r.id} style={styles.card}>
-        <View style={styles.cardDateRow}>
-          <Text style={styles.cardDate}>{fmtFecha(r.fecha)} · {r.hora ?? '—'}</Text>
-          <View style={[styles.badge, badgeStyle]}>
-            <Text style={styles.badgeText}>{estadoLabel(r.estado)}</Text>
-          </View>
-        </View>
-        <Text style={styles.cardTitle} numberOfLines={1}>{nombreBarberia}</Text>
-        {nombreBarbero && <Text style={styles.cardBarbero}>con {nombreBarbero}</Text>}
-        {r.precio != null && Number.isFinite(Number(r.precio)) && (
-          <Text style={styles.precio}>${fmtPrice(Number(r.precio))}</Text>
-        )}
-        {showCalificar && slug ? (
-          <TouchableOpacity
-            style={styles.rateCta}
-            onPress={() => navigation.navigate('BarberProfile', { slug })}
-            activeOpacity={0.88}
-          >
-            <Text style={styles.rateCtaText}>Calificar visita →</Text>
-          </TouchableOpacity>
-        ) : null}
-      </View>
-    );
-  }
-
-  return (
-    <View style={styles.root}>
-      <SafeAreaView style={styles.safe} edges={['top']}>
-        <View style={styles.topRow}>
-          <View>
-            <Text style={styles.kicker}>— tus citas —</Text>
-            <Text style={styles.title}>agenda.</Text>
-          </View>
-        </View>
-
-        {loading ? (
-          <View style={styles.center}>
-            <ActivityIndicator size="large" color={colors.champagne} />
-          </View>
-        ) : !session?.user ? (
-          <ScrollView contentContainerStyle={styles.emptyScroll}>
-            <Text style={styles.muted}>Inicia sesión para ver tus reservas.</Text>
-            <TouchableOpacity style={styles.primaryOutline} onPress={() => navigation.navigate('Login')}>
-              <Text style={styles.primaryOutlineText}>iniciar sesión →</Text>
-            </TouchableOpacity>
-          </ScrollView>
-        ) : (
-          <ScrollView
-            contentContainerStyle={styles.scroll}
-            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.champagne} />}
-            showsVerticalScrollIndicator={false}
-          >
-            {err ? (
-              <Text style={styles.err}>{err}</Text>
-            ) : rows.length === 0 ? (
-              <View style={styles.emptyBlock}>
-                <Text style={styles.muted}>Aún no tienes reservas.</Text>
-                <TouchableOpacity onPress={() => navigation.navigate('Catalogo')} style={styles.linkBtn}>
-                  <Text style={styles.linkText}>Ir al catálogo Trimmerit →</Text>
-                </TouchableOpacity>
-              </View>
-            ) : (
-              (() => {
-                const pendientes  = rows.filter((r) =>  PENDIENTES_ESTADOS.has((r.estado ?? '').toLowerCase()));
-                const anteriores = rows
-                  .filter((r) => !PENDIENTES_ESTADOS.has((r.estado ?? '').toLowerCase()))
-                  .sort((a, b) => cmpFechaAsc(b, a));
-
-                return (
-                  <>
-                    <Text style={styles.sectionLabel}>i · pendientes</Text>
-                    {pendientes.length === 0 ? (
-                      <Text style={styles.emptySection}>Sin citas próximas.</Text>
-                    ) : (
-                      pendientes.map((r) => {
-                        const b = r.barberos;
-                        const barberiaNombre = b?.nombre_barberia?.trim() || b?.slug?.replace(/-/g, ' ') || 'Trimmerit';
-                        const barberoNombre  = b?.profiles?.nombre?.trim() || null;
-                        if ((r.estado ?? '').toLowerCase() === 'pendiente') {
-                          return (
-                            <ClienteReservaCard
-                              key={r.id}
-                              reserva={r}
-                              barberiaNombre={barberiaNombre}
-                              barberoNombre={barberoNombre}
-                              onCancelar={handleCancelarCliente}
-                              onCambiar={handleCambiarCliente}
-                            />
-                          );
-                        }
-                        return renderCard(r);
-                      })
-                    )}
-
-                    <Text style={[styles.sectionLabel, { marginTop: 24 }]}>ii · anteriores</Text>
-                    {anteriores.length === 0 ? (
-                      <Text style={styles.emptySection}>Sin citas anteriores.</Text>
-                    ) : (
-                      anteriores.map((r) => {
-                        const puede =
-                          (r.estado ?? '').toLowerCase() === 'completada' && sinResenaIds.has(r.id);
-                        return renderCard(r, { showCalificar: puede });
-                      })
-                    )}
-                  </>
-                );
-              })()
-            )}
-          </ScrollView>
-        )}
-      </SafeAreaView>
-    </View>
-  );
-}
-
-const styles = StyleSheet.create({
+  const colors = useColors();
+  const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.ink },
   safe: { flex: 1 },
 
@@ -377,3 +146,251 @@ const styles = StyleSheet.create({
   badgeCanceled: { backgroundColor: colors.muted2 },
   badgeAplaz:    { backgroundColor: '#60a5fa' },
 });
+  const [session, setSession] = useState(null);
+  const [rows, setRows] = useState([]);
+  /** Reservas completadas sin fila en `reseñas` (el cliente aún no calificó). */
+  const [sinResenaIds, setSinResenaIds] = useState(() => new Set());
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [err, setErr] = useState(null);
+
+  const load = useCallback(async (opts = {}) => {
+    const silent = Boolean(opts.silent);
+    if (!silent) setLoading(true);
+    if (!supabaseConfigured) {
+      setErr('Configura Supabase.');
+      setRows([]);
+      if (!silent) setLoading(false);
+      return;
+    }
+    setErr(null);
+    const { data: { session: s } } = await supabase.auth.getSession();
+    setSession(s);
+    if (!s?.user) {
+      setRows([]);
+      setSinResenaIds(new Set());
+      if (!silent) setLoading(false);
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from('reservas')
+      .select(
+        'id, fecha, hora, precio, estado, barbero_id, barberos ( nombre_barberia, slug, barberia_id, barberias ( nombre ), profiles ( nombre, push_token ) )',
+      )
+      .eq('cliente_id', s.user.id)
+      .order('fecha', { ascending: true });
+
+    if (error) {
+      setErr(error.message);
+      setRows([]);
+      setSinResenaIds(new Set());
+    } else {
+      const list = data ?? [];
+      list.sort(cmpFechaAsc);
+      setRows(list);
+      const completedIds = list
+        .filter((r) => (r.estado ?? '').toLowerCase() === 'completada')
+        .map((r) => r.id);
+      if (completedIds.length === 0) {
+        setSinResenaIds(new Set());
+      } else {
+        const { data: revRows } = await supabase
+          .from('reseñas')
+          .select('reserva_id')
+          .in('reserva_id', completedIds);
+        const conResena = new Set((revRows ?? []).map((x) => x.reserva_id));
+        setSinResenaIds(new Set(completedIds.filter((id) => !conResena.has(id))));
+      }
+    }
+    if (!silent) setLoading(false);
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load])
+  );
+
+  useEffect(() => {
+    const { data: sub } = supabase.auth.onAuthStateChange(() => { setLoading(true); load(); });
+    return () => sub.subscription.unsubscribe();
+  }, [load]);
+
+  async function onRefresh() {
+    setRefreshing(true);
+    await load({ silent: true });
+    setRefreshing(false);
+  }
+
+  async function handleCancelarCliente(reservaId) {
+    const { data, error } = await supabase.rpc('cancelar_reserva_cliente', { p_reserva_id: reservaId });
+    if (error || !data?.ok) return;
+    const nombreCliente = session?.user?.user_metadata?.nombre ?? session?.user?.email ?? 'El cliente';
+    const reserva = rows.find((r) => r.id === reservaId);
+    const pushToken = reserva?.barberos?.profiles?.push_token ?? null;
+    if (pushToken) {
+      await sendPushNotification({
+        to: pushToken,
+        title: '❌ Cita cancelada por el cliente',
+        body: `${nombreCliente} canceló su cita del ${reserva?.fecha ?? ''}.`,
+        data: { tipo: 'cancelacion_cliente', reservaId },
+      });
+    }
+    load({ silent: true });
+  }
+
+  async function handleCambiarCliente(reservaId, nuevaFecha, nuevaHora) {
+    const { data, error } = await supabase.rpc('cambiar_reserva_cliente', {
+      p_reserva_id: reservaId, p_nueva_fecha: nuevaFecha, p_nueva_hora: nuevaHora,
+    });
+    if (error || !data?.ok) return;
+    const nombreCliente = session?.user?.user_metadata?.nombre ?? session?.user?.email ?? 'El cliente';
+    const reserva = rows.find((r) => r.id === reservaId);
+    const pushToken = reserva?.barberos?.profiles?.push_token ?? null;
+    const DAY_NAMES = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+    const MON_NAMES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+    const [y, m, d] = nuevaFecha.split('-').map(Number);
+    const dateObj = new Date(y, m - 1, d);
+    const fechaLabel = `${DAY_NAMES[dateObj.getDay()]} ${d} de ${MON_NAMES[m - 1]}`;
+    if (pushToken) {
+      await sendPushNotification({
+        to: pushToken,
+        title: '📅 Cliente reprogramó su cita',
+        body: `${nombreCliente} cambió su cita al ${fechaLabel} a las ${nuevaHora}.`,
+        data: { tipo: 'cambio_cliente', reservaId },
+      });
+    }
+    load({ silent: true });
+  }
+
+  function estadoBadgeStyle(estado) {
+    const e = (estado ?? '').toLowerCase();
+    if (e === 'completada') return styles.badgeOk;
+    if (e === 'cancelada')  return styles.badgeCanceled;
+    if (e === 'aplazamiento_pendiente') return styles.badgeAplaz;
+    return styles.badgePending;
+  }
+
+  function renderCard(r, opts = {}) {
+    const { showCalificar = false } = opts;
+    const b = r.barberos;
+    const nombreBarberia = resolveLocalDisplayName(b, { fallback: b?.profiles?.nombre });
+    const nombreBarbero  = b?.profiles?.nombre?.trim() || null;
+    const slug = b?.slug?.trim() || null;
+    const badgeStyle = estadoBadgeStyle(r.estado);
+    return (
+      <View key={r.id} style={styles.card}>
+        <View style={styles.cardDateRow}>
+          <Text style={styles.cardDate}>{fmtFecha(r.fecha)} · {r.hora ?? '—'}</Text>
+          <View style={[styles.badge, badgeStyle]}>
+            <Text style={styles.badgeText}>{estadoLabel(r.estado)}</Text>
+          </View>
+        </View>
+        <Text style={styles.cardTitle} numberOfLines={1}>{nombreBarberia}</Text>
+        {nombreBarbero && <Text style={styles.cardBarbero}>con {nombreBarbero}</Text>}
+        {r.precio != null && Number.isFinite(Number(r.precio)) && (
+          <Text style={styles.precio}>${fmtPrice(Number(r.precio))}</Text>
+        )}
+        {showCalificar && slug ? (
+          <TouchableOpacity
+            style={styles.rateCta}
+            onPress={() => navigation.navigate('BarberProfile', { slug })}
+            activeOpacity={0.88}
+          >
+            <Text style={styles.rateCtaText}>Calificar visita →</Text>
+          </TouchableOpacity>
+        ) : null}
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.root}>
+      <SafeAreaView style={styles.safe} edges={['top']}>
+        <View style={styles.topRow}>
+          <View>
+            <Text style={styles.kicker}>— tus citas —</Text>
+            <Text style={styles.title}>agenda.</Text>
+          </View>
+        </View>
+
+        {loading ? (
+          <View style={styles.center}>
+            <ActivityIndicator size="large" color={colors.champagne} />
+          </View>
+        ) : !session?.user ? (
+          <ScrollView contentContainerStyle={styles.emptyScroll}>
+            <Text style={styles.muted}>Inicia sesión para ver tus reservas.</Text>
+            <TouchableOpacity style={styles.primaryOutline} onPress={() => navigation.navigate('Login')}>
+              <Text style={styles.primaryOutlineText}>iniciar sesión →</Text>
+            </TouchableOpacity>
+          </ScrollView>
+        ) : (
+          <ScrollView
+            contentContainerStyle={styles.scroll}
+            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.champagne} />}
+            showsVerticalScrollIndicator={false}
+          >
+            {err ? (
+              <Text style={styles.err}>{err}</Text>
+            ) : rows.length === 0 ? (
+              <View style={styles.emptyBlock}>
+                <Text style={styles.muted}>Aún no tienes reservas.</Text>
+                <TouchableOpacity onPress={() => navigation.navigate('Catalogo')} style={styles.linkBtn}>
+                  <Text style={styles.linkText}>Ir al catálogo Trimmerit →</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              (() => {
+                const pendientes  = rows.filter((r) =>  PENDIENTES_ESTADOS.has((r.estado ?? '').toLowerCase()));
+                const anteriores = rows
+                  .filter((r) => !PENDIENTES_ESTADOS.has((r.estado ?? '').toLowerCase()))
+                  .sort((a, b) => cmpFechaAsc(b, a));
+
+                return (
+                  <>
+                    <Text style={styles.sectionLabel}>i · pendientes</Text>
+                    {pendientes.length === 0 ? (
+                      <Text style={styles.emptySection}>Sin citas próximas.</Text>
+                    ) : (
+                      pendientes.map((r) => {
+                        const b = r.barberos;
+                        const barberiaNombre = resolveLocalDisplayName(b, { fallback: b?.profiles?.nombre });
+                        const barberoNombre  = b?.profiles?.nombre?.trim() || null;
+                        if ((r.estado ?? '').toLowerCase() === 'pendiente') {
+                          return (
+                            <ClienteReservaCard
+                              key={r.id}
+                              reserva={r}
+                              barberiaNombre={barberiaNombre}
+                              barberoNombre={barberoNombre}
+                              onCancelar={handleCancelarCliente}
+                              onCambiar={handleCambiarCliente}
+                            />
+                          );
+                        }
+                        return renderCard(r);
+                      })
+                    )}
+
+                    <Text style={[styles.sectionLabel, { marginTop: 24 }]}>ii · anteriores</Text>
+                    {anteriores.length === 0 ? (
+                      <Text style={styles.emptySection}>Sin citas anteriores.</Text>
+                    ) : (
+                      anteriores.map((r) => {
+                        const puede =
+                          (r.estado ?? '').toLowerCase() === 'completada' && sinResenaIds.has(r.id);
+                        return renderCard(r, { showCalificar: puede });
+                      })
+                    )}
+                  </>
+                );
+              })()
+            )}
+          </ScrollView>
+        )}
+      </SafeAreaView>
+    </View>
+  );
+}

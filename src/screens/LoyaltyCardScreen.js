@@ -11,10 +11,102 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { supabase, supabaseConfigured } from '../lib/supabase';
-import { colors, fonts } from '../theme';
+import { fonts } from '../theme';
+import { useColors } from '../theme/ThemeContext';
 import LoyaltyCard from '../components/LoyaltyCard';
 
 export default function LoyaltyCardScreen({ navigation }) {
+  const colors = useColors();
+  const styles = StyleSheet.create({
+    root: { flex: 1, backgroundColor: colors.ink },
+    center: { flex: 1, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
+  
+    header: {
+      paddingHorizontal: 20,
+      paddingTop: 14,
+      paddingBottom: 14,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    headerKicker: {
+      fontFamily: fonts.mono,
+      fontSize: 10,
+      letterSpacing: 3,
+      textTransform: 'uppercase',
+      color: colors.champagne,
+      marginBottom: 4,
+    },
+    headerTitle: {
+      fontFamily: fonts.display,
+      fontStyle: 'italic',
+      fontSize: 48,
+      lineHeight: 46,
+      color: colors.paper,
+      letterSpacing: -1,
+      marginBottom: 8,
+    },
+    headerSub: {
+      fontFamily: fonts.body,
+      fontSize: 13,
+      color: colors.muted,
+      lineHeight: 20,
+      maxWidth: 280,
+    },
+  
+    scroll: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 40, gap: 12 },
+  
+    sectionLabel: {
+      fontFamily: fonts.mono,
+      fontSize: 10,
+      letterSpacing: 3,
+      textTransform: 'uppercase',
+      color: colors.muted,
+      marginTop: 4,
+      marginBottom: 4,
+    },
+    redeemHint: {
+      fontFamily: fonts.body,
+      fontSize: 12,
+      color: colors.muted,
+      marginTop: 6,
+      marginBottom: 4,
+    },
+    errorBox: { borderWidth: 1, borderColor: 'rgba(184,94,76,0.3)', padding: 12 },
+    errorText: { fontFamily: fonts.body, fontSize: 13, color: colors.terracota },
+  
+    emptyBlock: { alignItems: 'center', paddingTop: 48, gap: 12, paddingHorizontal: 16 },
+    emptyTitle: {
+      fontFamily: fonts.display,
+      fontStyle: 'italic',
+      fontSize: 26,
+      color: colors.paper,
+      letterSpacing: -0.5,
+      textAlign: 'center',
+    },
+    emptySubtitle: {
+      fontFamily: fonts.body,
+      fontSize: 14,
+      color: colors.muted,
+      textAlign: 'center',
+      lineHeight: 20,
+      maxWidth: 280,
+    },
+    emptyBtn: {
+      marginTop: 8,
+      borderWidth: 1,
+      borderColor: colors.champagne,
+      paddingVertical: 12,
+      paddingHorizontal: 28,
+    },
+    emptyBtnText: {
+      fontFamily: fonts.display,
+      fontStyle: 'italic',
+      fontSize: 16,
+      color: colors.champagne,
+      letterSpacing: -0.5,
+    },
+  });
+
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [cards, setCards] = useState([]);
@@ -128,6 +220,7 @@ export default function LoyaltyCardScreen({ navigation }) {
 
         {!session?.user ? (
           <EmptyState
+            styles={styles}
             title="inicia sesión"
             subtitle="Necesitas una cuenta para ver tus tarjetas de fidelización."
             action="iniciar sesión →"
@@ -135,6 +228,7 @@ export default function LoyaltyCardScreen({ navigation }) {
           />
         ) : cards.length === 0 ? (
           <EmptyState
+            styles={styles}
             title="sin tarjetas todavía"
             subtitle="Reserva y completa cortes en locales Trimmerit con programa de fidelización para acumular sellos."
             action="ver locales →"
@@ -184,7 +278,7 @@ export default function LoyaltyCardScreen({ navigation }) {
   );
 }
 
-function EmptyState({ title, subtitle, action, onAction }) {
+function EmptyState({ styles, title, subtitle, action, onAction }) {
   return (
     <View style={styles.emptyBlock}>
       <Text style={styles.emptyTitle}>{title}</Text>
@@ -198,92 +292,3 @@ function EmptyState({ title, subtitle, action, onAction }) {
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.ink },
-  center: { flex: 1, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
-
-  header: {
-    paddingHorizontal: 20,
-    paddingTop: 14,
-    paddingBottom: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  headerKicker: {
-    fontFamily: fonts.mono,
-    fontSize: 10,
-    letterSpacing: 3,
-    textTransform: 'uppercase',
-    color: colors.champagne,
-    marginBottom: 4,
-  },
-  headerTitle: {
-    fontFamily: fonts.display,
-    fontStyle: 'italic',
-    fontSize: 48,
-    lineHeight: 46,
-    color: colors.paper,
-    letterSpacing: -1,
-    marginBottom: 8,
-  },
-  headerSub: {
-    fontFamily: fonts.body,
-    fontSize: 13,
-    color: colors.muted,
-    lineHeight: 20,
-    maxWidth: 280,
-  },
-
-  scroll: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 40, gap: 12 },
-
-  sectionLabel: {
-    fontFamily: fonts.mono,
-    fontSize: 10,
-    letterSpacing: 3,
-    textTransform: 'uppercase',
-    color: colors.muted,
-    marginTop: 4,
-    marginBottom: 4,
-  },
-  redeemHint: {
-    fontFamily: fonts.body,
-    fontSize: 12,
-    color: colors.muted,
-    marginTop: 6,
-    marginBottom: 4,
-  },
-  errorBox: { borderWidth: 1, borderColor: 'rgba(184,94,76,0.3)', padding: 12 },
-  errorText: { fontFamily: fonts.body, fontSize: 13, color: colors.terracota },
-
-  emptyBlock: { alignItems: 'center', paddingTop: 48, gap: 12, paddingHorizontal: 16 },
-  emptyTitle: {
-    fontFamily: fonts.display,
-    fontStyle: 'italic',
-    fontSize: 26,
-    color: colors.paper,
-    letterSpacing: -0.5,
-    textAlign: 'center',
-  },
-  emptySubtitle: {
-    fontFamily: fonts.body,
-    fontSize: 14,
-    color: colors.muted,
-    textAlign: 'center',
-    lineHeight: 20,
-    maxWidth: 280,
-  },
-  emptyBtn: {
-    marginTop: 8,
-    borderWidth: 1,
-    borderColor: colors.champagne,
-    paddingVertical: 12,
-    paddingHorizontal: 28,
-  },
-  emptyBtnText: {
-    fontFamily: fonts.display,
-    fontStyle: 'italic',
-    fontSize: 16,
-    color: colors.champagne,
-    letterSpacing: -0.5,
-  },
-});

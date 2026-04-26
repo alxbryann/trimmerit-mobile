@@ -18,7 +18,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import LoopMutedVideo from '../components/LoopMutedVideo';
 import { LinearGradient } from 'expo-linear-gradient';
 import { supabase, supabaseConfigured } from '../lib/supabase';
-import { colors, fonts, radii, shadows } from '../theme';
+import { fonts, radii, shadows } from '../theme';
+import { useColors, useTheme } from '../theme/ThemeContext';
 import {
   DEFAULT_SERVICES,
   TIMES_MORNING,
@@ -29,15 +30,384 @@ import {
   heroNameLines,
   fmtPrice,
   isUuidString,
+  resolveLocalDisplayName,
 } from '../utils/booking';
 import { ServiceIonicon, resolveServiceIonicon } from '../utils/serviceIcons';
 import { notifyReservation } from '../api/notify';
-import { sendPushNotification } from '../lib/notifications';
+import { sendPushNotification, notifNuevoLogro } from '../lib/notifications';
 
 const { width: W } = Dimensions.get('window');
 
 
 export default function BarberProfileScreen({ navigation, route }) {
+  const colors = useColors();
+  const { mode } = useTheme();
+  const isLight = mode === 'light';
+  const selectedBg = isLight ? 'rgba(154,122,58,0.12)' : '#111500';
+  const selectedBorder = isLight ? 'rgba(154,122,58,0.45)' : colors.acid;
+  const selectedText = isLight ? colors.white : colors.acid;
+  const selectedSubtext = isLight ? colors.grayLight : colors.acidDim;
+  const selectedIconBg = isLight ? 'rgba(154,122,58,0.16)' : colors.acidSoft;
+  const selectedIconBorder = isLight ? 'rgba(154,122,58,0.36)' : 'rgba(205,255,0,0.3)';
+  const selectedCheckBg = isLight ? colors.acid : colors.acid;
+  const selectedCheckText = isLight ? colors.black : colors.black;
+  const styles = StyleSheet.create({
+    root: { flex: 1, backgroundColor: colors.black },
+    centerFill: { flex: 1, backgroundColor: colors.black, alignItems: 'center', justifyContent: 'center', padding: 24 },
+    loadingText: { fontFamily: fonts.bodyBold, fontSize: 13, letterSpacing: 4, color: colors.grayMid, marginTop: 12 },
+  
+    // 404
+    hero404: { fontFamily: fonts.display, fontSize: 80, color: colors.acid, lineHeight: 88 },
+    hero404Sub: { fontFamily: fonts.display, fontSize: 24, color: colors.white, marginBottom: 8, letterSpacing: 1 },
+    muted: { fontFamily: fonts.body, color: colors.grayLight, marginBottom: 16, textAlign: 'center' },
+    backLink: { marginTop: 4 },
+    link: { fontFamily: fonts.bodyBold, color: colors.acid, fontSize: 14 },
+  
+    // Confirmed
+    confirmedCard: {
+      backgroundColor: colors.dark2,
+      borderWidth: 1,
+      borderColor: 'rgba(205,255,0,0.2)',
+      borderRadius: radii.xl,
+      padding: 28,
+      alignItems: 'center',
+      width: '100%',
+      maxWidth: 360,
+    },
+    confirmedCheck: {
+      width: 64,
+      height: 64,
+      borderRadius: radii.pill,
+      backgroundColor: colors.acidSoft,
+      borderWidth: 1,
+      borderColor: 'rgba(205,255,0,0.3)',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 20,
+    },
+    confirmedCheckText: { fontFamily: fonts.display, fontSize: 32, color: colors.acid },
+    okTitle: { fontFamily: fonts.display, fontSize: 36, color: colors.white, textAlign: 'center', marginBottom: 20, lineHeight: 42, letterSpacing: 1 },
+    confirmedDetails: { width: '100%', gap: 10, marginBottom: 24 },
+    confirmRowItem: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+    confirmRowIcon: { fontSize: 16, color: colors.grayMid, width: 20, textAlign: 'center' },
+    confirmRowLabel: { fontFamily: fonts.bodyBold, fontSize: 14, color: colors.white, flex: 1 },
+    ghostBtn: {
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      borderRadius: radii.sm,
+      paddingHorizontal: 24,
+      paddingVertical: 12,
+    },
+    ghostBtnText: { fontFamily: fonts.bodyBold, fontSize: 12, letterSpacing: 2, color: colors.grayLight },
+  
+    // HERO (sin overflow:hidden: en iOS puede recortar mal la capa nativa del vídeo)
+    hero: { height: W * 1.15, position: 'relative' },
+    video: { ...StyleSheet.absoluteFillObject, zIndex: 0 },
+    heroGrad: { ...StyleSheet.absoluteFillObject, zIndex: 1 },
+    heroTop: {
+      zIndex: 2,
+      position: 'absolute', top: 0, left: 0, right: 0,
+      flexDirection: 'row', justifyContent: 'space-between',
+      paddingHorizontal: 14, paddingTop: 4,
+    },
+    backPill: {
+      backgroundColor: 'rgba(0,0,0,0.6)',
+      borderWidth: 1,
+      borderColor: 'rgba(255,255,255,0.1)',
+      borderRadius: radii.pill,
+      paddingHorizontal: 14,
+      paddingVertical: 8,
+    },
+    backPillText: { fontFamily: fonts.bodyBold, fontSize: 11, letterSpacing: 2, color: colors.white },
+    ownerRow: { flexDirection: 'row', gap: 8 },
+    ownerGhost: {
+      borderWidth: 1, borderColor: colors.acid,
+      borderRadius: radii.pill,
+      paddingHorizontal: 14, paddingVertical: 7,
+      backgroundColor: 'rgba(205,255,0,0.08)',
+    },
+    ownerGhostText: { fontFamily: fonts.bodyBold, fontSize: 11, letterSpacing: 2, color: colors.acid },
+    ownerSolid: {
+      backgroundColor: colors.acid,
+      borderRadius: radii.pill,
+      paddingHorizontal: 16, paddingVertical: 7,
+    },
+    ownerSolidText: { fontFamily: fonts.bodyBold, fontSize: 11, letterSpacing: 2, color: colors.black },
+  
+    heroText: {
+      zIndex: 2,
+      position: 'absolute',
+      bottom: 28,
+      left: 22,
+      right: 22,
+      paddingTop: 6,
+      overflow: 'visible',
+    },
+    heroKickerRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10 },
+    heroKickerDot: { width: 5, height: 5, borderRadius: 3, backgroundColor: colors.acid },
+    kicker: {
+      fontFamily: fonts.bodyBold,
+      fontSize: 10,
+      letterSpacing: 4,
+      color: colors.acid,
+      textShadowColor: isLight ? 'rgba(0,0,0,0.55)' : 'rgba(0,0,0,0.9)',
+      textShadowOffset: { width: 0, height: 1 },
+      textShadowRadius: 8,
+    },
+    heroName: {
+      fontFamily: fonts.display,
+      fontSize: 54,
+      lineHeight: 62,
+      color: isLight ? colors.black : colors.white,
+      width: '100%',
+      textShadowColor: isLight ? 'rgba(0,0,0,0.55)' : 'rgba(0,0,0,0.85)',
+      textShadowOffset: { width: 0, height: 2 },
+      textShadowRadius: 16,
+      ...(Platform.OS === 'android' ? { includeFontPadding: false } : {}),
+    },
+    heroNameAcid: {
+      fontFamily: fonts.display,
+      fontSize: 54,
+      lineHeight: 62,
+      color: colors.acid,
+      marginBottom: 8,
+      width: '100%',
+      textShadowColor: isLight ? 'rgba(0,0,0,0.5)' : 'rgba(0,0,0,0.75)',
+      textShadowOffset: { width: 0, height: 2 },
+      textShadowRadius: 14,
+      ...(Platform.OS === 'android' ? { includeFontPadding: false } : {}),
+    },
+    personName: {
+      fontFamily: fonts.bodyBold,
+      fontSize: 13,
+      letterSpacing: 2,
+      color: isLight ? colors.black : colors.grayLight,
+      marginBottom: 14,
+      textShadowColor: isLight ? 'rgba(0,0,0,0.45)' : 'rgba(0,0,0,0.8)',
+      textShadowOffset: { width: 0, height: 1 },
+      textShadowRadius: 6,
+    },
+  
+    statsRow: {
+      flexDirection: 'row',
+      backgroundColor: isLight ? 'rgba(10,10,10,0.45)' : 'rgba(0,0,0,0.6)',
+      borderWidth: 1,
+      borderColor: isLight ? 'rgba(242,239,231,0.28)' : 'rgba(255,255,255,0.08)',
+      borderRadius: radii.md,
+      paddingVertical: 12,
+      paddingHorizontal: 4,
+      alignSelf: 'flex-start',
+      gap: 0,
+    },
+    statPill: { paddingHorizontal: 16, alignItems: 'center' },
+    statDivider: { width: 1, backgroundColor: isLight ? 'rgba(242,239,231,0.25)' : 'rgba(255,255,255,0.1)', marginVertical: 4 },
+    statVal: { fontFamily: fonts.display, fontSize: 22, color: isLight ? colors.black : colors.white, lineHeight: 24 },
+    statLbl: { fontFamily: fonts.bodyBold, fontSize: 8, letterSpacing: 2, color: isLight ? colors.black : colors.grayLight, marginTop: 2 },
+  
+    acidLine: { zIndex: 2, height: 3, backgroundColor: colors.acid },
+  
+    // BODY
+    body: { padding: 18, paddingBottom: 48, maxWidth: 720, alignSelf: 'center', width: '100%' },
+  
+    bioCard: {
+      backgroundColor: colors.dark2,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      borderRadius: radii.md,
+      padding: 16,
+      marginBottom: 14,
+    },
+    bioText: { fontFamily: fonts.body, fontSize: 15, color: colors.grayLight, lineHeight: 22 },
+  
+    specialtyRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 20 },
+    specialtyPill: {
+      backgroundColor: colors.dark3,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      borderRadius: radii.pill,
+      paddingHorizontal: 12,
+      paddingVertical: 5,
+    },
+    specialtyText: { fontFamily: fonts.bodyBold, fontSize: 11, color: colors.grayLight, letterSpacing: 1 },
+  
+    block: { marginBottom: 24 },
+    sectionHead: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 14 },
+    sectionHeadIcon: { fontSize: 14, color: colors.acid },
+    sectionHeadLabel: { fontFamily: fonts.display, fontSize: 22, color: colors.white, letterSpacing: 0.5 },
+  
+    galGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+    galCell: { width: (W - 56) / 3, aspectRatio: 1, overflow: 'hidden', borderRadius: radii.xs },
+    galImg: { width: '100%', height: '100%' },
+  
+    // Steps
+    stepHead: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      marginTop: 28,
+      marginBottom: 14,
+    },
+    stepNumWrap: {
+      width: 32,
+      height: 32,
+      borderRadius: radii.sm,
+      backgroundColor: colors.acidSoft,
+      borderWidth: 1,
+      borderColor: 'rgba(205,255,0,0.2)',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    stepNum: { fontFamily: fonts.display, fontSize: 13, color: colors.acid },
+    stepTitle: { fontFamily: fonts.display, fontSize: 22, color: colors.white, flex: 1, letterSpacing: 0.5 },
+  
+    // Servicios
+    svc: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      backgroundColor: colors.dark2,
+      padding: 14,
+      marginBottom: 8,
+      gap: 12,
+      borderRadius: radii.md,
+    },
+    svcOn: { backgroundColor: selectedBg, borderColor: selectedBorder },
+    svcIconWrap: {
+      width: 40,
+      height: 40,
+      borderRadius: radii.sm,
+      backgroundColor: colors.dark3,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+    },
+    svcIconWrapOn: { backgroundColor: selectedIconBg, borderColor: selectedIconBorder },
+    svcLabel: { fontFamily: fonts.display, fontSize: 18, color: colors.white },
+    svcLabelOn: { color: selectedText },
+    svcDur: { fontFamily: fonts.body, fontSize: 12, color: colors.grayLight, marginTop: 2 },
+    svcDurOn: { color: selectedSubtext },
+    svcPrice: { fontFamily: fonts.display, fontSize: 20, color: colors.white },
+    svcPriceOn: { color: selectedText },
+    svcCheck: {
+      width: 22,
+      height: 22,
+      borderRadius: radii.pill,
+      backgroundColor: selectedCheckBg,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    svcCheckText: { fontFamily: fonts.bodyBold, fontSize: 11, color: selectedCheckText },
+  
+    // Days
+    dayRow: { marginBottom: 16 },
+    dayChip: {
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      backgroundColor: colors.dark2,
+      paddingVertical: 10,
+      paddingHorizontal: 14,
+      alignItems: 'center',
+      borderRadius: radii.md,
+      minWidth: 52,
+    },
+    dayChipOn: { backgroundColor: selectedBg, borderColor: selectedBorder },
+    dayNum: { fontFamily: fonts.display, fontSize: 22, color: colors.white },
+    dayNumOn: { color: selectedText },
+    dayWd: { fontFamily: fonts.bodyBold, fontSize: 9, color: colors.grayLight, marginTop: 2, letterSpacing: 1 },
+    dayWdOn: { color: selectedSubtext },
+  
+    // Slots
+    slotGrp: { fontFamily: fonts.bodyBold, fontSize: 10, letterSpacing: 3, color: colors.grayLight, marginBottom: 8, textTransform: 'uppercase' },
+    slotWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    slot: {
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      backgroundColor: colors.dark2,
+      paddingVertical: 8,
+      paddingHorizontal: 14,
+      borderRadius: radii.sm,
+    },
+    slotOn: { backgroundColor: selectedBg, borderColor: selectedBorder },
+    slotTxt: { fontFamily: fonts.bodyBold, fontSize: 13, color: colors.white },
+    slotTxtOn: { color: selectedText },
+  
+    // Summary
+    summary: {
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      backgroundColor: colors.dark2,
+      padding: 18,
+      marginBottom: 16,
+      borderRadius: radii.md,
+      ...shadows.sm,
+    },
+    summaryRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 12 },
+    summaryLbl: { fontFamily: fonts.bodyBold, fontSize: 10, letterSpacing: 2, color: colors.grayLight, textTransform: 'uppercase' },
+    summaryVal: { fontFamily: fonts.bodyBold, fontSize: 13, color: colors.white, flex: 1, textAlign: 'right' },
+    sep: { height: 1, backgroundColor: colors.cardBorder, marginVertical: 12 },
+    totalRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
+    totalLbl: { fontFamily: fonts.bodyBold, fontSize: 10, letterSpacing: 2, color: colors.grayLight, textTransform: 'uppercase' },
+    totalVal: { fontFamily: fonts.display, fontSize: 34, color: colors.acid },
+  
+    loginHint: {
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      padding: 14,
+      marginBottom: 12,
+      backgroundColor: colors.dark2,
+      borderRadius: radii.sm,
+      gap: 6,
+    },
+    loginHintText: { fontFamily: fonts.body, fontSize: 13, color: colors.grayLight },
+  
+    confirm: { borderRadius: radii.sm, overflow: 'hidden', ...shadows.acid },
+    confirmOff: { opacity: 0.45 },
+    confirmGrad: { paddingVertical: 18, alignItems: 'center' },
+    confirmText: { fontFamily: fonts.display, fontSize: 17, letterSpacing: 3, color: colors.black },
+    confirmTextOff: { color: colors.grayMid },
+  
+    // Modal
+    modalBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.88)', justifyContent: 'center', padding: 20 },
+    modalBox: {
+      backgroundColor: colors.dark2,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      borderRadius: radii.xl,
+      padding: 24,
+      maxWidth: 400,
+      alignSelf: 'center',
+      width: '100%',
+      ...shadows.md,
+    },
+    modalClose: { position: 'absolute', top: 16, right: 16, zIndex: 2, width: 28, height: 28, alignItems: 'center', justifyContent: 'center' },
+    modalCloseTxt: { color: colors.grayLight, fontSize: 16 },
+    modalK: { fontFamily: fonts.bodyBold, fontSize: 10, letterSpacing: 3, color: colors.acid, marginBottom: 8 },
+    modalTitle: { fontFamily: fonts.display, fontSize: 28, color: colors.white, marginBottom: 20, lineHeight: 34 },
+    stars: { flexDirection: 'row', gap: 10, marginBottom: 18 },
+    star: { fontSize: 34, color: colors.grayMid },
+    starOn: { color: colors.acid },
+    ta: {
+      backgroundColor: colors.dark3,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      borderRadius: radii.sm,
+      color: colors.white,
+      fontFamily: fonts.body,
+      padding: 12,
+      minHeight: 80,
+      textAlignVertical: 'top',
+      fontSize: 14,
+    },
+    modalBtn: { borderRadius: radii.sm, overflow: 'hidden', marginTop: 12 },
+    modalBtnGrad: { paddingVertical: 14, alignItems: 'center' },
+    modalBtnTxt: { fontFamily: fonts.display, fontSize: 16, letterSpacing: 2, color: colors.black },
+    modalDone: { alignItems: 'center', padding: 8, gap: 12 },
+    modalDoneIcon: { fontSize: 40, color: colors.acid },
+    modalOk: { fontFamily: fonts.display, fontSize: 24, color: colors.white, textAlign: 'center', letterSpacing: 1 },
+  });
+
   const slug = route.params?.slug;
   const previewFromEdit = route.params?.previewFromEdit === true;
   const [barbero, setBarbero] = useState(null);
@@ -63,7 +433,7 @@ export default function BarberProfileScreen({ navigation, route }) {
     if (!slug || !supabaseConfigured) { setLoading(false); return; }
     let { data, error } = await supabase
       .from('barberos')
-      .select('id, slug, especialidades, rating, total_cortes, bio, video_url, nombre_barberia, profiles(nombre)')
+      .select('id, slug, especialidades, rating, total_cortes, bio, video_url, nombre_barberia, barberia_id, barberias ( nombre ), profiles(nombre)')
       .eq('slug', slug)
       .maybeSingle();
     if (error) console.warn('[barbero]', error);
@@ -71,7 +441,7 @@ export default function BarberProfileScreen({ navigation, route }) {
       await new Promise((r) => setTimeout(r, 600));
       const retry = await supabase
         .from('barberos')
-        .select('id, slug, especialidades, rating, total_cortes, bio, video_url, nombre_barberia, profiles(nombre)')
+        .select('id, slug, especialidades, rating, total_cortes, bio, video_url, nombre_barberia, barberia_id, barberias ( nombre ), profiles(nombre)')
         .eq('slug', slug)
         .maybeSingle();
       data = retry.data;
@@ -97,10 +467,15 @@ export default function BarberProfileScreen({ navigation, route }) {
     const videoNorm =
       typeof videoRaw === 'string' && videoRaw.trim() ? videoRaw.trim() : videoRaw || null;
 
+    const localDisplayName = resolveLocalDisplayName(
+      { nombre_barberia: data.nombre_barberia, slug: data.slug, barberias: data.barberias },
+      { fallback: data.profiles?.nombre ?? slug },
+    );
     setBarbero({
       id: data.id, slug: data.slug,
       nombre: data.profiles?.nombre ?? slug,
       nombre_barberia: data.nombre_barberia ?? null,
+      localDisplayName,
       especialidades: data.especialidades ?? [],
       rating: data.rating ?? 5,
       total_cortes: data.total_cortes ?? 0,
@@ -184,6 +559,14 @@ export default function BarberProfileScreen({ navigation, route }) {
   async function handleEnviarReseña() {
     if (!user || !barbero || !pendingReseña || ratingSelected === 0) return;
     setRatingSending(true);
+
+    const [{ data: logrosAntes }, { data: logrosAntesBarb }] = await Promise.all([
+      supabase.from('user_achievements').select('achievement_id').eq('user_id', user.id),
+      supabase.from('user_achievements').select('achievement_id').eq('user_id', barbero.id),
+    ]);
+    const logrosAntesIds = new Set((logrosAntes ?? []).map((r) => r.achievement_id));
+    const logrosAntesBarbIds = new Set((logrosAntesBarb ?? []).map((r) => r.achievement_id));
+
     await supabase.from('reseñas').insert({ reserva_id: pendingReseña.reservaId, cliente_id: user.id, barbero_id: barbero.id, estrellas: ratingSelected, comentario: ratingComentario.trim() || null });
     const [{ data: updated }] = await Promise.all([
       supabase.from('barberos').select('rating, total_cortes').eq('id', barbero.id).single(),
@@ -191,6 +574,35 @@ export default function BarberProfileScreen({ navigation, route }) {
       supabase.rpc('check_and_award_achievements', { p_user_id: barbero.id, p_category: 'barbero' }),
     ]);
     if (updated) setBarbero((prev) => prev ? { ...prev, rating: updated.rating, total_cortes: updated.total_cortes } : prev);
+
+    const [{ data: logrosNuevos }, { data: logrosNuevosBarb }, { data: barberoProfile }] = await Promise.all([
+      supabase.from('user_achievements').select('achievement_id, achievements(achievement_name, badge_emoji, rarity)').eq('user_id', user.id),
+      supabase.from('user_achievements').select('achievement_id, achievements(achievement_name, badge_emoji, rarity)').eq('user_id', barbero.id),
+      supabase.from('profiles').select('push_token').eq('id', barbero.id).maybeSingle(),
+    ]);
+
+    for (const row of logrosNuevos ?? []) {
+      if (!logrosAntesIds.has(row.achievement_id)) {
+        const a = row.achievements;
+        notifNuevoLogro(a?.achievement_name ?? 'Logro', a?.badge_emoji, a?.rarity);
+      }
+    }
+
+    if (barberoProfile?.push_token) {
+      for (const row of logrosNuevosBarb ?? []) {
+        if (!logrosAntesBarbIds.has(row.achievement_id)) {
+          const a = row.achievements;
+          const rarezaLabel = { common: 'Común', uncommon: 'Poco común', rare: 'Raro', legendary: 'Legendario' }[a?.rarity] ?? a?.rarity ?? '';
+          sendPushNotification({
+            to: barberoProfile.push_token,
+            title: `${a?.badge_emoji ?? '🏆'} ¡Nuevo logro desbloqueado!`,
+            body: `"${a?.achievement_name ?? 'Logro'}" — ${rarezaLabel}`,
+            data: { tipo: 'logro', nombre: a?.achievement_name },
+          });
+        }
+      }
+    }
+
     setRatingSending(false);
     setRatingDone(true);
     setTimeout(() => { setPendingReseña(null); setRatingDone(false); setRatingSelected(0); setRatingComentario(''); }, 2000);
@@ -201,22 +613,28 @@ export default function BarberProfileScreen({ navigation, route }) {
 
   async function runPostReserva(fecha) {
     try {
-      const { data: barberoProfile } = await supabase
-        .from('profiles')
-        .select('push_token, nombre')
-        .eq('id', barbero.id)
-        .maybeSingle();
+      const [{ data: barberoProfile }, { data: clienteProfile }, { data: { session: s } }] = await Promise.all([
+        supabase.from('profiles').select('push_token').eq('id', barbero.id).maybeSingle(),
+        supabase.from('profiles').select('nombre').eq('id', user.id).maybeSingle(),
+        supabase.auth.getSession(),
+      ]);
+      const clienteNombre =
+        clienteProfile?.nombre?.trim()
+        || s?.user?.user_metadata?.nombre
+        || user.email?.split('@')[0]
+        || 'Un cliente';
       if (barberoProfile?.push_token) {
         await sendPushNotification({
           to: barberoProfile.push_token,
           title: '💈 Nueva reserva',
-          body: `${barberoProfile.nombre ?? 'Cliente'} reservó ${service?.label ?? selectedService} el ${fecha} a las ${selectedTime}`,
+          body: `${clienteNombre} reservó ${service?.label ?? selectedService} el ${fecha} a las ${selectedTime}`,
           data: { barberoId: barbero.id, fecha, hora: selectedTime },
         });
       }
 
+      const localLabel = barbero.localDisplayName || barbero.nombre;
       await notifyReservation({
-        barberoId: barbero.id, barbero: barbero.nombre_barberia || barbero.nombre,
+        barberoId: barbero.id, barbero: localLabel,
         servicio: service?.label ?? selectedService, fecha, hora: selectedTime,
         precio: service?.price ? service.price.toLocaleString('es-CO') : '—', cliente: user.email,
       });
@@ -272,9 +690,14 @@ export default function BarberProfileScreen({ navigation, route }) {
     );
   }
 
-  const nombreBarberiaTrim = barbero.nombre_barberia?.trim() ?? '';
-  const heroTitleSource = nombreBarberiaTrim || barbero.nombre;
+  const heroTitleSource = barbero.localDisplayName || barbero.nombre;
   const { primary: heroPrimary, secondary: heroSecondary } = heroNameLines(heroTitleSource);
+  const showPersonNameUnderHero = Boolean(
+    barbero.nombre?.trim()
+    && heroTitleSource.trim()
+    && heroTitleSource.replace(/\s+/g, ' ').trim().toLowerCase()
+      !== barbero.nombre.replace(/\s+/g, ' ').trim().toLowerCase(),
+  );
 
   if (confirmed) {
     return (
@@ -285,11 +708,11 @@ export default function BarberProfileScreen({ navigation, route }) {
           </View>
           <Text style={styles.okTitle}>RESERVA{'\n'}CONFIRMADA</Text>
           <View style={styles.confirmedDetails}>
-            <ConfirmRow icon="✂" label={service?.label ?? '—'} />
-            <ConfirmRow icon="◉" label={barbero.nombre} />
-            <ConfirmRow icon="◈" label={day ? `${day.day} ${day.label} ${day.month}` : '—'} />
-            <ConfirmRow icon="⏰" label={selectedTime ?? '—'} />
-            {service && <ConfirmRow icon="$" label={`$${fmtPrice(service.price)}`} accent />}
+            <ConfirmRow styles={styles} colors={colors} icon="✂" label={service?.label ?? '—'} />
+            <ConfirmRow styles={styles} colors={colors} icon="◉" label={barbero.nombre} />
+            <ConfirmRow styles={styles} colors={colors} icon="◈" label={day ? `${day.day} ${day.label} ${day.month}` : '—'} />
+            <ConfirmRow styles={styles} colors={colors} icon="⏰" label={selectedTime ?? '—'} />
+            {service && <ConfirmRow styles={styles} colors={colors} icon="$" label={`$${fmtPrice(service.price)}`} accent />}
           </View>
           <TouchableOpacity style={styles.ghostBtn} onPress={() => setConfirmed(false)}>
             <Text style={styles.ghostBtnText}>NUEVA RESERVA</Text>
@@ -315,11 +738,20 @@ export default function BarberProfileScreen({ navigation, route }) {
               contentFit="cover"
             />
           ) : (
-            <LinearGradient colors={['#0f1208', '#0a0a0a', '#080808']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.video} />
+            <LinearGradient
+              colors={isLight ? ['#2a2318', '#17130f', '#0d0b09'] : ['#0f1208', '#0a0a0a', '#080808']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.video}
+            />
           )}
           {/* Scrim ligero: el título vive abajo; un degradé casi opaco tapaba por completo el video detrás del nombre */}
           <LinearGradient
-            colors={['rgba(0,0,0,0.2)', 'rgba(0,0,0,0.38)', 'rgba(6,6,6,0.55)']}
+            colors={
+              isLight
+                ? ['rgba(0,0,0,0.08)', 'rgba(0,0,0,0.22)', 'rgba(6,6,6,0.34)']
+                : ['rgba(0,0,0,0.2)', 'rgba(0,0,0,0.38)', 'rgba(6,6,6,0.55)']
+            }
             locations={[0, 0.45, 1]}
             style={styles.heroGrad}
             pointerEvents="none"
@@ -356,7 +788,7 @@ export default function BarberProfileScreen({ navigation, route }) {
             </View>
             <Text style={styles.heroName}>{heroPrimary}</Text>
             {heroSecondary ? <Text style={styles.heroNameAcid}>{heroSecondary}</Text> : null}
-            {nombreBarberiaTrim ? <Text style={styles.personName}>{barbero.nombre}</Text> : null}
+            {showPersonNameUnderHero ? <Text style={styles.personName}>{barbero.nombre}</Text> : null}
 
             {/* Stats row */}
             <View style={styles.statsRow}>
@@ -403,7 +835,7 @@ export default function BarberProfileScreen({ navigation, route }) {
           {/* Galería */}
           {galeria.length > 0 && (
             <View style={styles.block}>
-              <SectionHead n="✦" label="TRABAJOS" />
+              <SectionHead styles={styles} n="✦" label="TRABAJOS" />
               <View style={styles.galGrid}>
                 {galeria.map((foto) => (
                   <View key={foto.id} style={styles.galCell}>
@@ -419,7 +851,7 @@ export default function BarberProfileScreen({ navigation, route }) {
           )}
 
           {/* PASO 1: Servicios */}
-          <Step n="01" label="ELIGE EL SERVICIO" />
+          <Step styles={styles} n="01" label="ELIGE EL SERVICIO" />
           {services.map((s) => {
             const active = selectedService === s.id;
             return (
@@ -433,7 +865,7 @@ export default function BarberProfileScreen({ navigation, route }) {
                   <ServiceIonicon
                     name={s.icon}
                     size={20}
-                    color={active ? colors.acid : colors.grayMid}
+                    color={active ? selectedText : colors.grayMid}
                   />
                 </View>
                 <View style={{ flex: 1 }}>
@@ -447,7 +879,7 @@ export default function BarberProfileScreen({ navigation, route }) {
           })}
 
           {/* PASO 2: Día y hora */}
-          <Step n="02" label="DÍA Y HORA" />
+          <Step styles={styles} n="02" label="DÍA Y HORA" />
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.dayRow} contentContainerStyle={{ gap: 8, paddingRight: 4 }}>
             {days.map((d, i) => {
               const active = selectedDay === i;
@@ -497,17 +929,19 @@ export default function BarberProfileScreen({ navigation, route }) {
           })}
 
           {/* PASO 3: Resumen */}
-          <Step n="03" label="TU RESUMEN" />
+          <Step styles={styles} n="03" label="TU RESUMEN" />
           <View style={styles.summary}>
-            <SummaryRow label="Profesional" value={barbero.nombre.toUpperCase()} />
+            <SummaryRow styles={styles} colors={colors} label="Profesional" value={barbero.nombre.toUpperCase()} />
             <View style={styles.sep} />
             <SummaryRow
+              styles={styles}
+              colors={colors}
               label="Fecha y hora"
               value={day && selectedTime ? `${day.day} ${day.label} ${day.month} · ${selectedTime}` : '—'}
               dim={!day || !selectedTime}
             />
             <View style={styles.sep} />
-            <SummaryRow label="Servicio" value={service ? service.label : '—'} dim={!service} />
+            <SummaryRow styles={styles} colors={colors} label="Servicio" value={service ? service.label : '—'} dim={!service} />
             <View style={styles.sep} />
             <View style={styles.totalRow}>
               <Text style={styles.totalLbl}>TOTAL</Text>
@@ -609,7 +1043,7 @@ export default function BarberProfileScreen({ navigation, route }) {
   );
 }
 
-function Step({ n, label }) {
+function Step({ styles, n, label }) {
   return (
     <View style={styles.stepHead}>
       <View style={styles.stepNumWrap}>
@@ -620,7 +1054,7 @@ function Step({ n, label }) {
   );
 }
 
-function SectionHead({ n, label }) {
+function SectionHead({ styles, n, label }) {
   return (
     <View style={styles.sectionHead}>
       <Text style={styles.sectionHeadIcon}>{n}</Text>
@@ -629,7 +1063,7 @@ function SectionHead({ n, label }) {
   );
 }
 
-function SummaryRow({ label, value, dim }) {
+function SummaryRow({ styles, colors, label, value, dim }) {
   return (
     <View style={styles.summaryRow}>
       <Text style={styles.summaryLbl}>{label}</Text>
@@ -638,7 +1072,7 @@ function SummaryRow({ label, value, dim }) {
   );
 }
 
-function ConfirmRow({ icon, label, accent }) {
+function ConfirmRow({ styles, colors, icon, label, accent }) {
   return (
     <View style={styles.confirmRowItem}>
       <Text style={styles.confirmRowIcon}>{icon}</Text>
@@ -647,359 +1081,3 @@ function ConfirmRow({ icon, label, accent }) {
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.black },
-  centerFill: { flex: 1, backgroundColor: colors.black, alignItems: 'center', justifyContent: 'center', padding: 24 },
-  loadingText: { fontFamily: fonts.bodyBold, fontSize: 13, letterSpacing: 4, color: colors.grayMid, marginTop: 12 },
-
-  // 404
-  hero404: { fontFamily: fonts.display, fontSize: 80, color: colors.acid, lineHeight: 88 },
-  hero404Sub: { fontFamily: fonts.display, fontSize: 24, color: colors.white, marginBottom: 8, letterSpacing: 1 },
-  muted: { fontFamily: fonts.body, color: colors.grayLight, marginBottom: 16, textAlign: 'center' },
-  backLink: { marginTop: 4 },
-  link: { fontFamily: fonts.bodyBold, color: colors.acid, fontSize: 14 },
-
-  // Confirmed
-  confirmedCard: {
-    backgroundColor: colors.dark2,
-    borderWidth: 1,
-    borderColor: 'rgba(205,255,0,0.2)',
-    borderRadius: radii.xl,
-    padding: 28,
-    alignItems: 'center',
-    width: '100%',
-    maxWidth: 360,
-  },
-  confirmedCheck: {
-    width: 64,
-    height: 64,
-    borderRadius: radii.pill,
-    backgroundColor: colors.acidSoft,
-    borderWidth: 1,
-    borderColor: 'rgba(205,255,0,0.3)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 20,
-  },
-  confirmedCheckText: { fontFamily: fonts.display, fontSize: 32, color: colors.acid },
-  okTitle: { fontFamily: fonts.display, fontSize: 36, color: colors.white, textAlign: 'center', marginBottom: 20, lineHeight: 42, letterSpacing: 1 },
-  confirmedDetails: { width: '100%', gap: 10, marginBottom: 24 },
-  confirmRowItem: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  confirmRowIcon: { fontSize: 16, color: colors.grayMid, width: 20, textAlign: 'center' },
-  confirmRowLabel: { fontFamily: fonts.bodyBold, fontSize: 14, color: colors.white, flex: 1 },
-  ghostBtn: {
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    borderRadius: radii.sm,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-  },
-  ghostBtnText: { fontFamily: fonts.bodyBold, fontSize: 12, letterSpacing: 2, color: colors.grayLight },
-
-  // HERO (sin overflow:hidden: en iOS puede recortar mal la capa nativa del vídeo)
-  hero: { height: W * 1.15, position: 'relative' },
-  video: { ...StyleSheet.absoluteFillObject, zIndex: 0 },
-  heroGrad: { ...StyleSheet.absoluteFillObject, zIndex: 1 },
-  heroTop: {
-    zIndex: 2,
-    position: 'absolute', top: 0, left: 0, right: 0,
-    flexDirection: 'row', justifyContent: 'space-between',
-    paddingHorizontal: 14, paddingTop: 4,
-  },
-  backPill: {
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
-    borderRadius: radii.pill,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-  },
-  backPillText: { fontFamily: fonts.bodyBold, fontSize: 11, letterSpacing: 2, color: colors.white },
-  ownerRow: { flexDirection: 'row', gap: 8 },
-  ownerGhost: {
-    borderWidth: 1, borderColor: colors.acid,
-    borderRadius: radii.pill,
-    paddingHorizontal: 14, paddingVertical: 7,
-    backgroundColor: 'rgba(205,255,0,0.08)',
-  },
-  ownerGhostText: { fontFamily: fonts.bodyBold, fontSize: 11, letterSpacing: 2, color: colors.acid },
-  ownerSolid: {
-    backgroundColor: colors.acid,
-    borderRadius: radii.pill,
-    paddingHorizontal: 16, paddingVertical: 7,
-  },
-  ownerSolidText: { fontFamily: fonts.bodyBold, fontSize: 11, letterSpacing: 2, color: colors.black },
-
-  heroText: {
-    zIndex: 2,
-    position: 'absolute',
-    bottom: 28,
-    left: 22,
-    right: 22,
-    paddingTop: 6,
-    overflow: 'visible',
-  },
-  heroKickerRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10 },
-  heroKickerDot: { width: 5, height: 5, borderRadius: 3, backgroundColor: colors.acid },
-  kicker: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 10,
-    letterSpacing: 4,
-    color: colors.acid,
-    textShadowColor: 'rgba(0,0,0,0.9)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 8,
-  },
-  heroName: {
-    fontFamily: fonts.display,
-    fontSize: 54,
-    lineHeight: 62,
-    color: colors.white,
-    width: '100%',
-    textShadowColor: 'rgba(0,0,0,0.85)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 16,
-    ...(Platform.OS === 'android' ? { includeFontPadding: false } : {}),
-  },
-  heroNameAcid: {
-    fontFamily: fonts.display,
-    fontSize: 54,
-    lineHeight: 62,
-    color: colors.acid,
-    marginBottom: 8,
-    width: '100%',
-    textShadowColor: 'rgba(0,0,0,0.75)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 14,
-    ...(Platform.OS === 'android' ? { includeFontPadding: false } : {}),
-  },
-  personName: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 13,
-    letterSpacing: 2,
-    color: colors.grayLight,
-    marginBottom: 14,
-    textShadowColor: 'rgba(0,0,0,0.8)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 6,
-  },
-
-  statsRow: {
-    flexDirection: 'row',
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
-    borderRadius: radii.md,
-    paddingVertical: 12,
-    paddingHorizontal: 4,
-    alignSelf: 'flex-start',
-    gap: 0,
-  },
-  statPill: { paddingHorizontal: 16, alignItems: 'center' },
-  statDivider: { width: 1, backgroundColor: 'rgba(255,255,255,0.1)', marginVertical: 4 },
-  statVal: { fontFamily: fonts.display, fontSize: 22, color: colors.white, lineHeight: 24 },
-  statLbl: { fontFamily: fonts.bodyBold, fontSize: 8, letterSpacing: 2, color: colors.grayLight, marginTop: 2 },
-
-  acidLine: { zIndex: 2, height: 3, backgroundColor: colors.acid },
-
-  // BODY
-  body: { padding: 18, paddingBottom: 48, maxWidth: 720, alignSelf: 'center', width: '100%' },
-
-  bioCard: {
-    backgroundColor: colors.dark2,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    borderRadius: radii.md,
-    padding: 16,
-    marginBottom: 14,
-  },
-  bioText: { fontFamily: fonts.body, fontSize: 15, color: colors.grayLight, lineHeight: 22 },
-
-  specialtyRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 20 },
-  specialtyPill: {
-    backgroundColor: colors.dark3,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    borderRadius: radii.pill,
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-  },
-  specialtyText: { fontFamily: fonts.bodyBold, fontSize: 11, color: colors.grayLight, letterSpacing: 1 },
-
-  block: { marginBottom: 24 },
-  sectionHead: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 14 },
-  sectionHeadIcon: { fontSize: 14, color: colors.acid },
-  sectionHeadLabel: { fontFamily: fonts.display, fontSize: 22, color: colors.white, letterSpacing: 0.5 },
-
-  galGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  galCell: { width: (W - 56) / 3, aspectRatio: 1, overflow: 'hidden', borderRadius: radii.xs },
-  galImg: { width: '100%', height: '100%' },
-
-  // Steps
-  stepHead: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginTop: 28,
-    marginBottom: 14,
-  },
-  stepNumWrap: {
-    width: 32,
-    height: 32,
-    borderRadius: radii.sm,
-    backgroundColor: colors.acidSoft,
-    borderWidth: 1,
-    borderColor: 'rgba(205,255,0,0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  stepNum: { fontFamily: fonts.display, fontSize: 13, color: colors.acid },
-  stepTitle: { fontFamily: fonts.display, fontSize: 22, color: colors.white, flex: 1, letterSpacing: 0.5 },
-
-  // Servicios
-  svc: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    backgroundColor: colors.dark2,
-    padding: 14,
-    marginBottom: 8,
-    gap: 12,
-    borderRadius: radii.md,
-  },
-  svcOn: { backgroundColor: '#111500', borderColor: colors.acid },
-  svcIconWrap: {
-    width: 40,
-    height: 40,
-    borderRadius: radii.sm,
-    backgroundColor: colors.dark3,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-  },
-  svcIconWrapOn: { backgroundColor: colors.acidSoft, borderColor: 'rgba(205,255,0,0.3)' },
-  svcLabel: { fontFamily: fonts.display, fontSize: 18, color: colors.white },
-  svcLabelOn: { color: colors.acid },
-  svcDur: { fontFamily: fonts.body, fontSize: 12, color: colors.grayLight, marginTop: 2 },
-  svcDurOn: { color: colors.acidDim },
-  svcPrice: { fontFamily: fonts.display, fontSize: 20, color: colors.white },
-  svcPriceOn: { color: colors.acid },
-  svcCheck: {
-    width: 22,
-    height: 22,
-    borderRadius: radii.pill,
-    backgroundColor: colors.acid,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  svcCheckText: { fontFamily: fonts.bodyBold, fontSize: 11, color: colors.black },
-
-  // Days
-  dayRow: { marginBottom: 16 },
-  dayChip: {
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    backgroundColor: colors.dark2,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    alignItems: 'center',
-    borderRadius: radii.md,
-    minWidth: 52,
-  },
-  dayChipOn: { backgroundColor: '#111500', borderColor: colors.acid },
-  dayNum: { fontFamily: fonts.display, fontSize: 22, color: colors.white },
-  dayNumOn: { color: colors.acid },
-  dayWd: { fontFamily: fonts.bodyBold, fontSize: 9, color: colors.grayLight, marginTop: 2, letterSpacing: 1 },
-  dayWdOn: { color: colors.acidDim },
-
-  // Slots
-  slotGrp: { fontFamily: fonts.bodyBold, fontSize: 10, letterSpacing: 3, color: colors.grayLight, marginBottom: 8, textTransform: 'uppercase' },
-  slotWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  slot: {
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    backgroundColor: colors.dark2,
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    borderRadius: radii.sm,
-  },
-  slotOn: { backgroundColor: '#111500', borderColor: colors.acid },
-  slotTxt: { fontFamily: fonts.bodyBold, fontSize: 13, color: colors.white },
-  slotTxtOn: { color: colors.acid },
-
-  // Summary
-  summary: {
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    backgroundColor: colors.dark2,
-    padding: 18,
-    marginBottom: 16,
-    borderRadius: radii.md,
-    ...shadows.sm,
-  },
-  summaryRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 12 },
-  summaryLbl: { fontFamily: fonts.bodyBold, fontSize: 10, letterSpacing: 2, color: colors.grayLight, textTransform: 'uppercase' },
-  summaryVal: { fontFamily: fonts.bodyBold, fontSize: 13, color: colors.white, flex: 1, textAlign: 'right' },
-  sep: { height: 1, backgroundColor: colors.cardBorder, marginVertical: 12 },
-  totalRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
-  totalLbl: { fontFamily: fonts.bodyBold, fontSize: 10, letterSpacing: 2, color: colors.grayLight, textTransform: 'uppercase' },
-  totalVal: { fontFamily: fonts.display, fontSize: 34, color: colors.acid },
-
-  loginHint: {
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    padding: 14,
-    marginBottom: 12,
-    backgroundColor: colors.dark2,
-    borderRadius: radii.sm,
-    gap: 6,
-  },
-  loginHintText: { fontFamily: fonts.body, fontSize: 13, color: colors.grayLight },
-
-  confirm: { borderRadius: radii.sm, overflow: 'hidden', ...shadows.acid },
-  confirmOff: { opacity: 0.45 },
-  confirmGrad: { paddingVertical: 18, alignItems: 'center' },
-  confirmText: { fontFamily: fonts.display, fontSize: 17, letterSpacing: 3, color: colors.black },
-  confirmTextOff: { color: colors.grayMid },
-
-  // Modal
-  modalBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.88)', justifyContent: 'center', padding: 20 },
-  modalBox: {
-    backgroundColor: colors.dark2,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    borderRadius: radii.xl,
-    padding: 24,
-    maxWidth: 400,
-    alignSelf: 'center',
-    width: '100%',
-    ...shadows.md,
-  },
-  modalClose: { position: 'absolute', top: 16, right: 16, zIndex: 2, width: 28, height: 28, alignItems: 'center', justifyContent: 'center' },
-  modalCloseTxt: { color: colors.grayLight, fontSize: 16 },
-  modalK: { fontFamily: fonts.bodyBold, fontSize: 10, letterSpacing: 3, color: colors.acid, marginBottom: 8 },
-  modalTitle: { fontFamily: fonts.display, fontSize: 28, color: colors.white, marginBottom: 20, lineHeight: 34 },
-  stars: { flexDirection: 'row', gap: 10, marginBottom: 18 },
-  star: { fontSize: 34, color: colors.grayMid },
-  starOn: { color: colors.acid },
-  ta: {
-    backgroundColor: colors.dark3,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    borderRadius: radii.sm,
-    color: colors.white,
-    fontFamily: fonts.body,
-    padding: 12,
-    minHeight: 80,
-    textAlignVertical: 'top',
-    fontSize: 14,
-  },
-  modalBtn: { borderRadius: radii.sm, overflow: 'hidden', marginTop: 12 },
-  modalBtnGrad: { paddingVertical: 14, alignItems: 'center' },
-  modalBtnTxt: { fontFamily: fonts.display, fontSize: 16, letterSpacing: 2, color: colors.black },
-  modalDone: { alignItems: 'center', padding: 8, gap: 12 },
-  modalDoneIcon: { fontSize: 40, color: colors.acid },
-  modalOk: { fontFamily: fonts.display, fontSize: 24, color: colors.white, textAlign: 'center', letterSpacing: 1 },
-});

@@ -16,7 +16,8 @@ import * as ImagePicker from 'expo-image-picker';
 import LoopMutedVideo from '../components/LoopMutedVideo';
 import { supabase, supabaseConfigured } from '../lib/supabase';
 import { uploadToS3, deleteFromS3, extractS3Path, validateFile } from '../lib/s3Upload';
-import { colors, fonts, radii } from '../theme';
+import { fonts, radii } from '../theme';
+import { useColors, useTheme } from '../theme/ThemeContext';
 import { SERVICE_ICON_OPTIONS, ServiceIonicon, resolveServiceIonicon } from '../utils/serviceIcons';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
@@ -24,7 +25,7 @@ function normalizeServicioIcon(s) {
   return { ...s, icono: resolveServiceIonicon(s.icono) };
 }
 
-function Section({ n, label }) {
+function Section({ styles, n, label }) {
   return (
     <View style={styles.sectionHead}>
       <Text style={styles.sectionNum}>{n}</Text>
@@ -34,6 +35,231 @@ function Section({ n, label }) {
 }
 
 export default function EditarScreen({ navigation, route }) {
+  const colors = useColors();
+  const { mode } = useTheme();
+  const isLight = mode === 'light';
+  const styles = StyleSheet.create({
+    root: { flex: 1, backgroundColor: colors.black },
+    center: { flex: 1, backgroundColor: colors.black, alignItems: 'center', justifyContent: 'center', padding: 24 },
+    loadTxt: {
+      fontFamily: fonts.display,
+      fontSize: 16,
+      letterSpacing: 3,
+      color: colors.acid,
+      marginTop: 12,
+    },
+    errTitle: { fontFamily: fonts.display, fontSize: 36, color: colors.white, marginBottom: 8 },
+    muted: { fontFamily: fonts.body, color: colors.grayLight },
+    sticky: {
+      paddingHorizontal: 16,
+      paddingVertical: 10,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.gray,
+      backgroundColor: isLight ? 'rgba(244,241,234,0.97)' : 'rgba(8,8,8,0.97)',
+    },
+    stickyActions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'flex-end',
+      gap: 10,
+    },
+    previewBtn: {
+      borderWidth: 1,
+      borderColor: colors.acid,
+      backgroundColor: isLight ? colors.acidSoft : 'transparent',
+      paddingHorizontal: 14,
+      paddingVertical: 8,
+      borderRadius: 4,
+    },
+    previewBtnOff: { opacity: 0.4, borderColor: colors.gray },
+    previewTxt: {
+      fontFamily: fonts.display,
+      fontSize: 13,
+      color: colors.acid,
+      letterSpacing: 2,
+    },
+    previewTxtOff: { color: colors.grayMid },
+    save: { backgroundColor: colors.acid, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 4 },
+    saveOff: { backgroundColor: colors.gray, opacity: 0.75 },
+    saveTxt: { fontFamily: fonts.display, fontSize: 14, color: colors.black, letterSpacing: 2 },
+    saveTxtOff: { color: colors.grayLight },
+    scroll: { padding: 20, paddingBottom: 48, maxWidth: 720, alignSelf: 'center', width: '100%' },
+    banner: {
+      borderWidth: 1,
+      borderColor: 'rgba(205,255,0,0.2)',
+      backgroundColor: 'rgba(205,255,0,0.06)',
+      padding: 16,
+      marginBottom: 24,
+    },
+    bannerTitle: {
+      fontFamily: fonts.display,
+      fontSize: 16,
+      color: colors.acid,
+      marginBottom: 6,
+      letterSpacing: 1,
+    },
+    bannerBody: { fontFamily: fonts.body, fontSize: 13, color: colors.grayLight, lineHeight: 18 },
+    sectionHead: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16, marginTop: 8 },
+    sectionNum: { fontFamily: fonts.display, fontSize: 12, color: colors.acid, opacity: 0.8 },
+    sectionTitle: { fontFamily: fonts.display, fontSize: 22, color: colors.white, flex: 1 },
+    lbl: {
+      fontFamily: fonts.bodyBold,
+      fontSize: 10,
+      letterSpacing: 2,
+      color: colors.grayLight,
+      marginBottom: 6,
+      textTransform: 'uppercase',
+    },
+    input: {
+      borderWidth: 1,
+      borderColor: colors.gray,
+      backgroundColor: colors.dark2,
+      color: colors.white,
+      fontFamily: fonts.body,
+      fontSize: 16,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+    },
+    videoBox: { height: 200, marginBottom: 16, position: 'relative' },
+    video: { width: '100%', height: '100%' },
+    changeVid: {
+      position: 'absolute',
+      top: 10,
+      right: 10,
+      backgroundColor: 'rgba(0,0,0,0.7)',
+      borderWidth: 1,
+      borderColor: colors.acid,
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+    },
+    changeVidTxt: { fontFamily: fonts.bodyBold, fontSize: 10, color: colors.acid, letterSpacing: 1 },
+    uploadBox: {
+      height: 160,
+      borderWidth: 2,
+      borderColor: colors.gray,
+      borderStyle: 'dashed',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 16,
+    },
+    uploadTitle: { fontFamily: fonts.display, fontSize: 18, color: colors.white, letterSpacing: 1 },
+    uploadHint: { fontFamily: fonts.body, fontSize: 11, color: colors.grayLight, marginTop: 8 },
+    svcCard: {
+      borderWidth: 1,
+      borderColor: colors.gray,
+      backgroundColor: colors.dark2,
+      padding: 12,
+      marginBottom: 10,
+    },
+    svcRow: { marginBottom: 8 },
+    iconPick: { flexGrow: 0 },
+    iconChip: {
+      width: 40,
+      height: 40,
+      borderWidth: 1,
+      borderColor: colors.gray,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: 8,
+    },
+    svcNombre: {
+      borderWidth: 1,
+      borderColor: colors.gray,
+      backgroundColor: colors.black,
+      color: colors.white,
+      fontFamily: fonts.display,
+      fontSize: 16,
+      padding: 8,
+      marginBottom: 8,
+    },
+    svcRow2: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    dollar: { color: colors.grayLight, fontFamily: fonts.body },
+    svcPrecio: {
+      flex: 1,
+      borderWidth: 1,
+      borderColor: colors.gray,
+      backgroundColor: colors.black,
+      color: colors.white,
+      fontFamily: fonts.body,
+      padding: 8,
+    },
+    svcDur: {
+      width: 56,
+      borderWidth: 1,
+      borderColor: colors.gray,
+      backgroundColor: colors.black,
+      color: colors.grayLight,
+      fontFamily: fonts.body,
+      padding: 8,
+      textAlign: 'center',
+    },
+    minLbl: { fontFamily: fonts.body, fontSize: 11, color: colors.grayLight },
+    trash: {
+      borderWidth: 1,
+      borderColor: colors.gray,
+      paddingHorizontal: 10,
+      paddingVertical: 8,
+    },
+    trashTxt: { color: colors.danger, fontSize: 14 },
+    addSvc: {
+      borderWidth: 1,
+      borderStyle: 'dashed',
+      borderColor: colors.gray,
+      padding: 14,
+      alignItems: 'center',
+    },
+    addSvcTxt: { fontFamily: fonts.bodyBold, fontSize: 12, letterSpacing: 2, color: colors.grayLight },
+    galGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
+    galCell: { width: '31%', aspectRatio: 1, position: 'relative' },
+    galImg: { width: '100%', height: '100%' },
+    galDel: {
+      position: 'absolute',
+      top: 4,
+      right: 4,
+      backgroundColor: 'rgba(0,0,0,0.75)',
+      width: 26,
+      height: 26,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    galDelTxt: { color: colors.danger, fontSize: 12 },
+    galUpload: {
+      borderWidth: 2,
+      borderColor: colors.gray,
+      borderStyle: 'dashed',
+      padding: 20,
+      alignItems: 'center',
+    },
+    galUploadTxt: { fontFamily: fonts.bodyBold, fontSize: 12, letterSpacing: 2, color: colors.grayLight },
+    loyaltyBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      backgroundColor: colors.card,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      borderRadius: radii.md,
+      padding: 16,
+    },
+    loyaltyBtnLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      flex: 1,
+    },
+    loyaltyBtnTitle: {
+      fontFamily: fonts.bodyBold,
+      fontSize: 15,
+      color: colors.white,
+    },
+    loyaltyBtnSubtitle: {
+      fontFamily: fonts.body,
+      fontSize: 12,
+      color: colors.grayLight,
+      marginTop: 1,
+    },
+  });
+
   const slug = route.params?.slug;
   const [barberoId, setBarberoId] = useState(null);
   const [nombre, setNombre] = useState('');
@@ -318,15 +544,17 @@ export default function EditarScreen({ navigation, route }) {
             disabled={!slug}
             activeOpacity={0.85}
           >
-            <Text style={styles.previewTxt}>VISTA PREVIA</Text>
+            <Text style={[styles.previewTxt, !slug && styles.previewTxtOff]}>VISTA PREVIA</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.save, saving && { opacity: 0.7 }]}
+            style={[styles.save, saving && styles.saveOff]}
             onPress={handleSave}
             disabled={saving}
             activeOpacity={0.88}
           >
-            <Text style={styles.saveTxt}>{saving ? 'GUARDANDO...' : saved ? 'GUARDADO ✓' : 'GUARDAR'}</Text>
+            <Text style={[styles.saveTxt, saving && styles.saveTxtOff]}>
+              {saving ? 'GUARDANDO...' : saved ? 'GUARDADO ✓' : 'GUARDAR'}
+            </Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -341,17 +569,19 @@ export default function EditarScreen({ navigation, route }) {
           </View>
         ) : null}
 
-        <Section n="01" label="INFO BÁSICA" />
-        <Field label="NOMBRE COMPLETO" value={nombre} onChangeText={setNombre} />
-        <Field label="NOMBRE DEL LOCAL" value={nombreBarberia} onChangeText={setNombreBarberia} />
-        <Field label="BIO (opcional)" value={bio} onChangeText={setBio} multiline />
+        <Section styles={styles} n="01" label="INFO BÁSICA" />
+        <Field styles={styles} colors={colors} label="NOMBRE COMPLETO" value={nombre} onChangeText={setNombre} />
+        <Field styles={styles} colors={colors} label="NOMBRE DEL LOCAL" value={nombreBarberia} onChangeText={setNombreBarberia} />
+        <Field styles={styles} colors={colors} label="BIO (opcional)" value={bio} onChangeText={setBio} multiline />
         <Field
+          styles={styles}
+          colors={colors}
           label="ESPECIALIDADES (coma)"
           value={especialidades}
           onChangeText={setEspecialidades}
         />
 
-        <Section n="02" label="VIDEO HERO" />
+        <Section styles={styles} n="02" label="VIDEO HERO" />
         {videoUrl ? (
           <View style={styles.videoBox}>
             <LoopMutedVideo uri={videoUrl} style={styles.video} contentFit="cover" />
@@ -366,7 +596,7 @@ export default function EditarScreen({ navigation, route }) {
           </TouchableOpacity>
         )}
 
-        <Section n="03" label="MIS SERVICIOS" />
+        <Section styles={styles} n="03" label="MIS SERVICIOS" />
         {servicios.map((svc, idx) => (
           <View key={idx} style={styles.svcCard}>
             <View style={styles.svcRow}>
@@ -426,7 +656,7 @@ export default function EditarScreen({ navigation, route }) {
         </TouchableOpacity>
 
         <View style={{ height: 24 }} />
-        <Section n="04" label="GALERÍA" />
+        <Section styles={styles} n="04" label="GALERÍA" />
         <View style={styles.galGrid}>
           {galeria.map((foto) => (
             <View key={foto.id} style={styles.galCell}>
@@ -452,7 +682,7 @@ export default function EditarScreen({ navigation, route }) {
         </TouchableOpacity>
 
         {/* ── SECCIÓN 05: FIDELIZACIÓN ── */}
-        <Section n="05" label="FIDELIZACIÓN" />
+        <Section styles={styles} n="05" label="FIDELIZACIÓN" />
         <TouchableOpacity
           style={styles.loyaltyBtn}
           onPress={() => navigation.navigate('LoyaltyConfig')}
@@ -474,7 +704,7 @@ export default function EditarScreen({ navigation, route }) {
   );
 }
 
-function Field({ label, value, onChangeText, multiline }) {
+function Field({ styles, colors, label, value, onChangeText, multiline }) {
   return (
     <View style={{ marginBottom: 14 }}>
       <Text style={styles.lbl}>{label}</Text>
@@ -489,220 +719,3 @@ function Field({ label, value, onChangeText, multiline }) {
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.black },
-  center: { flex: 1, backgroundColor: colors.black, alignItems: 'center', justifyContent: 'center', padding: 24 },
-  loadTxt: {
-    fontFamily: fonts.display,
-    fontSize: 16,
-    letterSpacing: 3,
-    color: colors.acid,
-    marginTop: 12,
-  },
-  errTitle: { fontFamily: fonts.display, fontSize: 36, color: colors.white, marginBottom: 8 },
-  muted: { fontFamily: fonts.body, color: colors.grayLight },
-  sticky: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.gray,
-    backgroundColor: 'rgba(8,8,8,0.97)',
-  },
-  stickyActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    gap: 10,
-  },
-  previewBtn: {
-    borderWidth: 1,
-    borderColor: colors.acid,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 4,
-  },
-  previewBtnOff: { opacity: 0.4, borderColor: colors.gray },
-  previewTxt: {
-    fontFamily: fonts.display,
-    fontSize: 13,
-    color: colors.acid,
-    letterSpacing: 2,
-  },
-  save: { backgroundColor: colors.acid, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 4 },
-  saveTxt: { fontFamily: fonts.display, fontSize: 14, color: colors.black, letterSpacing: 2 },
-  scroll: { padding: 20, paddingBottom: 48, maxWidth: 720, alignSelf: 'center', width: '100%' },
-  banner: {
-    borderWidth: 1,
-    borderColor: 'rgba(205,255,0,0.2)',
-    backgroundColor: 'rgba(205,255,0,0.06)',
-    padding: 16,
-    marginBottom: 24,
-  },
-  bannerTitle: {
-    fontFamily: fonts.display,
-    fontSize: 16,
-    color: colors.acid,
-    marginBottom: 6,
-    letterSpacing: 1,
-  },
-  bannerBody: { fontFamily: fonts.body, fontSize: 13, color: colors.grayLight, lineHeight: 18 },
-  sectionHead: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16, marginTop: 8 },
-  sectionNum: { fontFamily: fonts.display, fontSize: 12, color: colors.acid, opacity: 0.8 },
-  sectionTitle: { fontFamily: fonts.display, fontSize: 22, color: colors.white, flex: 1 },
-  lbl: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 10,
-    letterSpacing: 2,
-    color: colors.grayLight,
-    marginBottom: 6,
-    textTransform: 'uppercase',
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: colors.gray,
-    backgroundColor: colors.dark2,
-    color: colors.white,
-    fontFamily: fonts.body,
-    fontSize: 16,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-  },
-  videoBox: { height: 200, marginBottom: 16, position: 'relative' },
-  video: { width: '100%', height: '100%' },
-  changeVid: {
-    position: 'absolute',
-    top: 10,
-    right: 10,
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    borderWidth: 1,
-    borderColor: colors.acid,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-  },
-  changeVidTxt: { fontFamily: fonts.bodyBold, fontSize: 10, color: colors.acid, letterSpacing: 1 },
-  uploadBox: {
-    height: 160,
-    borderWidth: 2,
-    borderColor: colors.gray,
-    borderStyle: 'dashed',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
-  },
-  uploadTitle: { fontFamily: fonts.display, fontSize: 18, color: colors.white, letterSpacing: 1 },
-  uploadHint: { fontFamily: fonts.body, fontSize: 11, color: colors.grayLight, marginTop: 8 },
-  svcCard: {
-    borderWidth: 1,
-    borderColor: colors.gray,
-    backgroundColor: colors.dark2,
-    padding: 12,
-    marginBottom: 10,
-  },
-  svcRow: { marginBottom: 8 },
-  iconPick: { flexGrow: 0 },
-  iconChip: {
-    width: 40,
-    height: 40,
-    borderWidth: 1,
-    borderColor: colors.gray,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 8,
-  },
-  svcNombre: {
-    borderWidth: 1,
-    borderColor: colors.gray,
-    backgroundColor: colors.black,
-    color: colors.white,
-    fontFamily: fonts.display,
-    fontSize: 16,
-    padding: 8,
-    marginBottom: 8,
-  },
-  svcRow2: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  dollar: { color: colors.grayLight, fontFamily: fonts.body },
-  svcPrecio: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: colors.gray,
-    backgroundColor: colors.black,
-    color: colors.white,
-    fontFamily: fonts.body,
-    padding: 8,
-  },
-  svcDur: {
-    width: 56,
-    borderWidth: 1,
-    borderColor: colors.gray,
-    backgroundColor: colors.black,
-    color: colors.grayLight,
-    fontFamily: fonts.body,
-    padding: 8,
-    textAlign: 'center',
-  },
-  minLbl: { fontFamily: fonts.body, fontSize: 11, color: colors.grayLight },
-  trash: {
-    borderWidth: 1,
-    borderColor: colors.gray,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-  },
-  trashTxt: { color: colors.danger, fontSize: 14 },
-  addSvc: {
-    borderWidth: 1,
-    borderStyle: 'dashed',
-    borderColor: colors.gray,
-    padding: 14,
-    alignItems: 'center',
-  },
-  addSvcTxt: { fontFamily: fonts.bodyBold, fontSize: 12, letterSpacing: 2, color: colors.grayLight },
-  galGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
-  galCell: { width: '31%', aspectRatio: 1, position: 'relative' },
-  galImg: { width: '100%', height: '100%' },
-  galDel: {
-    position: 'absolute',
-    top: 4,
-    right: 4,
-    backgroundColor: 'rgba(0,0,0,0.75)',
-    width: 26,
-    height: 26,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  galDelTxt: { color: colors.danger, fontSize: 12 },
-  galUpload: {
-    borderWidth: 2,
-    borderColor: colors.gray,
-    borderStyle: 'dashed',
-    padding: 20,
-    alignItems: 'center',
-  },
-  galUploadTxt: { fontFamily: fonts.bodyBold, fontSize: 12, letterSpacing: 2, color: colors.grayLight },
-  loyaltyBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    borderRadius: radii.md,
-    padding: 16,
-  },
-  loyaltyBtnLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    flex: 1,
-  },
-  loyaltyBtnTitle: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 15,
-    color: colors.white,
-  },
-  loyaltyBtnSubtitle: {
-    fontFamily: fonts.body,
-    fontSize: 12,
-    color: colors.grayLight,
-    marginTop: 1,
-  },
-});

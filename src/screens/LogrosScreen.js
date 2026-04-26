@@ -12,7 +12,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { supabase, supabaseConfigured } from '../lib/supabase';
-import { colors, fonts, shadows } from '../theme';
+import { fonts, shadows } from '../theme';
+import { useColors } from '../theme/ThemeContext';
 import RankBadge from '../components/RankBadge';
 
 // Rangos de clientes (basado en visitas completadas)
@@ -24,12 +25,14 @@ const CLIENT_RANKS = [
   { rank_level: 5, rank_name: 'Elite',    badge_emoji: '🔥', min_cortes: 60, description: '60+ cortes — nivel máximo' },
 ];
 
-const RARITY_COLORS = {
-  common:    colors.champagneDim,
-  uncommon:  colors.olivo,
-  rare:      colors.champagne,
-  legendary: colors.terracota,
-};
+function getRarityColors(colors) {
+  return {
+    common: colors.champagneDim,
+    uncommon: colors.olivo,
+    rare: colors.champagne,
+    legendary: colors.terracota,
+  };
+}
 
 const RARITY_LABELS = {
   common:    'COMÚN',
@@ -51,6 +54,298 @@ function getNextRank(allRanks, currentLevel) {
 }
 
 export default function LogrosScreen() {
+  const colors = useColors();
+  const RARITY_COLORS = getRarityColors(colors);
+  const styles = StyleSheet.create({
+    safe: { flex: 1, backgroundColor: colors.ink },
+    center: { flex: 1, backgroundColor: colors.ink, justifyContent: 'center', alignItems: 'center' },
+    scroll: { paddingHorizontal: 18, paddingBottom: 48, paddingTop: 14, gap: 20 },
+  
+    screenKicker: {
+      fontFamily: fonts.mono,
+      fontSize: 10,
+      letterSpacing: 3,
+      color: colors.champagne,
+      textAlign: 'center',
+      textTransform: 'uppercase',
+    },
+  
+    // Rank card
+    rankCard: {
+      flexDirection: 'row',
+      gap: 16,
+      borderWidth: 1,
+      borderColor: colors.borderStrong,
+      backgroundColor: colors.dark2,
+      padding: 18,
+      alignItems: 'center',
+      ...shadows.sm,
+    },
+    rankCardLeft: {},
+    rankCardRight: { flex: 1, gap: 4 },
+    rankKicker: {
+      fontFamily: fonts.mono,
+      fontSize: 9,
+      letterSpacing: 2,
+      color: colors.muted,
+    },
+    rankName: {
+      fontFamily: fonts.display,
+      fontSize: 30,
+      color: colors.paper,
+      lineHeight: 34,
+    },
+    rankDesc: {
+      fontFamily: fonts.body,
+      fontSize: 12,
+      color: colors.muted,
+      lineHeight: 16,
+    },
+  
+    // Stats
+    statsRow: {
+      flexDirection: 'row',
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.dark2,
+    },
+    statBox: { flex: 1, alignItems: 'center', paddingVertical: 16 },
+    statDivider: { width: 1, backgroundColor: colors.border, marginVertical: 12 },
+    statVal: {
+      fontFamily: fonts.display,
+      fontSize: 28,
+      color: colors.champagne,
+      lineHeight: 32,
+    },
+    statLbl: {
+      fontFamily: fonts.mono,
+      fontSize: 8,
+      letterSpacing: 2,
+      color: colors.muted,
+      marginTop: 2,
+    },
+  
+    // Progress
+    progressSection: { gap: 8 },
+    progressHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+    progressLabel: {
+      fontFamily: fonts.bodySemi,
+      fontSize: 13,
+      color: colors.paper,
+    },
+    progressPct: {
+      fontFamily: fonts.mono,
+      fontSize: 11,
+      color: colors.champagne,
+    },
+    progressTrack: {
+      height: 6,
+      backgroundColor: colors.dark3,
+      borderWidth: 1,
+      borderColor: colors.border,
+      overflow: 'hidden',
+    },
+    progressFill: { height: '100%' },
+    progressSub: {
+      fontFamily: fonts.mono,
+      fontSize: 10,
+      color: colors.muted,
+    },
+  
+    // Roadmap
+    ranksRoadmap: { gap: 8 },
+    sectionTitle: {
+      fontFamily: fonts.display,
+      fontSize: 22,
+      color: colors.paper,
+      marginBottom: 4,
+    },
+    rankRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      paddingVertical: 12,
+      paddingHorizontal: 14,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.dark2,
+    },
+    rankRowActive: {
+      borderColor: colors.champagne,
+      backgroundColor: colors.champagneGlow,
+    },
+    rankRowEmoji: { fontSize: 22, width: 28, textAlign: 'center' },
+    rankRowInfo: { flex: 1 },
+    rankRowName: {
+      fontFamily: fonts.bodySemi,
+      fontSize: 14,
+      color: colors.paper,
+    },
+    rankRowReq: {
+      fontFamily: fonts.mono,
+      fontSize: 9,
+      color: colors.muted,
+      marginTop: 2,
+      letterSpacing: 1,
+    },
+    rankCurrent: {
+      fontFamily: fonts.mono,
+      fontSize: 8,
+      letterSpacing: 2,
+      color: colors.champagne,
+      borderWidth: 1,
+      borderColor: colors.champagne,
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+    },
+    rankPassed: {
+      fontFamily: fonts.bodySemi,
+      fontSize: 14,
+      color: colors.champagneDim,
+    },
+  
+    // Achievements
+    achSection: { gap: 10 },
+    sectionSub: {
+      fontFamily: fonts.mono,
+      fontSize: 10,
+      color: colors.muted,
+      marginTop: -4,
+      marginBottom: 4,
+    },
+    achCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 14,
+      borderWidth: 1,
+      borderColor: colors.borderStrong,
+      backgroundColor: colors.dark2,
+      padding: 14,
+    },
+    achCardLocked: {
+      borderColor: colors.border,
+      backgroundColor: colors.ink2,
+    },
+    achIcon: {
+      width: 52,
+      height: 52,
+      borderWidth: 1,
+      backgroundColor: colors.dark3,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    achEmoji: { fontSize: 26 },
+    achInfo: { flex: 1, gap: 3 },
+    achName: {
+      fontFamily: fonts.bodySemi,
+      fontSize: 14,
+      color: colors.paper,
+    },
+    achNameLocked: { color: colors.muted },
+    achDesc: {
+      fontFamily: fonts.body,
+      fontSize: 12,
+      color: colors.muted,
+    },
+    achRarity: {
+      fontFamily: fonts.mono,
+      fontSize: 9,
+      letterSpacing: 1,
+    },
+    achCheck: {
+      width: 28,
+      height: 28,
+      backgroundColor: colors.champagneSoft,
+      borderWidth: 1,
+      borderColor: colors.champagne,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    achCheckText: {
+      fontFamily: fonts.bodyBold,
+      fontSize: 13,
+      color: colors.champagne,
+    },
+  
+    // Modal
+    modalBg: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.9)',
+      justifyContent: 'center',
+      padding: 24,
+    },
+    modalBox: {
+      backgroundColor: colors.dark2,
+      borderWidth: 1,
+      borderColor: colors.borderStrong,
+      padding: 28,
+      alignItems: 'center',
+      gap: 10,
+      ...shadows.md,
+    },
+    modalClose: {
+      position: 'absolute',
+      top: 14,
+      right: 14,
+      width: 28,
+      height: 28,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    modalCloseTxt: { color: colors.muted, fontSize: 16 },
+    modalEmoji: { fontSize: 56, marginBottom: 4 },
+    modalTitle: {
+      fontFamily: fonts.display,
+      fontSize: 26,
+      color: colors.paper,
+      textAlign: 'center',
+    },
+    modalDesc: {
+      fontFamily: fonts.body,
+      fontSize: 14,
+      color: colors.muted,
+      textAlign: 'center',
+      lineHeight: 20,
+    },
+    modalMeta: {
+      flexDirection: 'row',
+      gap: 16,
+      alignItems: 'center',
+      marginTop: 4,
+    },
+    modalRarity: {
+      fontFamily: fonts.mono,
+      fontSize: 10,
+      letterSpacing: 2,
+    },
+    modalPoints: {
+      fontFamily: fonts.bodySemi,
+      fontSize: 13,
+      color: colors.champagne,
+    },
+    modalEarnedBadge: {
+      borderWidth: 1,
+      borderColor: colors.champagne,
+      paddingHorizontal: 16,
+      paddingVertical: 6,
+      marginTop: 8,
+    },
+    modalEarnedText: {
+      fontFamily: fonts.mono,
+      fontSize: 10,
+      letterSpacing: 2,
+      color: colors.champagne,
+    },
+    modalLockedText: {
+      fontFamily: fonts.mono,
+      fontSize: 10,
+      letterSpacing: 1,
+      color: colors.muted,
+      textAlign: 'center',
+      marginTop: 8,
+    },
+  });
+
   const [loading, setLoading] = useState(true);
   const [role, setRole] = useState(null);
   const [userId, setUserId] = useState(null);
@@ -201,11 +496,13 @@ export default function LogrosScreen() {
 
         {isBarber
           ? <BarberRankSection
+              styles={styles}
+              colors={colors}
               stats={barberStats}
               currentRank={currentBarberRank}
               allRanks={allBarberRanks}
             />
-          : <ClientRankSection stats={clientStats} />
+          : <ClientRankSection styles={styles} colors={colors} stats={clientStats} />
         }
 
         <View style={styles.achSection}>
@@ -289,7 +586,7 @@ export default function LogrosScreen() {
   );
 }
 
-function BarberRankSection({ stats, currentRank, allRanks }) {
+function BarberRankSection({ styles, colors, stats, currentRank, allRanks }) {
   const nextRank = getNextRank(allRanks, currentRank?.rank_level ?? 0);
   const progress = nextRank && stats
     ? Math.min(100, (stats.totalCortes / nextRank.min_cortes) * 100)
@@ -376,7 +673,7 @@ function BarberRankSection({ stats, currentRank, allRanks }) {
   );
 }
 
-function ClientRankSection({ stats }) {
+function ClientRankSection({ styles, colors, stats }) {
   const totalVisitas = stats?.totalVisitas ?? 0;
   const currentRank = getClientRank(totalVisitas);
   const nextRank = CLIENT_RANKS.find((r) => r.rank_level === currentRank.rank_level + 1) ?? null;
@@ -454,292 +751,3 @@ function ClientRankSection({ stats }) {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.ink },
-  center: { flex: 1, backgroundColor: colors.ink, justifyContent: 'center', alignItems: 'center' },
-  scroll: { paddingHorizontal: 18, paddingBottom: 48, paddingTop: 14, gap: 20 },
-
-  screenKicker: {
-    fontFamily: fonts.mono,
-    fontSize: 10,
-    letterSpacing: 3,
-    color: colors.champagne,
-    textAlign: 'center',
-    textTransform: 'uppercase',
-  },
-
-  // Rank card
-  rankCard: {
-    flexDirection: 'row',
-    gap: 16,
-    borderWidth: 1,
-    borderColor: colors.borderStrong,
-    backgroundColor: colors.dark2,
-    padding: 18,
-    alignItems: 'center',
-    ...shadows.sm,
-  },
-  rankCardLeft: {},
-  rankCardRight: { flex: 1, gap: 4 },
-  rankKicker: {
-    fontFamily: fonts.mono,
-    fontSize: 9,
-    letterSpacing: 2,
-    color: colors.muted,
-  },
-  rankName: {
-    fontFamily: fonts.display,
-    fontSize: 30,
-    color: colors.paper,
-    lineHeight: 34,
-  },
-  rankDesc: {
-    fontFamily: fonts.body,
-    fontSize: 12,
-    color: colors.muted,
-    lineHeight: 16,
-  },
-
-  // Stats
-  statsRow: {
-    flexDirection: 'row',
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.dark2,
-  },
-  statBox: { flex: 1, alignItems: 'center', paddingVertical: 16 },
-  statDivider: { width: 1, backgroundColor: colors.border, marginVertical: 12 },
-  statVal: {
-    fontFamily: fonts.display,
-    fontSize: 28,
-    color: colors.champagne,
-    lineHeight: 32,
-  },
-  statLbl: {
-    fontFamily: fonts.mono,
-    fontSize: 8,
-    letterSpacing: 2,
-    color: colors.muted,
-    marginTop: 2,
-  },
-
-  // Progress
-  progressSection: { gap: 8 },
-  progressHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  progressLabel: {
-    fontFamily: fonts.bodySemi,
-    fontSize: 13,
-    color: colors.paper,
-  },
-  progressPct: {
-    fontFamily: fonts.mono,
-    fontSize: 11,
-    color: colors.champagne,
-  },
-  progressTrack: {
-    height: 6,
-    backgroundColor: colors.dark3,
-    borderWidth: 1,
-    borderColor: colors.border,
-    overflow: 'hidden',
-  },
-  progressFill: { height: '100%' },
-  progressSub: {
-    fontFamily: fonts.mono,
-    fontSize: 10,
-    color: colors.muted,
-  },
-
-  // Roadmap
-  ranksRoadmap: { gap: 8 },
-  sectionTitle: {
-    fontFamily: fonts.display,
-    fontSize: 22,
-    color: colors.paper,
-    marginBottom: 4,
-  },
-  rankRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.dark2,
-  },
-  rankRowActive: {
-    borderColor: colors.champagne,
-    backgroundColor: colors.champagneGlow,
-  },
-  rankRowEmoji: { fontSize: 22, width: 28, textAlign: 'center' },
-  rankRowInfo: { flex: 1 },
-  rankRowName: {
-    fontFamily: fonts.bodySemi,
-    fontSize: 14,
-    color: colors.paper,
-  },
-  rankRowReq: {
-    fontFamily: fonts.mono,
-    fontSize: 9,
-    color: colors.muted,
-    marginTop: 2,
-    letterSpacing: 1,
-  },
-  rankCurrent: {
-    fontFamily: fonts.mono,
-    fontSize: 8,
-    letterSpacing: 2,
-    color: colors.champagne,
-    borderWidth: 1,
-    borderColor: colors.champagne,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-  },
-  rankPassed: {
-    fontFamily: fonts.bodySemi,
-    fontSize: 14,
-    color: colors.champagneDim,
-  },
-
-  // Achievements
-  achSection: { gap: 10 },
-  sectionSub: {
-    fontFamily: fonts.mono,
-    fontSize: 10,
-    color: colors.muted,
-    marginTop: -4,
-    marginBottom: 4,
-  },
-  achCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-    borderWidth: 1,
-    borderColor: colors.borderStrong,
-    backgroundColor: colors.dark2,
-    padding: 14,
-  },
-  achCardLocked: {
-    borderColor: colors.border,
-    backgroundColor: colors.ink2,
-  },
-  achIcon: {
-    width: 52,
-    height: 52,
-    borderWidth: 1,
-    backgroundColor: colors.dark3,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  achEmoji: { fontSize: 26 },
-  achInfo: { flex: 1, gap: 3 },
-  achName: {
-    fontFamily: fonts.bodySemi,
-    fontSize: 14,
-    color: colors.paper,
-  },
-  achNameLocked: { color: colors.muted },
-  achDesc: {
-    fontFamily: fonts.body,
-    fontSize: 12,
-    color: colors.muted,
-  },
-  achRarity: {
-    fontFamily: fonts.mono,
-    fontSize: 9,
-    letterSpacing: 1,
-  },
-  achCheck: {
-    width: 28,
-    height: 28,
-    backgroundColor: colors.champagneSoft,
-    borderWidth: 1,
-    borderColor: colors.champagne,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  achCheckText: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 13,
-    color: colors.champagne,
-  },
-
-  // Modal
-  modalBg: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.9)',
-    justifyContent: 'center',
-    padding: 24,
-  },
-  modalBox: {
-    backgroundColor: colors.dark2,
-    borderWidth: 1,
-    borderColor: colors.borderStrong,
-    padding: 28,
-    alignItems: 'center',
-    gap: 10,
-    ...shadows.md,
-  },
-  modalClose: {
-    position: 'absolute',
-    top: 14,
-    right: 14,
-    width: 28,
-    height: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  modalCloseTxt: { color: colors.muted, fontSize: 16 },
-  modalEmoji: { fontSize: 56, marginBottom: 4 },
-  modalTitle: {
-    fontFamily: fonts.display,
-    fontSize: 26,
-    color: colors.paper,
-    textAlign: 'center',
-  },
-  modalDesc: {
-    fontFamily: fonts.body,
-    fontSize: 14,
-    color: colors.muted,
-    textAlign: 'center',
-    lineHeight: 20,
-  },
-  modalMeta: {
-    flexDirection: 'row',
-    gap: 16,
-    alignItems: 'center',
-    marginTop: 4,
-  },
-  modalRarity: {
-    fontFamily: fonts.mono,
-    fontSize: 10,
-    letterSpacing: 2,
-  },
-  modalPoints: {
-    fontFamily: fonts.bodySemi,
-    fontSize: 13,
-    color: colors.champagne,
-  },
-  modalEarnedBadge: {
-    borderWidth: 1,
-    borderColor: colors.champagne,
-    paddingHorizontal: 16,
-    paddingVertical: 6,
-    marginTop: 8,
-  },
-  modalEarnedText: {
-    fontFamily: fonts.mono,
-    fontSize: 10,
-    letterSpacing: 2,
-    color: colors.champagne,
-  },
-  modalLockedText: {
-    fontFamily: fonts.mono,
-    fontSize: 10,
-    letterSpacing: 1,
-    color: colors.muted,
-    textAlign: 'center',
-    marginTop: 8,
-  },
-});

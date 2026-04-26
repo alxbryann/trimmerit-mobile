@@ -13,7 +13,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { supabase, supabaseConfigured } from '../lib/supabase';
 import { signInWithGoogle } from '../lib/googleAuth';
-import { colors, fonts, radii, shadows } from '../theme';
+import { fonts, radii, shadows } from '../theme';
+import { useColors } from '../theme/ThemeContext';
 import { RESET_MAIN_AGENDA } from '../navigation/resetMainTabs';
 import {
   resolvePostAuthDestination,
@@ -28,6 +29,176 @@ const ROLES = [
 ];
 
 export default function RegistroScreen({ navigation, route }) {
+  const colors = useColors();
+  const fieldStyles = createFieldStyles(colors);
+  const styles = StyleSheet.create({
+    root: { flex: 1, backgroundColor: colors.black },
+    safe: { flex: 1 },
+    scroll: { padding: 20, paddingBottom: 48 },
+  
+    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 28 },
+    backBtn: { paddingVertical: 6, paddingHorizontal: 2 },
+    backText: { fontFamily: fonts.bodyBold, fontSize: 11, letterSpacing: 2, color: colors.grayMid },
+    logo: { fontFamily: fonts.display, fontSize: 22, letterSpacing: 2, color: colors.white },
+    logoA: { color: colors.acid },
+  
+    heroBlock: { marginBottom: 24 },
+    title: { fontFamily: fonts.display, fontSize: 44, color: colors.white, letterSpacing: 1, lineHeight: 42, marginBottom: 8 },
+    sub: { fontFamily: fonts.body, fontSize: 15, color: colors.grayLight },
+    link: { color: colors.acid, fontFamily: fonts.bodyBold },
+  
+    progressRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      marginBottom: 20,
+    },
+    progressDot: {
+      width: 22,
+      height: 3,
+      borderRadius: 2,
+      backgroundColor: colors.cardBorder,
+    },
+    progressDotActive: { backgroundColor: colors.acid },
+    progressDotDone: { backgroundColor: colors.acidDim },
+    progressTxt: {
+      marginLeft: 8,
+      fontFamily: fonts.bodyBold,
+      fontSize: 9,
+      letterSpacing: 2,
+      color: colors.grayMid,
+    },
+  
+    sectionLbl: {
+      fontFamily: fonts.bodyBold,
+      fontSize: 11,
+      letterSpacing: 2,
+      color: colors.grayLight,
+      marginBottom: 4,
+    },
+    sectionHint: {
+      fontFamily: fonts.body,
+      fontSize: 13,
+      color: colors.grayMid,
+      marginBottom: 16,
+    },
+  
+    roles: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 20 },
+    roleBtn: {
+      width: '47%',
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      backgroundColor: colors.dark2,
+      padding: 14,
+      alignItems: 'center',
+      borderRadius: radii.md,
+      gap: 4,
+    },
+    roleBtnOn: { backgroundColor: colors.acidSoft, borderColor: colors.acid },
+    roleIcon: { fontSize: 20, color: colors.grayMid, marginBottom: 2 },
+    roleIconOn: { color: colors.acid },
+    roleTitle: { fontFamily: fonts.display, fontSize: 14, letterSpacing: 1, color: colors.grayLight },
+    roleTitleOn: { color: colors.acid },
+    roleSub: { fontFamily: fonts.body, fontSize: 11, color: colors.grayMid },
+    roleSubOn: { color: colors.acidDim },
+  
+    methodCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 14,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      borderRadius: radii.md,
+      backgroundColor: colors.dark2,
+      paddingVertical: 16,
+      paddingHorizontal: 16,
+      marginBottom: 12,
+      ...shadows.sm,
+    },
+    methodIconCircle: {
+      width: 40,
+      height: 40,
+      borderRadius: radii.pill,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      backgroundColor: colors.dark3,
+    },
+    methodGoogleIcon: { fontFamily: fonts.bodyBold, fontSize: 18, color: colors.white },
+    methodEmailIcon: { fontFamily: fonts.display, fontSize: 20, color: colors.acid },
+    methodTitle: { fontFamily: fonts.bodyBold, fontSize: 13, letterSpacing: 2, color: colors.white, marginBottom: 2 },
+    methodSub: { fontFamily: fonts.body, fontSize: 12, color: colors.grayMid },
+    methodArrow: { fontFamily: fonts.display, fontSize: 20, color: colors.grayLight },
+  
+    card: {
+      backgroundColor: colors.dark2,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      borderRadius: radii.lg,
+      padding: 20,
+      ...shadows.sm,
+    },
+  
+    slugWrap: { marginBottom: 14 },
+    slugPreview: {
+      flexDirection: 'row',
+      backgroundColor: colors.dark3,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      borderRadius: radii.xs,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      marginTop: 6,
+    },
+    slugPreviewLabel: { fontFamily: fonts.body, fontSize: 12, color: colors.grayMid },
+    slugPreviewValue: { fontFamily: fonts.bodyBold, fontSize: 12, color: colors.acid },
+  
+    errBox: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: 8,
+      borderWidth: 1,
+      borderColor: 'rgba(255,107,107,0.3)',
+      backgroundColor: colors.dangerSoft,
+      padding: 12,
+      borderRadius: radii.sm,
+      marginBottom: 12,
+    },
+    errIcon: { fontSize: 14, color: colors.danger },
+    err: { fontFamily: fonts.body, color: colors.danger, fontSize: 13, flex: 1, lineHeight: 18 },
+  
+    primaryBtn: { borderRadius: radii.sm, overflow: 'hidden', marginTop: 4, ...shadows.acid },
+    primaryOff: { opacity: 0.55 },
+    primaryGrad: { paddingVertical: 16, alignItems: 'center' },
+    primaryTxt: { fontFamily: fonts.display, fontSize: 17, letterSpacing: 3, color: colors.black },
+  
+    // Email sent
+    successCard: {
+      backgroundColor: colors.dark2,
+      borderWidth: 1,
+      borderColor: 'rgba(205,255,0,0.2)',
+      borderRadius: radii.lg,
+      padding: 24,
+      alignItems: 'center',
+      marginTop: 8,
+    },
+    successIcon: {
+      width: 56,
+      height: 56,
+      borderRadius: radii.pill,
+      backgroundColor: colors.acidSoft,
+      borderWidth: 1,
+      borderColor: 'rgba(205,255,0,0.3)',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 20,
+    },
+    successIconText: { fontFamily: fonts.display, fontSize: 28, color: colors.acid },
+    successBody: { fontFamily: fonts.body, fontSize: 15, color: colors.grayLight, lineHeight: 22, textAlign: 'center', marginBottom: 24 },
+    ghostLink: { marginTop: 16 },
+  });
+
   const redirect = route.params?.redirect;
   const [step, setStep] = useState('role'); // 'role' | 'method' | 'form'
   const [role, setRole] = useState('cliente');
@@ -178,6 +349,8 @@ export default function RegistroScreen({ navigation, route }) {
 
             {step === 'role' && (
               <StepRole
+                styles={styles}
+                colors={colors}
                 role={role}
                 setRole={setRole}
                 onContinue={() => { setError(''); setStep('method'); }}
@@ -187,6 +360,7 @@ export default function RegistroScreen({ navigation, route }) {
 
             {step === 'method' && (
               <StepMethod
+                styles={styles}
                 currentRole={currentRole}
                 loading={loading}
                 error={error}
@@ -197,6 +371,9 @@ export default function RegistroScreen({ navigation, route }) {
 
             {step === 'form' && (
               <StepForm
+                styles={styles}
+                colors={colors}
+                fieldStyles={fieldStyles}
                 currentRole={currentRole}
                 nombre={nombre} setNombre={setNombre}
                 email={email} setEmail={setEmail}
@@ -217,7 +394,7 @@ export default function RegistroScreen({ navigation, route }) {
 }
 
 /* ────────────────── Paso 1: Rol ────────────────── */
-function StepRole({ role, setRole, onContinue, onGoLogin }) {
+function StepRole({ styles, colors, role, setRole, onContinue, onGoLogin }) {
   return (
     <View>
       <View style={styles.heroBlock}>
@@ -263,7 +440,7 @@ function StepRole({ role, setRole, onContinue, onGoLogin }) {
 }
 
 /* ────────────────── Paso 2: Método ────────────────── */
-function StepMethod({ currentRole, loading, error, onGoogle, onEmail }) {
+function StepMethod({ styles, currentRole, loading, error, onGoogle, onEmail }) {
   return (
     <View>
       <View style={styles.heroBlock}>
@@ -318,6 +495,9 @@ function StepMethod({ currentRole, loading, error, onGoogle, onEmail }) {
 
 /* ────────────────── Paso 3: Formulario (correo) ────────────────── */
 function StepForm({
+  styles,
+  colors,
+  fieldStyles,
   currentRole,
   nombre, setNombre,
   email, setEmail,
@@ -341,13 +521,36 @@ function StepForm({
       </View>
 
       <View style={styles.card}>
-        <Field label="NOMBRE" value={nombre} onChangeText={setNombre}
+        <Field
+          colors={colors}
+          fieldStyles={fieldStyles}
+          label="NOMBRE"
+          value={nombre}
+          onChangeText={setNombre}
           focused={focusedField === 'nombre'} onFocus={() => setFocusedField('nombre')} onBlur={() => setFocusedField(null)} />
-        <Field label="CORREO" value={email} onChangeText={setEmail} keyboardType="email-address"
+        <Field
+          colors={colors}
+          fieldStyles={fieldStyles}
+          label="CORREO"
+          value={email}
+          onChangeText={setEmail}
+          keyboardType="email-address"
           focused={focusedField === 'email'} onFocus={() => setFocusedField('email')} onBlur={() => setFocusedField(null)} />
-        <Field label="TELÉFONO" value={telefono} onChangeText={setTelefono} keyboardType="phone-pad"
+        <Field
+          colors={colors}
+          fieldStyles={fieldStyles}
+          label="TELÉFONO"
+          value={telefono}
+          onChangeText={setTelefono}
+          keyboardType="phone-pad"
           focused={focusedField === 'tel'} onFocus={() => setFocusedField('tel')} onBlur={() => setFocusedField(null)} />
-        <Field label="CONTRASEÑA" value={password} onChangeText={setPassword} secureTextEntry
+        <Field
+          colors={colors}
+          fieldStyles={fieldStyles}
+          label="CONTRASEÑA"
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry
           focused={focusedField === 'pass'} onFocus={() => setFocusedField('pass')} onBlur={() => setFocusedField(null)} />
 
         {error ? (
@@ -379,7 +582,19 @@ function StepForm({
   );
 }
 
-function Field({ label, value, onChangeText, keyboardType, secureTextEntry, placeholder, focused, onFocus, onBlur }) {
+function Field({
+  colors,
+  fieldStyles,
+  label,
+  value,
+  onChangeText,
+  keyboardType,
+  secureTextEntry,
+  placeholder,
+  focused,
+  onFocus,
+  onBlur,
+}) {
   return (
     <View style={fieldStyles.wrap}>
       <Text style={fieldStyles.lbl}>{label}</Text>
@@ -399,197 +614,32 @@ function Field({ label, value, onChangeText, keyboardType, secureTextEntry, plac
   );
 }
 
-const fieldStyles = StyleSheet.create({
-  wrap: { marginBottom: 14 },
-  lbl: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 10,
-    letterSpacing: 2,
-    color: colors.grayLight,
-    marginBottom: 7,
-    textTransform: 'uppercase',
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    backgroundColor: colors.dark3,
-    color: colors.white,
-    fontFamily: fonts.body,
-    fontSize: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderRadius: radii.sm,
-  },
-  inputFocused: {
-    borderColor: colors.acid,
-    backgroundColor: '#131500',
-  },
-});
-
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.black },
-  safe: { flex: 1 },
-  scroll: { padding: 20, paddingBottom: 48 },
-
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 28 },
-  backBtn: { paddingVertical: 6, paddingHorizontal: 2 },
-  backText: { fontFamily: fonts.bodyBold, fontSize: 11, letterSpacing: 2, color: colors.grayMid },
-  logo: { fontFamily: fonts.display, fontSize: 22, letterSpacing: 2, color: colors.white },
-  logoA: { color: colors.acid },
-
-  heroBlock: { marginBottom: 24 },
-  title: { fontFamily: fonts.display, fontSize: 44, color: colors.white, letterSpacing: 1, lineHeight: 42, marginBottom: 8 },
-  sub: { fontFamily: fonts.body, fontSize: 15, color: colors.grayLight },
-  link: { color: colors.acid, fontFamily: fonts.bodyBold },
-
-  progressRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginBottom: 20,
-  },
-  progressDot: {
-    width: 22,
-    height: 3,
-    borderRadius: 2,
-    backgroundColor: colors.cardBorder,
-  },
-  progressDotActive: { backgroundColor: colors.acid },
-  progressDotDone: { backgroundColor: colors.acidDim },
-  progressTxt: {
-    marginLeft: 8,
-    fontFamily: fonts.bodyBold,
-    fontSize: 9,
-    letterSpacing: 2,
-    color: colors.grayMid,
-  },
-
-  sectionLbl: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 11,
-    letterSpacing: 2,
-    color: colors.grayLight,
-    marginBottom: 4,
-  },
-  sectionHint: {
-    fontFamily: fonts.body,
-    fontSize: 13,
-    color: colors.grayMid,
-    marginBottom: 16,
-  },
-
-  roles: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 20 },
-  roleBtn: {
-    width: '47%',
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    backgroundColor: colors.dark2,
-    padding: 14,
-    alignItems: 'center',
-    borderRadius: radii.md,
-    gap: 4,
-  },
-  roleBtnOn: { backgroundColor: '#111500', borderColor: colors.acid },
-  roleIcon: { fontSize: 20, color: colors.grayMid, marginBottom: 2 },
-  roleIconOn: { color: colors.acid },
-  roleTitle: { fontFamily: fonts.display, fontSize: 14, letterSpacing: 1, color: colors.grayLight },
-  roleTitleOn: { color: colors.acid },
-  roleSub: { fontFamily: fonts.body, fontSize: 11, color: colors.grayMid },
-  roleSubOn: { color: colors.acidDim },
-
-  methodCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    borderRadius: radii.md,
-    backgroundColor: colors.dark2,
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-    marginBottom: 12,
-    ...shadows.sm,
-  },
-  methodIconCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: radii.pill,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    backgroundColor: colors.dark3,
-  },
-  methodGoogleIcon: { fontFamily: fonts.bodyBold, fontSize: 18, color: colors.white },
-  methodEmailIcon: { fontFamily: fonts.display, fontSize: 20, color: colors.acid },
-  methodTitle: { fontFamily: fonts.bodyBold, fontSize: 13, letterSpacing: 2, color: colors.white, marginBottom: 2 },
-  methodSub: { fontFamily: fonts.body, fontSize: 12, color: colors.grayMid },
-  methodArrow: { fontFamily: fonts.display, fontSize: 20, color: colors.grayLight },
-
-  card: {
-    backgroundColor: colors.dark2,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    borderRadius: radii.lg,
-    padding: 20,
-    ...shadows.sm,
-  },
-
-  slugWrap: { marginBottom: 14 },
-  slugPreview: {
-    flexDirection: 'row',
-    backgroundColor: colors.dark3,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    borderRadius: radii.xs,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    marginTop: 6,
-  },
-  slugPreviewLabel: { fontFamily: fonts.body, fontSize: 12, color: colors.grayMid },
-  slugPreviewValue: { fontFamily: fonts.bodyBold, fontSize: 12, color: colors.acid },
-
-  errBox: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(255,107,107,0.3)',
-    backgroundColor: colors.dangerSoft,
-    padding: 12,
-    borderRadius: radii.sm,
-    marginBottom: 12,
-  },
-  errIcon: { fontSize: 14, color: colors.danger },
-  err: { fontFamily: fonts.body, color: colors.danger, fontSize: 13, flex: 1, lineHeight: 18 },
-
-  primaryBtn: { borderRadius: radii.sm, overflow: 'hidden', marginTop: 4, ...shadows.acid },
-  primaryOff: { opacity: 0.55 },
-  primaryGrad: { paddingVertical: 16, alignItems: 'center' },
-  primaryTxt: { fontFamily: fonts.display, fontSize: 17, letterSpacing: 3, color: colors.black },
-
-  // Email sent
-  successCard: {
-    backgroundColor: colors.dark2,
-    borderWidth: 1,
-    borderColor: 'rgba(205,255,0,0.2)',
-    borderRadius: radii.lg,
-    padding: 24,
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  successIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: radii.pill,
+function createFieldStyles(colors) {
+  return StyleSheet.create({
+    wrap: { marginBottom: 14 },
+    lbl: {
+      fontFamily: fonts.bodyBold,
+      fontSize: 10,
+      letterSpacing: 2,
+      color: colors.grayLight,
+      marginBottom: 7,
+      textTransform: 'uppercase',
+    },
+    input: {
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      backgroundColor: colors.dark3,
+      color: colors.white,
+      fontFamily: fonts.body,
+      fontSize: 16,
+      paddingHorizontal: 16,
+      paddingVertical: 14,
+      borderRadius: radii.sm,
+    },
+    inputFocused: {
+      borderColor: colors.acid,
     backgroundColor: colors.acidSoft,
-    borderWidth: 1,
-    borderColor: 'rgba(205,255,0,0.3)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 20,
-  },
-  successIconText: { fontFamily: fonts.display, fontSize: 28, color: colors.acid },
-  successBody: { fontFamily: fonts.body, fontSize: 15, color: colors.grayLight, lineHeight: 22, textAlign: 'center', marginBottom: 24 },
-  ghostLink: { marginTop: 16 },
-});
+    },
+  });
+}
+

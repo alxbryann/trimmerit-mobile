@@ -12,7 +12,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase, supabaseConfigured } from '../lib/supabase';
-import { colors, fonts } from '../theme';
+import { fonts } from '../theme';
+import { useColors } from '../theme/ThemeContext';
 import { RESET_MAIN_AGENDA } from '../navigation/resetMainTabs';
 
 const ROLES = [
@@ -28,6 +29,131 @@ function normalizeIntentRole(r) {
 }
 
 export default function CompletarPerfilScreen({ navigation, route }) {
+  const colors = useColors();
+  const styles = StyleSheet.create({
+    root: { flex: 1, backgroundColor: colors.black },
+    safe: { flex: 1 },
+    scroll: { padding: 24 },
+    title: {
+      fontFamily: fonts.display,
+      fontSize: 40,
+      color: colors.white,
+      marginBottom: 8,
+      letterSpacing: 1,
+    },
+    sub: { fontFamily: fonts.body, fontSize: 14, color: colors.grayLight, marginBottom: 24 },
+    rolesGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 20 },
+    roleCard: {
+      width: '47%',
+      borderWidth: 1,
+      borderColor: colors.gray,
+      backgroundColor: colors.dark2,
+      padding: 12,
+      borderRadius: 4,
+      gap: 4,
+    },
+    roleCardOn: { borderColor: colors.acid, backgroundColor: colors.acidSoft },
+    roleCardTitle: {
+      fontFamily: fonts.display,
+      fontSize: 13,
+      letterSpacing: 0.5,
+      color: colors.white,
+    },
+    roleCardTitleOn: { color: colors.acid },
+    roleCardSub: { fontFamily: fonts.body, fontSize: 10, color: colors.grayMid },
+    roleCardSubOn: { color: colors.acid },
+    roleLocked: {
+      borderWidth: 1,
+      borderColor: colors.gray,
+      backgroundColor: colors.dark2,
+      padding: 14,
+      marginBottom: 20,
+    },
+    roleLockedLbl: {
+      fontFamily: fonts.bodyBold,
+      fontSize: 9,
+      letterSpacing: 2,
+      color: colors.grayLight,
+      marginBottom: 6,
+    },
+    roleLockedVal: { fontFamily: fonts.display, fontSize: 16, color: colors.acid },
+  
+    identityCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      borderWidth: 1,
+      borderColor: 'rgba(205,255,0,0.25)',
+      backgroundColor: 'rgba(205,255,0,0.04)',
+      padding: 12,
+      borderRadius: 6,
+      marginBottom: 20,
+    },
+    identityAvatar: { width: 42, height: 42, borderRadius: 21, backgroundColor: colors.dark2 },
+    identityAvatarFallback: {
+      width: 42,
+      height: 42,
+      borderRadius: 21,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.dark2,
+      borderWidth: 1,
+      borderColor: colors.acid,
+    },
+    identityAvatarTxt: { fontFamily: fonts.display, fontSize: 18, color: colors.acid },
+    identityBadge: {
+      fontFamily: fonts.bodyBold,
+      fontSize: 9,
+      letterSpacing: 2,
+      color: colors.acid,
+      marginBottom: 2,
+    },
+    identityName: { fontFamily: fonts.bodyBold, fontSize: 15, color: colors.white },
+    identityEmail: { fontFamily: fonts.body, fontSize: 12, color: colors.grayLight },
+  
+    sectionLbl: {
+      fontFamily: fonts.bodyBold,
+      fontSize: 10,
+      letterSpacing: 2,
+      color: colors.grayLight,
+      marginBottom: 10,
+      textTransform: 'uppercase',
+    },
+    lbl: {
+      fontFamily: fonts.bodyBold,
+      fontSize: 10,
+      letterSpacing: 2,
+      color: colors.grayLight,
+      marginBottom: 6,
+      textTransform: 'uppercase',
+    },
+    input: {
+      borderWidth: 1,
+      borderColor: colors.gray,
+      backgroundColor: colors.dark2,
+      color: colors.white,
+      fontFamily: fonts.body,
+      fontSize: 16,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+    },
+    errBox: {
+      borderWidth: 1,
+      borderColor: 'rgba(255,80,80,0.35)',
+      padding: 12,
+      marginBottom: 12,
+    },
+    err: { fontFamily: fonts.body, color: colors.danger, fontSize: 14 },
+    primary: { backgroundColor: colors.acid, paddingVertical: 16, alignItems: 'center', marginTop: 8 },
+    primaryOff: { opacity: 0.6 },
+    primaryTxt: {
+      fontFamily: fonts.display,
+      fontSize: 18,
+      letterSpacing: 2,
+      color: colors.black,
+    },
+  });
+
   const suggestedNombre = route.params?.suggestedNombre ?? '';
   const redirect = route.params?.redirect;
   /** Rol elegido en Registro (o null si entró por Login / arranque sin perfil) */
@@ -202,10 +328,17 @@ export default function CompletarPerfilScreen({ navigation, route }) {
             )}
 
             {needsNombreField ? (
-              <Field label="NOMBRE" value={nombre} onChangeText={setNombre} />
+              <Field styles={styles} colors={colors} label="NOMBRE" value={nombre} onChangeText={setNombre} />
             ) : null}
 
-            <Field label="TELÉFONO" value={telefono} onChangeText={setTelefono} keyboardType="phone-pad" />
+            <Field
+              styles={styles}
+              colors={colors}
+              label="TELÉFONO"
+              value={telefono}
+              onChangeText={setTelefono}
+              keyboardType="phone-pad"
+            />
 
             {error ? (
               <View style={styles.errBox}>
@@ -229,7 +362,7 @@ export default function CompletarPerfilScreen({ navigation, route }) {
   );
 }
 
-function Field({ label, value, onChangeText, keyboardType }) {
+function Field({ styles, colors, label, value, onChangeText, keyboardType }) {
   return (
     <View style={{ marginBottom: 14 }}>
       <Text style={styles.lbl}>{label}</Text>
@@ -244,126 +377,3 @@ function Field({ label, value, onChangeText, keyboardType }) {
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.black },
-  safe: { flex: 1 },
-  scroll: { padding: 24 },
-  title: {
-    fontFamily: fonts.display,
-    fontSize: 40,
-    color: colors.white,
-    marginBottom: 8,
-    letterSpacing: 1,
-  },
-  sub: { fontFamily: fonts.body, fontSize: 14, color: colors.grayLight, marginBottom: 24 },
-  rolesGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 20 },
-  roleCard: {
-    width: '47%',
-    borderWidth: 1,
-    borderColor: colors.gray,
-    backgroundColor: colors.dark2,
-    padding: 12,
-    borderRadius: 4,
-    gap: 4,
-  },
-  roleCardOn: { borderColor: colors.acid, backgroundColor: '#111500' },
-  roleCardTitle: {
-    fontFamily: fonts.display,
-    fontSize: 13,
-    letterSpacing: 0.5,
-    color: colors.white,
-  },
-  roleCardTitleOn: { color: colors.acid },
-  roleCardSub: { fontFamily: fonts.body, fontSize: 10, color: colors.grayMid },
-  roleCardSubOn: { color: colors.acid },
-  roleLocked: {
-    borderWidth: 1,
-    borderColor: colors.gray,
-    backgroundColor: colors.dark2,
-    padding: 14,
-    marginBottom: 20,
-  },
-  roleLockedLbl: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 9,
-    letterSpacing: 2,
-    color: colors.grayLight,
-    marginBottom: 6,
-  },
-  roleLockedVal: { fontFamily: fonts.display, fontSize: 16, color: colors.acid },
-
-  identityCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(205,255,0,0.25)',
-    backgroundColor: 'rgba(205,255,0,0.04)',
-    padding: 12,
-    borderRadius: 6,
-    marginBottom: 20,
-  },
-  identityAvatar: { width: 42, height: 42, borderRadius: 21, backgroundColor: colors.dark2 },
-  identityAvatarFallback: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.dark2,
-    borderWidth: 1,
-    borderColor: colors.acid,
-  },
-  identityAvatarTxt: { fontFamily: fonts.display, fontSize: 18, color: colors.acid },
-  identityBadge: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 9,
-    letterSpacing: 2,
-    color: colors.acid,
-    marginBottom: 2,
-  },
-  identityName: { fontFamily: fonts.bodyBold, fontSize: 15, color: colors.white },
-  identityEmail: { fontFamily: fonts.body, fontSize: 12, color: colors.grayLight },
-
-  sectionLbl: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 10,
-    letterSpacing: 2,
-    color: colors.grayLight,
-    marginBottom: 10,
-    textTransform: 'uppercase',
-  },
-  lbl: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 10,
-    letterSpacing: 2,
-    color: colors.grayLight,
-    marginBottom: 6,
-    textTransform: 'uppercase',
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: colors.gray,
-    backgroundColor: colors.dark2,
-    color: colors.white,
-    fontFamily: fonts.body,
-    fontSize: 16,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-  },
-  errBox: {
-    borderWidth: 1,
-    borderColor: 'rgba(255,80,80,0.35)',
-    padding: 12,
-    marginBottom: 12,
-  },
-  err: { fontFamily: fonts.body, color: colors.danger, fontSize: 14 },
-  primary: { backgroundColor: colors.acid, paddingVertical: 16, alignItems: 'center', marginTop: 8 },
-  primaryOff: { opacity: 0.6 },
-  primaryTxt: {
-    fontFamily: fonts.display,
-    fontSize: 18,
-    letterSpacing: 2,
-    color: colors.black,
-  },
-});

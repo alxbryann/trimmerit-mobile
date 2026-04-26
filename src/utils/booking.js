@@ -6,6 +6,35 @@ export const DEFAULT_SERVICES = [
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+/**
+ * Nombre a mostrar del local (misma prioridad que Editar/Empleado: barberías → barberos.nombre_barberia → slug).
+ * @param {null|undefined|{ nombre_barberia?: string|null, slug?: string|null, barberias?: { nombre?: string|null }|null }} barberoRow
+ * @param {{ fallback?: string }} [options] — prioridad mínima antes de "Trimmerit" (p. ej. nombre de perfil del barbero)
+ * @returns {string}
+ */
+export function resolveLocalDisplayName(barberoRow, options = {}) {
+  const b = barberoRow;
+  const fallback = typeof options.fallback === 'string' && options.fallback?.trim() ? options.fallback.trim() : null;
+  if (!b) return fallback ?? 'Trimmerit';
+  const fromJoin = b.barberias?.nombre?.trim();
+  if (fromJoin) return fromJoin;
+  const raw = (b.nombre_barberia ?? '').trim();
+  if (raw && !localNameLooksCorrupt(raw)) {
+    return raw;
+  }
+  const fromSlug = typeof b.slug === 'string' && b.slug.trim() ? b.slug.replace(/-/g, ' ').trim() : '';
+  if (fromSlug) return fromSlug;
+  return fallback ?? 'Trimmerit';
+}
+
+function localNameLooksCorrupt(s) {
+  if (UUID_RE.test(s)) return true;
+  if (s.length > 0 && s.length <= 12 && !/\s/.test(s) && /^[0-9a-f]+$/i.test(s)) {
+    return true;
+  }
+  return false;
+}
+
 /** True if `s` looks like a Postgres uuid (servicios.id). Default booking slugs like "corte" are not uuids. */
 export function isUuidString(s) {
   return typeof s === 'string' && UUID_RE.test(s);

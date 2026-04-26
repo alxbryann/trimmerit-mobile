@@ -7,11 +7,15 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Notifications from 'expo-notifications';
 import { supabase, supabaseConfigured } from '../lib/supabase';
-import { colors, fonts } from '../theme';
+import { fonts } from '../theme';
+import { useColors } from '../theme/ThemeContext';
+import ReservaActionsCard from '../components/ReservaActionsCard';
+import { sendPushNotification } from '../lib/notifications';
 
 const SLOT_START = 9 * 60;
 const SLOT_END = 20 * 60;
@@ -45,6 +49,70 @@ function slotsForDay() {
 const DAY_SLOTS = slotsForDay();
 
 export default function EmpleadoBarberiaScreen({ navigation, route }) {
+  const colors = useColors();
+  const styles = StyleSheet.create({
+    root: { flex: 1, backgroundColor: colors.black },
+    center: { flex: 1, backgroundColor: colors.black, alignItems: 'center', justifyContent: 'center' },
+    loadTxt: { fontFamily: fonts.display, fontSize: 16, letterSpacing: 3, color: colors.acid, marginTop: 12 },
+    muted: { color: colors.grayLight, fontFamily: fonts.body, padding: 24 },
+    scroll: { padding: 20, paddingBottom: 48 },
+  
+    barberiaHeader: {
+      paddingHorizontal: 20,
+      paddingVertical: 12,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.cardBorder,
+    },
+    barberiaName: { fontFamily: fonts.display, fontSize: 22, letterSpacing: 1 },
+    barberiaNameAcid: { color: colors.acid },
+    agendaLabel: { color: colors.white },
+  
+    head: { flexDirection: 'row', alignItems: 'center', marginBottom: 20, gap: 12 },
+    dayTitle: { fontFamily: fonts.display, fontSize: 26, color: colors.white, letterSpacing: 1 },
+    hoy: { alignSelf: 'flex-start', backgroundColor: colors.acid, paddingHorizontal: 8, paddingVertical: 2, marginTop: 8 },
+    hoyTxt: { fontFamily: fonts.display, fontSize: 11, color: colors.black, letterSpacing: 2 },
+    navDay: { flexDirection: 'row', gap: 6 },
+    navBtn: { borderWidth: 1, borderColor: colors.gray, backgroundColor: colors.dark2, paddingHorizontal: 10, paddingVertical: 8 },
+    navBtnTxt: { color: colors.white, fontFamily: fonts.bodyBold, fontSize: 12 },
+    err: { color: colors.danger, marginBottom: 12, fontFamily: fonts.body },
+    section: { fontFamily: fonts.display, fontSize: 14, letterSpacing: 2, color: colors.acid, marginBottom: 12 },
+    empty: { fontFamily: fonts.body, color: colors.grayMid, marginBottom: 16 },
+    card: {
+      flexDirection: 'row',
+      borderWidth: 1,
+      borderColor: colors.gray,
+      backgroundColor: colors.dark2,
+      padding: 12,
+      marginBottom: 8,
+      gap: 10,
+    },
+    cardOk: { borderColor: 'rgba(205,255,0,0.35)', backgroundColor: 'rgba(205,255,0,0.05)' },
+    name: { fontFamily: fonts.display, fontSize: 20, color: colors.white },
+    meta: { fontFamily: fonts.body, fontSize: 12, color: colors.grayLight, marginTop: 4 },
+    estado: { fontFamily: fonts.bodyBold, fontSize: 10, letterSpacing: 1, color: colors.grayLight, textTransform: 'uppercase' },
+    compBtn: { backgroundColor: colors.acid, paddingHorizontal: 10, paddingVertical: 4 },
+    compTxt: { fontFamily: fonts.display, fontSize: 11, color: colors.black, letterSpacing: 1 },
+    grid: { borderWidth: 1, borderColor: colors.gray, backgroundColor: colors.dark2 },
+    slotRow: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' },
+    slotTime: {
+      width: 56, fontFamily: fonts.body, fontSize: 11, color: colors.grayMid,
+      padding: 10, borderRightWidth: 1, borderRightColor: 'rgba(255,255,255,0.08)',
+      backgroundColor: colors.black,
+    },
+    slotCell: { flex: 1, padding: 8, justifyContent: 'center' },
+    slotName: { fontFamily: fonts.bodyBold, fontSize: 13, color: colors.white },
+    libre: { fontFamily: fonts.body, fontSize: 11, color: '#444' },
+  
+    partNote: {
+      fontFamily: fonts.body,
+      fontSize: 12,
+      color: colors.grayMid,
+      fontStyle: 'italic',
+      textAlign: 'center',
+      marginTop: 24,
+    },
+  });
+
   const paramBarberiaId = route.params?.barberiaId;
   const paramBarberiaName = route.params?.barberiaName;
 
@@ -63,7 +131,7 @@ export default function EmpleadoBarberiaScreen({ navigation, route }) {
   const [reservas, setReservas] = useState([]);
   const [profiles, setProfiles] = useState({});
   const [loadErr, setLoadErr] = useState(null);
-  const [completando, setCompletando] = useState(null);
+  const [tienePrograma, setTienePrograma] = useState(false);
 
   const loadReservas = useCallback(async () => {
     if (!barberoId) return;
@@ -88,6 +156,16 @@ export default function EmpleadoBarberiaScreen({ navigation, route }) {
     for (const p of profs ?? []) map[p.id] = p;
     setProfiles(map);
   }, [barberoId, dateStr]);
+
+  const checkPrograma = useCallback(async (bId) => {
+    const { data } = await supabase
+      .from('loyalty_programs')
+      .select('id')
+      .eq('barbero_id', bId)
+      .eq('activo', true)
+      .maybeSingle();
+    setTienePrograma(Boolean(data));
+  }, []);
 
   useEffect(() => {
     if (!supabaseConfigured) { setLoading(false); return; }
@@ -118,7 +196,8 @@ export default function EmpleadoBarberiaScreen({ navigation, route }) {
     useCallback(() => {
       if (!barberoId) return;
       loadReservas();
-    }, [barberoId, loadReservas])
+      checkPrograma(barberoId);
+    }, [barberoId, loadReservas, checkPrograma])
   );
 
   // Reload agenda when a push notification arrives (new booking)
@@ -129,13 +208,108 @@ export default function EmpleadoBarberiaScreen({ navigation, route }) {
     return () => sub.remove();
   }, [loadReservas]);
 
-  async function handleCompletar(reservaId) {
-    setCompletando(reservaId);
+  async function handleCompletarReserva(reservaId, sellarFidelizacion) {
     await supabase.from('reservas').update({ estado: 'completada' }).eq('id', reservaId);
+
+    if (sellarFidelizacion && tienePrograma) {
+      try {
+        const { data: stampResult } = await supabase.rpc('add_loyalty_stamp', {
+          p_reserva_id: reservaId,
+        });
+        if (stampResult?.ok && stampResult?.completado) {
+          Alert.alert(
+            '🎉 ¡Tarjeta completada!',
+            `El cliente completó su tarjeta de fidelización.\nBeneficio: ${stampResult.beneficio}`
+          );
+        }
+      } catch (_) {
+        // Ignorar si el RPC aún no existe.
+      }
+    }
+
+    setReservas((prev) => prev.map((r) => (r.id === reservaId ? { ...r, estado: 'completada' } : r)));
+  }
+
+  async function handleCancelarReserva(reservaId, razon) {
+    const { data, error } = await supabase.rpc('cancelar_reserva', {
+      p_reserva_id: reservaId,
+      p_razon: razon,
+    });
+
+    if (error || !data?.ok) {
+      Alert.alert('Error', error?.message || 'No se pudo cancelar la reserva.');
+      return;
+    }
+
+    const reserva = reservas.find((r) => r.id === reservaId);
+    let pushToken = reserva?.cliente_id ? profiles[reserva.cliente_id]?.push_token : null;
+
+    if (!pushToken && reserva?.cliente_id) {
+      const { data: clienteProfile } = await supabase
+        .from('profiles')
+        .select('push_token')
+        .eq('id', reserva.cliente_id)
+        .maybeSingle();
+      pushToken = clienteProfile?.push_token ?? null;
+    }
+
+    if (pushToken) {
+      const profesionalNombre = barberiaName || 'Tu barbero';
+      const razonCancelacion = razon?.trim();
+      await sendPushNotification({
+        to: pushToken,
+        title: `❌ Reserva cancelada por ${profesionalNombre}`,
+        body: razonCancelacion
+          ? `${profesionalNombre} canceló tu cita. Razón: ${razonCancelacion}`
+          : `${profesionalNombre} canceló tu cita. Abre la app para más detalles.`,
+        data: { tipo: 'cancelacion', reservaId, razon: razonCancelacion },
+      });
+    }
+
+    setReservas((prev) => prev.map((r) => (r.id === reservaId ? { ...r, estado: 'cancelada' } : r)));
+  }
+
+  async function handleAplazarReserva(reservaId, razon, nuevaFecha, nuevaHora) {
+    const { data, error } = await supabase.rpc('proponer_aplazamiento', {
+      p_reserva_id: reservaId,
+      p_razon: razon,
+      p_nueva_fecha: nuevaFecha,
+      p_nueva_hora: nuevaHora,
+    });
+
+    if (error || !data?.ok) {
+      Alert.alert('Error', error?.message || 'No se pudo enviar la propuesta.');
+      return;
+    }
+
+    const reserva = reservas.find((r) => r.id === reservaId);
+    let pushToken = reserva?.cliente_id ? profiles[reserva.cliente_id]?.push_token : null;
+    if (!pushToken && reserva?.cliente_id) {
+      const { data: clienteProfile } = await supabase
+        .from('profiles')
+        .select('push_token')
+        .eq('id', reserva.cliente_id)
+        .maybeSingle();
+      pushToken = clienteProfile?.push_token ?? null;
+    }
+
+    if (pushToken) {
+      const DAY_NAMES = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+      const MON_NAMES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+      const [y, m, d] = nuevaFecha.split('-').map(Number);
+      const dateObj = new Date(y, m - 1, d);
+      const fechaLabel = `${DAY_NAMES[dateObj.getDay()]} ${d} de ${MON_NAMES[m - 1]}`;
+      await sendPushNotification({
+        to: pushToken,
+        title: '📅 Propuesta de cambio de fecha',
+        body: `${barberiaName || 'Tu barbero'} propone mover tu cita al ${fechaLabel} a las ${nuevaHora}.`,
+        data: { tipo: 'aplazamiento', reservaId },
+      });
+    }
+
     setReservas((prev) =>
-      prev.map((r) => (r.id === reservaId ? { ...r, estado: 'completada' } : r))
+      prev.map((r) => (r.id === reservaId ? { ...r, estado: 'aplazamiento_pendiente' } : r))
     );
-    setCompletando(null);
   }
 
   const byTime = useMemo(() => {
@@ -227,32 +401,16 @@ export default function EmpleadoBarberiaScreen({ navigation, route }) {
         ) : (
           sorted.map((r) => {
             const p = profiles[r.cliente_id];
-            const name = p?.nombre?.trim() || 'Cliente';
-            const completada = r.estado === 'completada';
-            const cancelada = r.estado === 'cancelada';
             return (
-              <View key={r.id} style={[styles.card, completada && styles.cardOk, cancelada && { opacity: 0.45 }]}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.name}>{name}</Text>
-                  <Text style={styles.meta}>
-                    {normalizeHora(r.hora)}
-                    {p?.telefono ? ` · ${p.telefono}` : ''}
-                    {r.precio != null ? ` · $${r.precio.toLocaleString('es-CO')}` : ''}
-                  </Text>
-                </View>
-                <View style={{ alignItems: 'flex-end', gap: 6 }}>
-                  <Text style={styles.estado}>{r.estado ?? 'pendiente'}</Text>
-                  {!completada && !cancelada && (
-                    <TouchableOpacity
-                      style={styles.compBtn}
-                      onPress={() => handleCompletar(r.id)}
-                      disabled={completando === r.id}
-                    >
-                      <Text style={styles.compTxt}>{completando === r.id ? '...' : 'COMPLETAR'}</Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
-              </View>
+              <ReservaActionsCard
+                key={r.id}
+                reserva={r}
+                perfil={p ?? null}
+                tienePrograma={tienePrograma}
+                onCompletar={handleCompletarReserva}
+                onCancelar={handleCancelarReserva}
+                onAplazar={handleAplazarReserva}
+              />
             );
           })
         )}
@@ -295,65 +453,3 @@ export default function EmpleadoBarberiaScreen({ navigation, route }) {
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.black },
-  center: { flex: 1, backgroundColor: colors.black, alignItems: 'center', justifyContent: 'center' },
-  loadTxt: { fontFamily: fonts.display, fontSize: 16, letterSpacing: 3, color: colors.acid, marginTop: 12 },
-  muted: { color: colors.grayLight, fontFamily: fonts.body, padding: 24 },
-  scroll: { padding: 20, paddingBottom: 48 },
-
-  barberiaHeader: {
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.cardBorder,
-  },
-  barberiaName: { fontFamily: fonts.display, fontSize: 22, letterSpacing: 1 },
-  barberiaNameAcid: { color: colors.acid },
-  agendaLabel: { color: colors.white },
-
-  head: { flexDirection: 'row', alignItems: 'center', marginBottom: 20, gap: 12 },
-  dayTitle: { fontFamily: fonts.display, fontSize: 26, color: colors.white, letterSpacing: 1 },
-  hoy: { alignSelf: 'flex-start', backgroundColor: colors.acid, paddingHorizontal: 8, paddingVertical: 2, marginTop: 8 },
-  hoyTxt: { fontFamily: fonts.display, fontSize: 11, color: colors.black, letterSpacing: 2 },
-  navDay: { flexDirection: 'row', gap: 6 },
-  navBtn: { borderWidth: 1, borderColor: colors.gray, backgroundColor: colors.dark2, paddingHorizontal: 10, paddingVertical: 8 },
-  navBtnTxt: { color: colors.white, fontFamily: fonts.bodyBold, fontSize: 12 },
-  err: { color: colors.danger, marginBottom: 12, fontFamily: fonts.body },
-  section: { fontFamily: fonts.display, fontSize: 14, letterSpacing: 2, color: colors.acid, marginBottom: 12 },
-  empty: { fontFamily: fonts.body, color: colors.grayMid, marginBottom: 16 },
-  card: {
-    flexDirection: 'row',
-    borderWidth: 1,
-    borderColor: colors.gray,
-    backgroundColor: colors.dark2,
-    padding: 12,
-    marginBottom: 8,
-    gap: 10,
-  },
-  cardOk: { borderColor: 'rgba(205,255,0,0.35)', backgroundColor: 'rgba(205,255,0,0.05)' },
-  name: { fontFamily: fonts.display, fontSize: 20, color: colors.white },
-  meta: { fontFamily: fonts.body, fontSize: 12, color: colors.grayLight, marginTop: 4 },
-  estado: { fontFamily: fonts.bodyBold, fontSize: 10, letterSpacing: 1, color: colors.grayLight, textTransform: 'uppercase' },
-  compBtn: { backgroundColor: colors.acid, paddingHorizontal: 10, paddingVertical: 4 },
-  compTxt: { fontFamily: fonts.display, fontSize: 11, color: colors.black, letterSpacing: 1 },
-  grid: { borderWidth: 1, borderColor: colors.gray, backgroundColor: colors.dark2 },
-  slotRow: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' },
-  slotTime: {
-    width: 56, fontFamily: fonts.body, fontSize: 11, color: colors.grayMid,
-    padding: 10, borderRightWidth: 1, borderRightColor: 'rgba(255,255,255,0.08)',
-    backgroundColor: colors.black,
-  },
-  slotCell: { flex: 1, padding: 8, justifyContent: 'center' },
-  slotName: { fontFamily: fonts.bodyBold, fontSize: 13, color: colors.white },
-  libre: { fontFamily: fonts.body, fontSize: 11, color: '#444' },
-
-  partNote: {
-    fontFamily: fonts.body,
-    fontSize: 12,
-    color: colors.grayMid,
-    fontStyle: 'italic',
-    textAlign: 'center',
-    marginTop: 24,
-  },
-});

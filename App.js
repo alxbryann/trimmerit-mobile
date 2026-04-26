@@ -20,6 +20,7 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import AppNavigator from './src/navigation/AppNavigator';
+import { ThemeProvider } from './src/theme/ThemeContext';
 import { finalizeOAuthFromUrl } from './src/lib/googleAuth';
 import { registerPushToken } from './src/lib/notifications';
 import { supabase } from './src/lib/supabase';
@@ -86,9 +87,11 @@ export default function App() {
   );
 
   return (
-    <SafeAreaProvider>
-      {navigatorTree}
-    </SafeAreaProvider>
+    <ThemeProvider>
+      <SafeAreaProvider>
+        {navigatorTree}
+      </SafeAreaProvider>
+    </ThemeProvider>
   );
 }
 

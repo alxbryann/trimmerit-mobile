@@ -19,7 +19,8 @@ import {
   StyleSheet, ActivityIndicator, Alert,
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { colors, fonts, radii } from '../theme';
+import { fonts, radii } from '../theme';
+import { useColors } from '../theme/ThemeContext';
 import { fmtPrice } from '../utils/booking';
 
 // ─── Helpers de fecha ─────────────────────────────────────────────────────────
@@ -64,6 +65,8 @@ export default function ClienteReservaCard({
   onCancelar,
   onCambiar,
 }) {
+  const colors = useColors();
+  const styles = createStyles(colors);
   const [expanded, setExpanded]     = useState(false);   // panel cambiar visible
   const [selectedDay, setSelectedDay] = useState(null);  // índice en DAYS_AHEAD
   const [selectedTime, setSelectedTime] = useState(null);
@@ -143,7 +146,7 @@ export default function ClienteReservaCard({
             onPress={() => setExpanded((v) => !v)}
             disabled={busy}
           >
-            <Ionicons name="calendar-outline" size={14} color={expanded ? colors.black : '#60a5fa'} />
+            <Ionicons name="calendar-outline" size={14} color={expanded ? colors.black : colors.acid} />
             <Text style={[styles.btnCambiarTxt, expanded && { color: colors.black }]}>
               CAMBIAR CITA
             </Text>
@@ -222,7 +225,7 @@ export default function ClienteReservaCard({
           {selectedDay != null && selectedTime && (
             <View style={styles.preview}>
               <View style={styles.previewRow}>
-                <Ionicons name="time-outline" size={14} color="#60a5fa" />
+                <Ionicons name="time-outline" size={14} color={colors.acid} />
                 <Text style={styles.previewTxt}>
                   {DAY_NAMES[DAYS_AHEAD[selectedDay].getDay()]}{' '}
                   {DAYS_AHEAD[selectedDay].getDate()} de{' '}
@@ -250,7 +253,8 @@ export default function ClienteReservaCard({
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors) {
+  return StyleSheet.create({
   card: {
     backgroundColor: colors.card,
     borderWidth: 1,
@@ -288,19 +292,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 6,
     borderWidth: 1,
-    borderColor: '#60a5fa',
+    borderColor: colors.acid,
     borderRadius: radii.sm,
     paddingVertical: 10,
   },
   btnCambiarActive: {
-    backgroundColor: '#60a5fa',
-    borderColor: '#60a5fa',
+    backgroundColor: colors.acid,
+    borderColor: colors.acid,
   },
   btnCambiarTxt: {
     fontFamily: fonts.display,
     fontSize: 12,
     letterSpacing: 1.5,
-    color: '#60a5fa',
+    color: colors.acid,
   },
   btnCancelar: {
     flex: 1,
@@ -344,7 +348,7 @@ const styles = StyleSheet.create({
     minWidth: 52,
     gap: 2,
   },
-  dayChipSel: { backgroundColor: '#60a5fa', borderColor: '#60a5fa' },
+  dayChipSel: { backgroundColor: colors.acid, borderColor: colors.acid },
   dayChipName: { fontFamily: fonts.bodyBold, fontSize: 10, color: colors.grayLight },
   dayChipNum:  { fontFamily: fonts.display,  fontSize: 18, color: colors.white },
   dayChipMon:  { fontFamily: fonts.body,     fontSize: 10, color: colors.grayMid },
@@ -361,7 +365,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 7,
   },
-  timeChipSel: { backgroundColor: '#60a5fa', borderColor: '#60a5fa' },
+  timeChipSel: { backgroundColor: colors.acid, borderColor: colors.acid },
   timeChipTxt: { fontFamily: fonts.bodyBold, fontSize: 13, color: colors.white },
 
   // ── Preview + confirmar ──
@@ -373,19 +377,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: 'rgba(96,165,250,0.08)',
+    backgroundColor: colors.acidSoft,
     borderWidth: 1,
-    borderColor: 'rgba(96,165,250,0.25)',
+    borderColor: colors.acidDim,
     borderRadius: radii.sm,
     padding: 12,
   },
-  previewTxt: { fontFamily: fonts.bodySemi, fontSize: 14, color: colors.white },
+  previewTxt: { fontFamily: fonts.bodySemi, fontSize: 14, color: colors.paper },
   btnConfirmar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: '#60a5fa',
+    backgroundColor: colors.acid,
     borderRadius: radii.sm,
     paddingVertical: 13,
   },
@@ -395,4 +399,5 @@ const styles = StyleSheet.create({
     letterSpacing: 2,
     color: colors.black,
   },
-});
+  });
+}

@@ -129,6 +129,15 @@ export function notifCambioAlBarbero(nombreCliente, nuevaFecha, nuevaHora) {
   );
 }
 
+export function notifNuevoLogro(nombre, emoji, rareza) {
+  const rarezaLabel = { common: 'Común', uncommon: 'Poco común', rare: 'Raro', legendary: 'Legendario' }[rareza] ?? rareza;
+  return sendLocalNotification(
+    `${emoji ?? '🏆'} ¡Nuevo logro desbloqueado!`,
+    `"${nombre}" — ${rarezaLabel}`,
+    { tipo: 'logro', nombre }
+  );
+}
+
 const EXPO_PUSH_URL = 'https://exp.host/--/api/v2/push/send';
 const EXPO_RECEIPTS_URL = 'https://exp.host/--/api/v2/push/getReceipts';
 

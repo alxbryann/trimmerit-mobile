@@ -15,7 +15,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Clipboard from 'expo-clipboard';
 import { supabase } from '../lib/supabase';
-import { colors, fonts, radii, shadows } from '../theme';
+import { fonts, radii, shadows } from '../theme';
+import { useColors } from '../theme/ThemeContext';
 
 const TABS = ['Mi Panel', 'Colaboradores', 'Ajustes'];
 const CODE_TTL_MS = 5 * 60 * 1000; // 5 minutes
@@ -25,6 +26,215 @@ function generateCode() {
 }
 
 export default function AdminBarberiaScreen({ navigation }) {
+  const colors = useColors();
+  const styles = StyleSheet.create({
+    root: { flex: 1, backgroundColor: colors.black },
+    safe: { flex: 1 },
+    center: { flex: 1, backgroundColor: colors.black, alignItems: 'center', justifyContent: 'center' },
+    scroll: { padding: 20, paddingBottom: 48 },
+  
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: 20,
+      paddingVertical: 14,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.cardBorder,
+    },
+    logo: { fontFamily: fonts.display, fontSize: 22, letterSpacing: 2, color: colors.white },
+    logoA: { color: colors.acid },
+    signOutBtn: { paddingVertical: 4, paddingHorizontal: 8 },
+    signOutTxt: { fontFamily: fonts.bodyBold, fontSize: 10, letterSpacing: 1.5, color: colors.grayMid },
+  
+    heroRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      paddingHorizontal: 20,
+      paddingVertical: 16,
+    },
+    barberiaName: { fontFamily: fonts.display, fontSize: 38, color: colors.white, flex: 1, letterSpacing: 1 },
+    activaBadge: { backgroundColor: colors.acid, paddingHorizontal: 10, paddingVertical: 4, borderRadius: radii.pill },
+    activaTxt: { fontFamily: fonts.display, fontSize: 11, color: colors.black, letterSpacing: 1 },
+  
+    tabBar: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: colors.cardBorder, paddingHorizontal: 20 },
+    tabItem: { paddingVertical: 10, paddingHorizontal: 4, marginRight: 20 },
+    tabItemActive: { borderBottomWidth: 2, borderBottomColor: colors.acid },
+    tabTxt: { fontFamily: fonts.bodyBold, fontSize: 11, letterSpacing: 1.5, color: colors.grayMid },
+    tabTxtActive: { color: colors.acid },
+  
+    inviteCard: {
+      backgroundColor: colors.dark2,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      borderRadius: radii.lg,
+      padding: 20,
+      marginBottom: 16,
+      ...shadows.sm,
+    },
+    inviteCardActive: { borderColor: colors.acid, ...shadows.acid },
+    inviteLabel: { fontFamily: fonts.display, fontSize: 13, letterSpacing: 2, color: colors.grayLight, marginBottom: 14 },
+  
+    codeDisplay: {
+      fontFamily: fonts.display,
+      fontSize: 64,
+      color: colors.acid,
+      letterSpacing: 12,
+      textAlign: 'center',
+      marginBottom: 14,
+    },
+    timerRow: {
+      height: 3,
+      backgroundColor: colors.gray,
+      borderRadius: 2,
+      marginBottom: 6,
+      overflow: 'hidden',
+    },
+    timerBar: { height: 3, backgroundColor: colors.acid, borderRadius: 2 },
+    timerTxt: { fontFamily: fonts.bodyBold, fontSize: 11, color: colors.grayMid, letterSpacing: 1, marginBottom: 14, textAlign: 'center' },
+  
+    noCodeTxt: { fontFamily: fonts.body, fontSize: 14, color: colors.grayMid, textAlign: 'center', lineHeight: 22, marginBottom: 16 },
+    generateBtn: {
+      backgroundColor: colors.acid,
+      borderRadius: radii.sm,
+      paddingVertical: 14,
+      alignItems: 'center',
+      marginBottom: 12,
+      ...shadows.acid,
+    },
+    generateTxt: { fontFamily: fonts.display, fontSize: 16, letterSpacing: 3, color: colors.black },
+  
+    inviteBtns: { flexDirection: 'row', gap: 10, marginBottom: 12 },
+    outlineBtn: {
+      flex: 1,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      backgroundColor: colors.dark3,
+      paddingVertical: 10,
+      alignItems: 'center',
+      borderRadius: radii.sm,
+    },
+    outlineTxt: { fontFamily: fonts.bodyBold, fontSize: 12, letterSpacing: 1.5, color: colors.white },
+    inviteHint: { fontFamily: fonts.body, fontSize: 11, color: colors.grayMid, textAlign: 'center', marginTop: 4 },
+  
+    statsRow: { flexDirection: 'row', gap: 10, marginBottom: 24 },
+    statCard: {
+      flex: 1,
+      backgroundColor: colors.dark2,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      borderRadius: radii.md,
+      padding: 14,
+      alignItems: 'center',
+    },
+    statVal: { fontFamily: fonts.display, fontSize: 32, color: colors.white, letterSpacing: 1 },
+    statLabel: { fontFamily: fonts.bodyBold, fontSize: 9, letterSpacing: 2, color: colors.grayMid, marginTop: 2 },
+  
+    sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 14 },
+    sectionNum: { fontFamily: fonts.display, fontSize: 14, color: colors.acid, letterSpacing: 1 },
+    sectionTitle: { fontFamily: fonts.display, fontSize: 14, letterSpacing: 2, color: colors.grayLight },
+  
+    emptyState: {
+      backgroundColor: colors.dark2,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      borderRadius: radii.lg,
+      padding: 32,
+      alignItems: 'center',
+    },
+    emptyIcon: { fontSize: 32, color: colors.grayMid, marginBottom: 12 },
+    emptyTxt: { fontFamily: fonts.body, fontSize: 15, color: colors.grayMid, textAlign: 'center', lineHeight: 22 },
+  
+    barberoCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      backgroundColor: colors.dark2,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      borderRadius: radii.md,
+      padding: 14,
+      marginBottom: 8,
+    },
+    statusDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.acid },
+    barberoName: { fontFamily: fonts.display, fontSize: 20, color: colors.white },
+    barberoBadge: { fontFamily: fonts.bodyBold, fontSize: 9, letterSpacing: 2, color: colors.grayMid, marginTop: 2 },
+  
+    eliminarBtn: {
+      borderWidth: 1,
+      borderColor: colors.danger,
+      borderRadius: radii.sm,
+      paddingVertical: 6,
+      paddingHorizontal: 10,
+    },
+    eliminarTxt: { fontFamily: fonts.bodyBold, fontSize: 9, letterSpacing: 1.5, color: colors.danger },
+  
+    horarioCard: {
+      backgroundColor: colors.dark2,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      borderRadius: radii.lg,
+      padding: 20,
+      marginBottom: 16,
+    },
+    horarioRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
+    horarioLabel: { fontFamily: fonts.bodyBold, fontSize: 10, letterSpacing: 2, color: colors.grayMid, marginBottom: 8 },
+    horarioDivider: { width: 1, height: 48, backgroundColor: colors.cardBorder, marginHorizontal: 16 },
+    timeBtn: {
+      backgroundColor: colors.dark3,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      borderRadius: radii.sm,
+      paddingVertical: 10,
+      alignItems: 'center',
+    },
+    timeTxt: { fontFamily: fonts.display, fontSize: 28, color: colors.acid, letterSpacing: 2 },
+  
+    pickerOverlay: { flex: 1, backgroundColor: colors.overlay, justifyContent: 'flex-end' },
+    pickerSheet: {
+      backgroundColor: colors.dark2,
+      borderTopLeftRadius: radii.xl,
+      borderTopRightRadius: radii.xl,
+      paddingBottom: 40,
+    },
+    pickerHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: 20,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.cardBorder,
+    },
+    pickerTitle: { fontFamily: fonts.display, fontSize: 16, color: colors.white, letterSpacing: 1 },
+    pickerDone: { fontFamily: fonts.bodyBold, fontSize: 13, color: colors.acid, letterSpacing: 1.5 },
+  
+    wheelContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      height: ITEM_H * 5,
+      paddingHorizontal: 20,
+    },
+    wheelList: { width: 100, height: ITEM_H * 5 },
+    wheelItem: { height: ITEM_H, alignItems: 'center', justifyContent: 'center' },
+    wheelTxt: { fontFamily: fonts.display, fontSize: 32, color: colors.grayMid, letterSpacing: 2 },
+    wheelTxtActive: { color: colors.acid, fontSize: 40 },
+    wheelColon: { fontFamily: fonts.display, fontSize: 40, color: colors.acid, marginHorizontal: 8 },
+    wheelHighlight: {
+      position: 'absolute',
+      top: '50%',
+      left: 20,
+      right: 20,
+      height: ITEM_H,
+      marginTop: -ITEM_H / 2,
+      borderTopWidth: 1,
+      borderBottomWidth: 1,
+      borderColor: colors.cardBorder,
+      borderRadius: radii.sm,
+    },
+  });
+
   const [loading, setLoading] = useState(true);
   const [barberia, setBarberia] = useState(null);
   const [barberos, setBarberos] = useState([]);
@@ -299,11 +509,11 @@ export default function AdminBarberiaScreen({ navigation }) {
                 ))}
               </View>
 
-              <BarberosSection barberos={barberos} onEliminar={handleEliminarBarbero} />
+              <BarberosSection styles={styles} barberos={barberos} onEliminar={handleEliminarBarbero} />
             </>
           )}
 
-          {activeTab === 1 && <BarberosSection barberos={barberos} onEliminar={handleEliminarBarbero} />}
+          {activeTab === 1 && <BarberosSection styles={styles} barberos={barberos} onEliminar={handleEliminarBarbero} />}
 
           {activeTab === 2 && (
             <View>
@@ -358,6 +568,7 @@ export default function AdminBarberiaScreen({ navigation }) {
               </TouchableOpacity>
             </View>
             <WheelTimePicker
+              styles={styles}
               hour={pickerHour}
               minute={pickerMinute}
               onHourChange={setPickerHour}
@@ -374,7 +585,7 @@ const ITEM_H = 52;
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
 const MINUTES = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55];
 
-function WheelTimePicker({ hour, minute, onHourChange, onMinuteChange }) {
+function WheelTimePicker({ styles, hour, minute, onHourChange, onMinuteChange }) {
   const hourRef = useRef(null);
   const minRef = useRef(null);
 
@@ -447,7 +658,7 @@ function WheelTimePicker({ hour, minute, onHourChange, onMinuteChange }) {
   );
 }
 
-function BarberosSection({ barberos, onEliminar }) {
+function BarberosSection({ styles, barberos, onEliminar }) {
   return (
     <View>
       <View style={styles.sectionHeader}>
@@ -477,210 +688,3 @@ function BarberosSection({ barberos, onEliminar }) {
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.black },
-  safe: { flex: 1 },
-  center: { flex: 1, backgroundColor: colors.black, alignItems: 'center', justifyContent: 'center' },
-  scroll: { padding: 20, paddingBottom: 48 },
-
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.cardBorder,
-  },
-  logo: { fontFamily: fonts.display, fontSize: 22, letterSpacing: 2, color: colors.white },
-  logoA: { color: colors.acid },
-  signOutBtn: { paddingVertical: 4, paddingHorizontal: 8 },
-  signOutTxt: { fontFamily: fonts.bodyBold, fontSize: 10, letterSpacing: 1.5, color: colors.grayMid },
-
-  heroRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-  },
-  barberiaName: { fontFamily: fonts.display, fontSize: 38, color: colors.white, flex: 1, letterSpacing: 1 },
-  activaBadge: { backgroundColor: colors.acid, paddingHorizontal: 10, paddingVertical: 4, borderRadius: radii.pill },
-  activaTxt: { fontFamily: fonts.display, fontSize: 11, color: colors.black, letterSpacing: 1 },
-
-  tabBar: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: colors.cardBorder, paddingHorizontal: 20 },
-  tabItem: { paddingVertical: 10, paddingHorizontal: 4, marginRight: 20 },
-  tabItemActive: { borderBottomWidth: 2, borderBottomColor: colors.acid },
-  tabTxt: { fontFamily: fonts.bodyBold, fontSize: 11, letterSpacing: 1.5, color: colors.grayMid },
-  tabTxtActive: { color: colors.acid },
-
-  inviteCard: {
-    backgroundColor: colors.dark2,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    borderRadius: radii.lg,
-    padding: 20,
-    marginBottom: 16,
-    ...shadows.sm,
-  },
-  inviteCardActive: { borderColor: colors.acid, ...shadows.acid },
-  inviteLabel: { fontFamily: fonts.display, fontSize: 13, letterSpacing: 2, color: colors.grayLight, marginBottom: 14 },
-
-  codeDisplay: {
-    fontFamily: fonts.display,
-    fontSize: 64,
-    color: colors.acid,
-    letterSpacing: 12,
-    textAlign: 'center',
-    marginBottom: 14,
-  },
-  timerRow: {
-    height: 3,
-    backgroundColor: colors.gray,
-    borderRadius: 2,
-    marginBottom: 6,
-    overflow: 'hidden',
-  },
-  timerBar: { height: 3, backgroundColor: colors.acid, borderRadius: 2 },
-  timerTxt: { fontFamily: fonts.bodyBold, fontSize: 11, color: colors.grayMid, letterSpacing: 1, marginBottom: 14, textAlign: 'center' },
-
-  noCodeTxt: { fontFamily: fonts.body, fontSize: 14, color: colors.grayMid, textAlign: 'center', lineHeight: 22, marginBottom: 16 },
-  generateBtn: {
-    backgroundColor: colors.acid,
-    borderRadius: radii.sm,
-    paddingVertical: 14,
-    alignItems: 'center',
-    marginBottom: 12,
-    ...shadows.acid,
-  },
-  generateTxt: { fontFamily: fonts.display, fontSize: 16, letterSpacing: 3, color: colors.black },
-
-  inviteBtns: { flexDirection: 'row', gap: 10, marginBottom: 12 },
-  outlineBtn: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    backgroundColor: colors.dark3,
-    paddingVertical: 10,
-    alignItems: 'center',
-    borderRadius: radii.sm,
-  },
-  outlineTxt: { fontFamily: fonts.bodyBold, fontSize: 12, letterSpacing: 1.5, color: colors.white },
-  inviteHint: { fontFamily: fonts.body, fontSize: 11, color: colors.grayMid, textAlign: 'center', marginTop: 4 },
-
-  statsRow: { flexDirection: 'row', gap: 10, marginBottom: 24 },
-  statCard: {
-    flex: 1,
-    backgroundColor: colors.dark2,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    borderRadius: radii.md,
-    padding: 14,
-    alignItems: 'center',
-  },
-  statVal: { fontFamily: fonts.display, fontSize: 32, color: colors.white, letterSpacing: 1 },
-  statLabel: { fontFamily: fonts.bodyBold, fontSize: 9, letterSpacing: 2, color: colors.grayMid, marginTop: 2 },
-
-  sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 14 },
-  sectionNum: { fontFamily: fonts.display, fontSize: 14, color: colors.acid, letterSpacing: 1 },
-  sectionTitle: { fontFamily: fonts.display, fontSize: 14, letterSpacing: 2, color: colors.grayLight },
-
-  emptyState: {
-    backgroundColor: colors.dark2,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    borderRadius: radii.lg,
-    padding: 32,
-    alignItems: 'center',
-  },
-  emptyIcon: { fontSize: 32, color: colors.grayMid, marginBottom: 12 },
-  emptyTxt: { fontFamily: fonts.body, fontSize: 15, color: colors.grayMid, textAlign: 'center', lineHeight: 22 },
-
-  barberoCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    backgroundColor: colors.dark2,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    borderRadius: radii.md,
-    padding: 14,
-    marginBottom: 8,
-  },
-  statusDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.acid },
-  barberoName: { fontFamily: fonts.display, fontSize: 20, color: colors.white },
-  barberoBadge: { fontFamily: fonts.bodyBold, fontSize: 9, letterSpacing: 2, color: colors.grayMid, marginTop: 2 },
-
-  eliminarBtn: {
-    borderWidth: 1,
-    borderColor: colors.danger,
-    borderRadius: radii.sm,
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-  },
-  eliminarTxt: { fontFamily: fonts.bodyBold, fontSize: 9, letterSpacing: 1.5, color: colors.danger },
-
-  horarioCard: {
-    backgroundColor: colors.dark2,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    borderRadius: radii.lg,
-    padding: 20,
-    marginBottom: 16,
-  },
-  horarioRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
-  horarioLabel: { fontFamily: fonts.bodyBold, fontSize: 10, letterSpacing: 2, color: colors.grayMid, marginBottom: 8 },
-  horarioDivider: { width: 1, height: 48, backgroundColor: colors.cardBorder, marginHorizontal: 16 },
-  timeBtn: {
-    backgroundColor: colors.dark3,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    borderRadius: radii.sm,
-    paddingVertical: 10,
-    alignItems: 'center',
-  },
-  timeTxt: { fontFamily: fonts.display, fontSize: 28, color: colors.acid, letterSpacing: 2 },
-
-  pickerOverlay: { flex: 1, backgroundColor: colors.overlay, justifyContent: 'flex-end' },
-  pickerSheet: {
-    backgroundColor: colors.dark2,
-    borderTopLeftRadius: radii.xl,
-    borderTopRightRadius: radii.xl,
-    paddingBottom: 40,
-  },
-  pickerHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.cardBorder,
-  },
-  pickerTitle: { fontFamily: fonts.display, fontSize: 16, color: colors.white, letterSpacing: 1 },
-  pickerDone: { fontFamily: fonts.bodyBold, fontSize: 13, color: colors.acid, letterSpacing: 1.5 },
-
-  wheelContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    height: ITEM_H * 5,
-    paddingHorizontal: 20,
-  },
-  wheelList: { width: 100, height: ITEM_H * 5 },
-  wheelItem: { height: ITEM_H, alignItems: 'center', justifyContent: 'center' },
-  wheelTxt: { fontFamily: fonts.display, fontSize: 32, color: colors.grayMid, letterSpacing: 2 },
-  wheelTxtActive: { color: colors.acid, fontSize: 40 },
-  wheelColon: { fontFamily: fonts.display, fontSize: 40, color: colors.acid, marginHorizontal: 8 },
-  wheelHighlight: {
-    position: 'absolute',
-    top: '50%',
-    left: 20,
-    right: 20,
-    height: ITEM_H,
-    marginTop: -ITEM_H / 2,
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: colors.cardBorder,
-    borderRadius: radii.sm,
-  },
-});

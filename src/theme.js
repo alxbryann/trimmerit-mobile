@@ -49,6 +49,49 @@ export const colors = {
   cardBorder:  'rgba(242,239,231,0.12)',
 };
 
+export const lightColors = {
+  ink:        '#f4f1ea',
+  ink2:       '#ede9e0',
+  ink3:       '#e6e1d6',
+  ink4:       '#ddd8cc',
+
+  paper:      '#0f0d0b',
+  paperDim:   'rgba(10,10,10,0.55)',
+
+  champagne:    '#9a7a3a',
+  champagneDim: '#b8986a',
+  champagneSoft:'rgba(154,122,58,0.08)',
+  champagneGlow:'rgba(154,122,58,0.04)',
+
+  terracota:  '#b85e4c',
+  olivo:      '#6d7a5a',
+
+  muted:      'rgba(10,10,10,0.55)',
+  muted2:     'rgba(10,10,10,0.35)',
+  muted3:     'rgba(10,10,10,0.22)',
+
+  border:       'rgba(10,10,10,0.09)',
+  borderStrong: 'rgba(10,10,10,0.16)',
+
+  black:       '#f4f1ea',
+  dark:        '#ede9e0',
+  dark2:       '#e6e1d6',
+  dark3:       '#ddd8cc',
+  gray:        '#ccc8be',
+  grayMid:     'rgba(10,10,10,0.45)',
+  grayLight:   'rgba(10,10,10,0.55)',
+  white:       '#0f0d0b',
+  acid:        '#9a7a3a',
+  acidDim:     '#b8986a',
+  acidSoft:    'rgba(154,122,58,0.08)',
+  acidGlow:    'rgba(154,122,58,0.04)',
+  danger:      '#b85e4c',
+  dangerSoft:  'rgba(184,94,76,0.10)',
+  overlay:     'rgba(244,241,234,0.92)',
+  card:        '#ede9e0',
+  cardBorder:  'rgba(10,10,10,0.09)',
+};
+
 /** Sharp-corner editorial — no rounding except pill */
 export const radii = {
   xs:   0,

@@ -14,13 +14,14 @@
  *  tienePrograma  : bool — si el local tiene programa de fidelización activo
  */
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   View, Text, TouchableOpacity, TextInput, StyleSheet,
   ActivityIndicator, ScrollView,
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { colors, fonts, radii } from '../theme';
+import { useColors, useTheme } from '../theme/ThemeContext';
 
 const TABS = [
   { key: 'completar', label: 'Completar', icon: 'checkmark-circle', color: '#4ade80' },
@@ -64,6 +65,46 @@ export default function ReservaActionsCard({
   onCompletar, onCancelar, onAplazar,
   tienePrograma = false,
 }) {
+  const themeColors = useColors();
+  const { mode } = useTheme();
+  const isLight = mode === 'light';
+
+  const L = useMemo(() => {
+    if (!isLight) return null;
+    return {
+      sectionLabel: { color: themeColors.paper },
+      hint: { color: themeColors.grayMid },
+      panel: { borderTopColor: themeColors.borderStrong },
+      tabs: { borderBottomColor: themeColors.borderStrong },
+      textarea: {
+        backgroundColor: themeColors.ink2,
+        borderColor: themeColors.borderStrong,
+        color: themeColors.paper,
+      },
+      ph: themeColors.muted2,
+      dayChip: { backgroundColor: themeColors.ink2, borderColor: themeColors.borderStrong },
+      dayChipTxt: { color: themeColors.paper },
+      horaChip: { backgroundColor: themeColors.ink2, borderColor: themeColors.borderStrong },
+      horaChipTxt: { color: themeColors.paper },
+      futureWarning: {
+        backgroundColor: 'rgba(37,99,235,0.10)',
+        borderColor: 'rgba(37,99,235,0.28)',
+      },
+      futureWarningTxt: { color: '#1e3a8a' },
+      proposalBox: {
+        backgroundColor: 'rgba(37,99,235,0.10)',
+        borderColor: 'rgba(37,99,235,0.28)',
+      },
+      proposalTxt: { color: '#1e3a8a' },
+      ynBtn: { backgroundColor: themeColors.ink2, borderColor: themeColors.borderStrong },
+      ynTxt: { color: themeColors.paper },
+      tabMuted: themeColors.grayMid,
+      confirmGreen: '#15803d',
+      confirmTxt: '#ffffff',
+      aplazarBlue: '#2563eb',
+      aplazarTxt: '#ffffff',
+    };
+  }, [isLight, themeColors]);
   const [expanded, setExpanded]     = useState(false);
   const [tab, setTab]               = useState('completar');
   const [busy, setBusy]             = useState(false);
@@ -135,21 +176,33 @@ export default function ReservaActionsCard({
   // ─── Header badge ─────────────────────────────────────────────────
   function estadoBadge() {
     if (completada)  return { label: 'COMPLETADA', bg: 'rgba(74,222,128,0.15)', color: '#4ade80' };
-    if (cancelada)   return { label: 'CANCELADA',  bg: colors.dangerSoft, color: colors.danger };
+    if (cancelada)   return { label: 'CANCELADA',  bg: themeColors.dangerSoft, color: themeColors.danger };
     if (aplazPend)   return { label: 'ESPERANDO RESPUESTA', bg: 'rgba(96,165,250,0.12)', color: '#60a5fa' };
-    return             { label: 'PENDIENTE', bg: colors.acidGlow, color: colors.acid };
+    if (isLight)     return { label: 'PENDIENTE', bg: 'rgba(154,122,58,0.22)', color: themeColors.paper };
+    return             { label: 'PENDIENTE', bg: themeColors.acidGlow, color: themeColors.acid };
   }
   const badge = estadoBadge();
 
   // ─── Render ──────────────────────────────────────────────────────
   return (
-    <View style={[styles.card, completada && styles.cardOk, cancelada && styles.cardCanceled, aplazPend && styles.cardAplaz]}>
+    <View
+      style={[
+        styles.card,
+        completada && styles.cardOk,
+        cancelada && styles.cardCanceled,
+        aplazPend && styles.cardAplaz,
+        isLight && { backgroundColor: themeColors.card, borderColor: themeColors.borderStrong },
+        isLight && completada && { backgroundColor: 'rgba(74,222,128,0.16)', borderColor: 'rgba(74,222,128,0.45)' },
+        isLight && cancelada && { backgroundColor: 'rgba(184,94,76,0.10)', borderColor: 'rgba(184,94,76,0.35)', opacity: 1 },
+        isLight && aplazPend && { backgroundColor: 'rgba(96,165,250,0.14)', borderColor: 'rgba(96,165,250,0.45)' },
+      ]}
+    >
 
       {/* ── Header siempre visible ── */}
       <View style={styles.headerRow}>
         <View style={styles.headerLeft}>
-          <Text style={styles.name}>{name}</Text>
-          <Text style={styles.meta}>
+          <Text style={[styles.name, isLight && { color: themeColors.paper }]}>{name}</Text>
+          <Text style={[styles.meta, isLight && { color: themeColors.grayMid }]}>
             {reserva.hora ?? '—'}
             {perfil?.telefono ? ` · ${perfil.telefono}` : ''}
             {fmtPrecio(reserva.precio)}
@@ -164,13 +217,23 @@ export default function ReservaActionsCard({
               style={[styles.revisar, expanded && styles.revisarActive]}
               onPress={() => setExpanded(!expanded)}
             >
-              <Text style={[styles.revisarTxt, expanded && { color: colors.black }]}>
+              <Text
+                style={[
+                  styles.revisarTxt,
+                  expanded && { color: isLight ? themeColors.paper : colors.black },
+                  isLight && !expanded && { color: themeColors.acid },
+                ]}
+              >
                 {expanded ? 'CERRAR' : 'REVISAR'}
               </Text>
               <Ionicons
                 name={expanded ? 'chevron-up' : 'chevron-down'}
                 size={12}
-                color={expanded ? colors.black : colors.acid}
+                color={
+                  expanded
+                    ? (isLight ? themeColors.paper : colors.black)
+                    : (isLight ? themeColors.acid : colors.acid)
+                }
               />
             </TouchableOpacity>
           )}
@@ -185,17 +248,17 @@ export default function ReservaActionsCard({
 
       {/* ── Panel expandido ── */}
       {expanded && !inactiva && (
-        <View style={styles.panel}>
+        <View style={[styles.panel, L?.panel]}>
           {/* Tabs */}
-          <View style={styles.tabs}>
+          <View style={[styles.tabs, L?.tabs]}>
             {TABS.map((t) => (
               <TouchableOpacity
                 key={t.key}
                 style={[styles.tab, tab === t.key && { borderBottomColor: t.color, borderBottomWidth: 2 }]}
                 onPress={() => setTab(t.key)}
               >
-                <Ionicons name={t.icon} size={14} color={tab === t.key ? t.color : colors.grayMid} />
-                <Text style={[styles.tabTxt, { color: tab === t.key ? t.color : colors.grayMid }]}>
+                <Ionicons name={t.icon} size={14} color={tab === t.key ? t.color : (L?.tabMuted ?? colors.grayMid)} />
+                <Text style={[styles.tabTxt, { color: tab === t.key ? t.color : (L?.tabMuted ?? colors.grayMid) }]}>
                   {t.label}
                 </Text>
               </TouchableOpacity>
@@ -207,9 +270,9 @@ export default function ReservaActionsCard({
             <View style={styles.section}>
               {/* Aviso si la cita aún no llegó */}
               {!puedeCerrar && (
-                <View style={styles.futureWarning}>
-                  <Ionicons name="time-outline" size={16} color="#60a5fa" />
-                  <Text style={styles.futureWarningTxt}>
+                <View style={[styles.futureWarning, L?.futureWarning]}>
+                  <Ionicons name="time-outline" size={16} color={isLight ? '#2563eb' : '#60a5fa'} />
+                  <Text style={[styles.futureWarningTxt, L?.futureWarningTxt]}>
                     La cita aún no ha ocurrido. Puedes confirmar el corte a partir de las {reserva.hora ?? '—'}.
                   </Text>
                 </View>
@@ -217,42 +280,42 @@ export default function ReservaActionsCard({
 
               {tienePrograma && puedeCerrar && (
                 <>
-                  <Text style={styles.sectionLabel}>¿Sellar tarjeta de fidelización?</Text>
+                  <Text style={[styles.sectionLabel, L?.sectionLabel]}>¿Sellar tarjeta de fidelización?</Text>
                   <View style={styles.yesno}>
                     <TouchableOpacity
-                      style={[styles.ynBtn, sellar === true && styles.ynBtnYes]}
+                      style={[styles.ynBtn, L?.ynBtn, sellar === true && styles.ynBtnYes]}
                       onPress={() => setSellar(true)}
                     >
                       <Ionicons name="ribbon" size={14} color={sellar === true ? colors.black : colors.acid} />
-                      <Text style={[styles.ynTxt, sellar === true && { color: colors.black }]}>SÍ, SELLAR</Text>
+                      <Text style={[styles.ynTxt, L?.ynTxt, sellar === true && { color: colors.black }]}>SÍ, SELLAR</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
-                      style={[styles.ynBtn, sellar === false && styles.ynBtnNo]}
+                      style={[styles.ynBtn, L?.ynBtn, sellar === false && styles.ynBtnNo]}
                       onPress={() => setSellar(false)}
                     >
                       <Ionicons name="close" size={14} color={sellar === false ? colors.white : colors.grayMid} />
-                      <Text style={[styles.ynTxt, { color: sellar === false ? colors.white : colors.grayMid }]}>NO SELLAR</Text>
+                      <Text style={[styles.ynTxt, L?.ynTxt, { color: sellar === false ? colors.white : colors.grayMid }]}>NO SELLAR</Text>
                     </TouchableOpacity>
                   </View>
                   {sellar === null && (
-                    <Text style={styles.hint}>Elige una opción para continuar</Text>
+                    <Text style={[styles.hint, L?.hint]}>Elige una opción para continuar</Text>
                   )}
                 </>
               )}
               <TouchableOpacity
                 style={[
                   styles.actionBtn,
-                  { backgroundColor: '#4ade80' },
+                  { backgroundColor: L?.confirmGreen ?? '#4ade80' },
                   (!puedeCerrar || busy || (tienePrograma && sellar === null)) && styles.btnDisabled,
                 ]}
                 onPress={handleCompletar}
                 disabled={!puedeCerrar || busy || (tienePrograma && sellar === null)}
               >
                 {busy
-                  ? <ActivityIndicator size="small" color={colors.black} />
+                  ? <ActivityIndicator size="small" color={L?.confirmTxt ?? colors.black} />
                   : <>
-                      <Ionicons name="checkmark-circle" size={16} color={colors.black} />
-                      <Text style={[styles.actionBtnTxt, { color: colors.black }]}>CONFIRMAR CORTE</Text>
+                      <Ionicons name="checkmark-circle" size={16} color={L?.confirmTxt ?? colors.black} />
+                      <Text style={[styles.actionBtnTxt, { color: L?.confirmTxt ?? colors.black }]}>CONFIRMAR CORTE</Text>
                     </>
                 }
               </TouchableOpacity>
@@ -262,18 +325,20 @@ export default function ReservaActionsCard({
           {/* ── Cancelar ── */}
           {tab === 'cancelar' && (
             <View style={styles.section}>
-              <Text style={styles.sectionLabel}>RAZÓN DE CANCELACIÓN <Text style={styles.required}>*</Text></Text>
+              <Text style={[styles.sectionLabel, L?.sectionLabel]}>
+                RAZÓN DE CANCELACIÓN <Text style={styles.required}>*</Text>
+              </Text>
               <TextInput
-                style={styles.textarea}
+                style={[styles.textarea, L?.textarea]}
                 value={razonCancel}
                 onChangeText={setRazonCancel}
                 placeholder="Explica al cliente por qué se cancela la cita..."
-                placeholderTextColor={colors.grayMid}
+                placeholderTextColor={L?.ph ?? colors.grayMid}
                 multiline
                 numberOfLines={3}
                 textAlignVertical="top"
               />
-              <Text style={styles.hint}>
+              <Text style={[styles.hint, L?.hint]}>
                 El cliente recibirá una notificación con esta explicación.
               </Text>
               <TouchableOpacity
@@ -299,19 +364,23 @@ export default function ReservaActionsCard({
           {/* ── Aplazar ── */}
           {tab === 'aplazar' && (
             <View style={styles.section}>
-              <Text style={styles.sectionLabel}>RAZÓN DEL CAMBIO <Text style={styles.required}>*</Text></Text>
+              <Text style={[styles.sectionLabel, L?.sectionLabel]}>
+                RAZÓN DEL CAMBIO <Text style={styles.required}>*</Text>
+              </Text>
               <TextInput
-                style={styles.textarea}
+                style={[styles.textarea, L?.textarea]}
                 value={razonAplazar}
                 onChangeText={setRazonAplazar}
                 placeholder="Explica por qué propones este cambio de fecha..."
-                placeholderTextColor={colors.grayMid}
+                placeholderTextColor={L?.ph ?? colors.grayMid}
                 multiline
                 numberOfLines={2}
                 textAlignVertical="top"
               />
 
-              <Text style={styles.sectionLabel}>NUEVA FECHA <Text style={styles.required}>*</Text></Text>
+              <Text style={[styles.sectionLabel, L?.sectionLabel]}>
+                NUEVA FECHA <Text style={styles.required}>*</Text>
+              </Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.dayScroll}>
                 {DAYS_AHEAD.map((d, i) => {
                   const iso = toISODate(d);
@@ -319,10 +388,16 @@ export default function ReservaActionsCard({
                   return (
                     <TouchableOpacity
                       key={i}
-                      style={[styles.dayChip, sel && styles.dayChipSelected]}
+                      style={[styles.dayChip, L?.dayChip, sel && styles.dayChipSelected]}
                       onPress={() => setSelectedDay(d)}
                     >
-                      <Text style={[styles.dayChipTxt, sel && { color: colors.black }]}>
+                      <Text
+                        style={[
+                          styles.dayChipTxt,
+                          L?.dayChipTxt,
+                          sel && { color: isLight ? '#ffffff' : colors.black },
+                        ]}
+                      >
                         {fmtDayLabel(d)}
                       </Text>
                     </TouchableOpacity>
@@ -330,26 +405,36 @@ export default function ReservaActionsCard({
                 })}
               </ScrollView>
 
-              <Text style={styles.sectionLabel}>NUEVA HORA <Text style={styles.required}>*</Text></Text>
+              <Text style={[styles.sectionLabel, L?.sectionLabel]}>
+                NUEVA HORA <Text style={styles.required}>*</Text>
+              </Text>
               <View style={styles.horaGrid}>
                 {TIME_SLOTS.map((slot) => {
                   const sel = selectedHora === slot;
                   return (
                     <TouchableOpacity
                       key={slot}
-                      style={[styles.horaChip, sel && styles.horaChipSelected]}
+                      style={[styles.horaChip, L?.horaChip, sel && styles.horaChipSelected]}
                       onPress={() => setSelectedHora(slot)}
                     >
-                      <Text style={[styles.horaChipTxt, sel && { color: colors.black }]}>{slot}</Text>
+                      <Text
+                        style={[
+                          styles.horaChipTxt,
+                          L?.horaChipTxt,
+                          sel && { color: isLight ? '#ffffff' : colors.black },
+                        ]}
+                      >
+                        {slot}
+                      </Text>
                     </TouchableOpacity>
                   );
                 })}
               </View>
 
               {selectedDay && selectedHora && (
-                <View style={styles.proposalPreview}>
-                  <Ionicons name="calendar" size={14} color="#60a5fa" />
-                  <Text style={styles.proposalTxt}>
+                <View style={[styles.proposalPreview, L?.proposalBox]}>
+                  <Ionicons name="calendar" size={14} color={isLight ? '#2563eb' : '#60a5fa'} />
+                  <Text style={[styles.proposalTxt, L?.proposalTxt]}>
                     Propuesta: {fmtDayLabel(selectedDay)} a las {selectedHora}
                   </Text>
                 </View>
@@ -358,17 +443,17 @@ export default function ReservaActionsCard({
               <TouchableOpacity
                 style={[
                   styles.actionBtn,
-                  { backgroundColor: '#60a5fa' },
+                  { backgroundColor: L?.aplazarBlue ?? '#60a5fa' },
                   (!razonAplazar.trim() || !selectedDay || !selectedHora || busy) && styles.btnDisabled,
                 ]}
                 onPress={handleAplazar}
                 disabled={!razonAplazar.trim() || !selectedDay || !selectedHora || busy}
               >
                 {busy
-                  ? <ActivityIndicator size="small" color={colors.black} />
+                  ? <ActivityIndicator size="small" color={L?.aplazarTxt ?? colors.black} />
                   : <>
-                      <Ionicons name="paper-plane" size={16} color={colors.black} />
-                      <Text style={[styles.actionBtnTxt, { color: colors.black }]}>ENVIAR PROPUESTA</Text>
+                      <Ionicons name="paper-plane" size={16} color={L?.aplazarTxt ?? colors.black} />
+                      <Text style={[styles.actionBtnTxt, { color: L?.aplazarTxt ?? colors.black }]}>ENVIAR PROPUESTA</Text>
                     </>
                 }
               </TouchableOpacity>

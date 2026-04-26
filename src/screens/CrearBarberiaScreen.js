@@ -13,7 +13,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../lib/supabase';
-import { colors, fonts, radii, shadows } from '../theme';
+import { fonts, radii, shadows } from '../theme';
+import { useColors } from '../theme/ThemeContext';
 
 function slugify(str) {
   return str
@@ -26,7 +27,21 @@ function slugify(str) {
     .replace(/^-|-$/g, '');
 }
 
-function Field({ label, value, onChangeText, keyboardType, multiline, numberOfLines, placeholder, hint, focused, onFocus, onBlur }) {
+function Field({
+  colors,
+  fieldStyles,
+  label,
+  value,
+  onChangeText,
+  keyboardType,
+  multiline,
+  numberOfLines,
+  placeholder,
+  hint,
+  focused,
+  onFocus,
+  onBlur,
+}) {
   return (
     <View style={fieldStyles.wrap}>
       <Text style={fieldStyles.lbl}>{label}</Text>
@@ -48,44 +63,92 @@ function Field({ label, value, onChangeText, keyboardType, multiline, numberOfLi
   );
 }
 
-const fieldStyles = StyleSheet.create({
-  wrap: { marginBottom: 14 },
-  lbl: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 10,
-    letterSpacing: 2,
-    color: colors.grayLight,
-    marginBottom: 7,
-    textTransform: 'uppercase',
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    backgroundColor: colors.dark3,
-    color: colors.white,
-    fontFamily: fonts.body,
-    fontSize: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderRadius: radii.sm,
-  },
-  inputFocused: {
-    borderColor: colors.acid,
-    backgroundColor: '#131500',
-  },
-  inputMulti: {
-    textAlignVertical: 'top',
-    minHeight: 80,
-  },
-  hint: {
-    fontFamily: fonts.body,
-    fontSize: 11,
-    color: colors.grayMid,
-    marginTop: 5,
-  },
-});
+function createFieldStyles(colors) {
+  return StyleSheet.create({
+    wrap: { marginBottom: 14 },
+    lbl: {
+      fontFamily: fonts.bodyBold,
+      fontSize: 10,
+      letterSpacing: 2,
+      color: colors.grayLight,
+      marginBottom: 7,
+      textTransform: 'uppercase',
+    },
+    input: {
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      backgroundColor: colors.dark3,
+      color: colors.white,
+      fontFamily: fonts.body,
+      fontSize: 16,
+      paddingHorizontal: 16,
+      paddingVertical: 14,
+      borderRadius: radii.sm,
+    },
+    inputFocused: {
+      borderColor: colors.acid,
+      backgroundColor: colors.acidSoft,
+    },
+    inputMulti: {
+      textAlignVertical: 'top',
+      minHeight: 80,
+    },
+    hint: {
+      fontFamily: fonts.body,
+      fontSize: 11,
+      color: colors.grayMid,
+      marginTop: 5,
+    },
+  });
+}
 
 export default function CrearBarberiaScreen({ navigation }) {
+  const colors = useColors();
+  const fieldStyles = createFieldStyles(colors);
+  const styles = StyleSheet.create({
+    root: { flex: 1, backgroundColor: colors.black },
+    safe: { flex: 1 },
+    scroll: { padding: 20, paddingBottom: 48 },
+  
+    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 28 },
+    backBtn: { paddingVertical: 6, paddingHorizontal: 2 },
+    backText: { fontFamily: fonts.bodyBold, fontSize: 11, letterSpacing: 2, color: colors.grayMid },
+    logo: { fontFamily: fonts.display, fontSize: 22, letterSpacing: 2, color: colors.white },
+    logoA: { color: colors.acid },
+  
+    heroBlock: { marginBottom: 28 },
+    title: { fontFamily: fonts.display, fontSize: 44, color: colors.white, letterSpacing: 1, lineHeight: 42, marginBottom: 8 },
+    sub: { fontFamily: fonts.body, fontSize: 15, color: colors.grayLight },
+  
+    card: {
+      backgroundColor: colors.dark2,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      borderRadius: radii.lg,
+      padding: 20,
+      ...shadows.sm,
+    },
+  
+    errBox: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: 8,
+      borderWidth: 1,
+      borderColor: 'rgba(255,107,107,0.3)',
+      backgroundColor: colors.dangerSoft,
+      padding: 12,
+      borderRadius: radii.sm,
+      marginBottom: 12,
+    },
+    errIcon: { fontSize: 14, color: colors.danger },
+    err: { fontFamily: fonts.body, color: colors.danger, fontSize: 13, flex: 1, lineHeight: 18 },
+  
+    primaryBtn: { borderRadius: radii.sm, overflow: 'hidden', marginTop: 4, ...shadows.acid },
+    primaryOff: { opacity: 0.55 },
+    primaryGrad: { paddingVertical: 16, alignItems: 'center' },
+    primaryTxt: { fontFamily: fonts.display, fontSize: 17, letterSpacing: 3, color: colors.black },
+  });
+
   const [nombre, setNombre] = useState('');
   const [slug, setSlug] = useState('');
   const [direccion, setDireccion] = useState('');
@@ -166,6 +229,8 @@ export default function CrearBarberiaScreen({ navigation }) {
 
             <View style={styles.card}>
               <Field
+                colors={colors}
+                fieldStyles={fieldStyles}
                 label="NOMBRE"
                 value={nombre}
                 onChangeText={handleNombreChange}
@@ -175,6 +240,8 @@ export default function CrearBarberiaScreen({ navigation }) {
                 onBlur={() => setFocusedField(null)}
               />
               <Field
+                colors={colors}
+                fieldStyles={fieldStyles}
                 label="SLUG"
                 value={slug}
                 onChangeText={(v) => setSlug(slugify(v))}
@@ -185,6 +252,8 @@ export default function CrearBarberiaScreen({ navigation }) {
                 onBlur={() => setFocusedField(null)}
               />
               <Field
+                colors={colors}
+                fieldStyles={fieldStyles}
                 label="DIRECCIÓN"
                 value={direccion}
                 onChangeText={setDireccion}
@@ -194,6 +263,8 @@ export default function CrearBarberiaScreen({ navigation }) {
                 onBlur={() => setFocusedField(null)}
               />
               <Field
+                colors={colors}
+                fieldStyles={fieldStyles}
                 label="TELÉFONO"
                 value={telefono}
                 onChangeText={setTelefono}
@@ -204,6 +275,8 @@ export default function CrearBarberiaScreen({ navigation }) {
                 onBlur={() => setFocusedField(null)}
               />
               <Field
+                colors={colors}
+                fieldStyles={fieldStyles}
                 label="DESCRIPCIÓN"
                 value={descripcion}
                 onChangeText={setDescripcion}
@@ -249,46 +322,3 @@ export default function CrearBarberiaScreen({ navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.black },
-  safe: { flex: 1 },
-  scroll: { padding: 20, paddingBottom: 48 },
-
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 28 },
-  backBtn: { paddingVertical: 6, paddingHorizontal: 2 },
-  backText: { fontFamily: fonts.bodyBold, fontSize: 11, letterSpacing: 2, color: colors.grayMid },
-  logo: { fontFamily: fonts.display, fontSize: 22, letterSpacing: 2, color: colors.white },
-  logoA: { color: colors.acid },
-
-  heroBlock: { marginBottom: 28 },
-  title: { fontFamily: fonts.display, fontSize: 44, color: colors.white, letterSpacing: 1, lineHeight: 42, marginBottom: 8 },
-  sub: { fontFamily: fonts.body, fontSize: 15, color: colors.grayLight },
-
-  card: {
-    backgroundColor: colors.dark2,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    borderRadius: radii.lg,
-    padding: 20,
-    ...shadows.sm,
-  },
-
-  errBox: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(255,107,107,0.3)',
-    backgroundColor: colors.dangerSoft,
-    padding: 12,
-    borderRadius: radii.sm,
-    marginBottom: 12,
-  },
-  errIcon: { fontSize: 14, color: colors.danger },
-  err: { fontFamily: fonts.body, color: colors.danger, fontSize: 13, flex: 1, lineHeight: 18 },
-
-  primaryBtn: { borderRadius: radii.sm, overflow: 'hidden', marginTop: 4, ...shadows.acid },
-  primaryOff: { opacity: 0.55 },
-  primaryGrad: { paddingVertical: 16, alignItems: 'center' },
-  primaryTxt: { fontFamily: fonts.display, fontSize: 17, letterSpacing: 3, color: colors.black },
-});

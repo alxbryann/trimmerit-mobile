@@ -11,13 +11,11 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase, supabaseConfigured } from '../lib/supabase';
-import { colors, fonts } from '../theme';
+import { fonts } from '../theme';
+import { useColors } from '../theme/ThemeContext';
 import ReservaActionsCard from '../components/ReservaActionsCard';
 import SolicitudPopup from '../components/SolicitudPopup';
-import {
-  notifAplazamientoAlCliente,
-  sendPushNotification,
-} from '../lib/notifications';
+import { sendPushNotification } from '../lib/notifications';
 
 const SLOT_START = 9 * 60;
 const SLOT_END = 20 * 60;
@@ -60,6 +58,64 @@ function slotsForDay() {
 const DAY_SLOTS = slotsForDay();
 
 export default function PanelScreen({ navigation, route }) {
+  const colors = useColors();
+  const styles = StyleSheet.create({
+    root: { flex: 1, backgroundColor: colors.black },
+    center: { flex: 1, backgroundColor: colors.black, alignItems: 'center', justifyContent: 'center' },
+    loadTxt: {
+      fontFamily: fonts.display,
+      fontSize: 16,
+      letterSpacing: 3,
+      color: colors.acid,
+      marginTop: 12,
+    },
+    muted: { color: colors.grayLight, fontFamily: fonts.body, padding: 24 },
+    scroll: { padding: 20, paddingBottom: 48 },
+    head: { flexDirection: 'row', alignItems: 'center', marginBottom: 20, gap: 12 },
+    dayTitle: { fontFamily: fonts.display, fontSize: 26, color: colors.white, letterSpacing: 1 },
+    hoy: {
+      alignSelf: 'flex-start',
+      backgroundColor: colors.acid,
+      paddingHorizontal: 8,
+      paddingVertical: 2,
+      marginTop: 8,
+    },
+    hoyTxt: { fontFamily: fonts.display, fontSize: 11, color: colors.black, letterSpacing: 2 },
+    navDay: { flexDirection: 'row', gap: 6 },
+    navBtn: {
+      borderWidth: 1,
+      borderColor: colors.gray,
+      backgroundColor: colors.dark2,
+      paddingHorizontal: 10,
+      paddingVertical: 8,
+    },
+    navBtnTxt: { color: colors.white, fontFamily: fonts.bodyBold, fontSize: 12 },
+    err: { color: colors.danger, marginBottom: 12, fontFamily: fonts.body },
+    section: {
+      fontFamily: fonts.display,
+      fontSize: 14,
+      letterSpacing: 2,
+      color: colors.acid,
+      marginBottom: 12,
+    },
+    empty: { fontFamily: fonts.body, color: colors.grayMid, marginBottom: 16 },
+    grid: { borderWidth: 1, borderColor: colors.gray, backgroundColor: colors.dark2 },
+    slotRow: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: colors.border },
+    slotTime: {
+      width: 56,
+      fontFamily: fonts.body,
+      fontSize: 11,
+      color: colors.grayMid,
+      padding: 10,
+      borderRightWidth: 1,
+      borderRightColor: colors.borderStrong,
+      backgroundColor: colors.black,
+    },
+    slotCell: { flex: 1, padding: 8, justifyContent: 'center' },
+    slotName: { fontFamily: fonts.bodyBold, fontSize: 13, color: colors.white },
+    libre: { fontFamily: fonts.body, fontSize: 11, color: colors.muted },
+  });
+
   const slug = route.params?.slug;
   const [loading, setLoading] = useState(true);
   const [authError, setAuthError] = useState(false);
@@ -277,13 +333,29 @@ export default function PanelScreen({ navigation, route }) {
       return;
     }
 
-    // Notificación local simulando push al cliente
-    const DAY_NAMES = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
-    const MON_NAMES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-    const [y, m, d] = nuevaFecha.split('-').map(Number);
-    const dateObj = new Date(y, m - 1, d);
-    const fechaLabel = `${DAY_NAMES[dateObj.getDay()]} ${d} de ${MON_NAMES[m - 1]}`;
-    await notifAplazamientoAlCliente(barberiaNombre || 'Trimmerit', fechaLabel, nuevaHora);
+    const reserva = reservas.find((r) => r.id === reservaId);
+    let pushToken = reserva?.cliente_id ? profiles[reserva.cliente_id]?.push_token : null;
+    if (!pushToken && reserva?.cliente_id) {
+      const { data: clienteProfile } = await supabase
+        .from('profiles')
+        .select('push_token')
+        .eq('id', reserva.cliente_id)
+        .maybeSingle();
+      pushToken = clienteProfile?.push_token ?? null;
+    }
+    if (pushToken) {
+      const DAY_NAMES = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+      const MON_NAMES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+      const [y, m, d] = nuevaFecha.split('-').map(Number);
+      const dateObj = new Date(y, m - 1, d);
+      const fechaLabel = `${DAY_NAMES[dateObj.getDay()]} ${d} de ${MON_NAMES[m - 1]}`;
+      await sendPushNotification({
+        to: pushToken,
+        title: '📅 Propuesta de cambio de fecha',
+        body: `${barberiaNombre || 'Tu barbero'} propone mover tu cita al ${fechaLabel} a las ${nuevaHora}.`,
+        data: { tipo: 'aplazamiento', reservaId },
+      });
+    }
 
     setReservas((prev) =>
       prev.map((r) => (r.id === reservaId ? { ...r, estado: 'aplazamiento_pendiente' } : r))
@@ -421,7 +493,7 @@ export default function PanelScreen({ navigation, route }) {
                 <Text style={[styles.slotTime, has && { color: colors.acid, fontFamily: fonts.bodyBold }]}>
                   {slot}
                 </Text>
-                <View style={[styles.slotCell, has && { backgroundColor: 'rgba(205,255,0,0.06)' }]}>
+                <View style={[styles.slotCell, has && { backgroundColor: colors.acidSoft }]}>
                   {has ? (
                     booked.map((r) => (
                       <Text key={r.id} style={styles.slotName}>
@@ -456,59 +528,3 @@ export default function PanelScreen({ navigation, route }) {
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.black },
-  center: { flex: 1, backgroundColor: colors.black, alignItems: 'center', justifyContent: 'center' },
-  loadTxt: {
-    fontFamily: fonts.display,
-    fontSize: 16,
-    letterSpacing: 3,
-    color: colors.acid,
-    marginTop: 12,
-  },
-  muted: { color: colors.grayLight, fontFamily: fonts.body, padding: 24 },
-  scroll: { padding: 20, paddingBottom: 48 },
-  head: { flexDirection: 'row', alignItems: 'center', marginBottom: 20, gap: 12 },
-  dayTitle: { fontFamily: fonts.display, fontSize: 26, color: colors.white, letterSpacing: 1 },
-  hoy: {
-    alignSelf: 'flex-start',
-    backgroundColor: colors.acid,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    marginTop: 8,
-  },
-  hoyTxt: { fontFamily: fonts.display, fontSize: 11, color: colors.black, letterSpacing: 2 },
-  navDay: { flexDirection: 'row', gap: 6 },
-  navBtn: {
-    borderWidth: 1,
-    borderColor: colors.gray,
-    backgroundColor: colors.dark2,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-  },
-  navBtnTxt: { color: colors.white, fontFamily: fonts.bodyBold, fontSize: 12 },
-  err: { color: colors.danger, marginBottom: 12, fontFamily: fonts.body },
-  section: {
-    fontFamily: fonts.display,
-    fontSize: 14,
-    letterSpacing: 2,
-    color: colors.acid,
-    marginBottom: 12,
-  },
-  empty: { fontFamily: fonts.body, color: colors.grayMid, marginBottom: 16 },
-  grid: { borderWidth: 1, borderColor: colors.gray, backgroundColor: colors.dark2 },
-  slotRow: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' },
-  slotTime: {
-    width: 56,
-    fontFamily: fonts.body,
-    fontSize: 11,
-    color: colors.grayMid,
-    padding: 10,
-    borderRightWidth: 1,
-    borderRightColor: 'rgba(255,255,255,0.08)',
-    backgroundColor: colors.black,
-  },
-  slotCell: { flex: 1, padding: 8, justifyContent: 'center' },
-  slotName: { fontFamily: fonts.bodyBold, fontSize: 13, color: colors.white },
-  libre: { fontFamily: fonts.body, fontSize: 11, color: '#444' },
-});

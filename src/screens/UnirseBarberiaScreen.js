@@ -13,9 +13,98 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../lib/supabase';
-import { colors, fonts, radii, shadows } from '../theme';
+import { fonts, radii, shadows } from '../theme';
+import { useColors } from '../theme/ThemeContext';
 
 export default function UnirseBarberiaScreen({ navigation }) {
+  const colors = useColors();
+  const styles = StyleSheet.create({
+    root: { flex: 1, backgroundColor: colors.black },
+    safe: { flex: 1 },
+    scroll: { padding: 20, paddingBottom: 48 },
+  
+    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 28 },
+    backBtn: { paddingVertical: 6, paddingHorizontal: 2 },
+    backText: { fontFamily: fonts.bodyBold, fontSize: 11, letterSpacing: 2, color: colors.grayMid },
+    logo: { fontFamily: fonts.display, fontSize: 22, letterSpacing: 2, color: colors.white },
+    logoA: { color: colors.acid },
+  
+    heroBlock: { marginBottom: 28 },
+    title: { fontFamily: fonts.display, fontSize: 44, color: colors.white, letterSpacing: 1, lineHeight: 42, marginBottom: 8 },
+    sub: { fontFamily: fonts.body, fontSize: 15, color: colors.grayLight },
+  
+    card: {
+      backgroundColor: colors.dark2,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      borderRadius: radii.lg,
+      padding: 20,
+      ...shadows.sm,
+    },
+  
+    fieldLabel: {
+      fontFamily: fonts.bodyBold,
+      fontSize: 10,
+      letterSpacing: 2,
+      color: colors.grayLight,
+      marginBottom: 12,
+      textTransform: 'uppercase',
+    },
+  
+    codeRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      gap: 8,
+      marginBottom: 4,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      borderRadius: radii.sm,
+      padding: 12,
+      backgroundColor: colors.dark3,
+    },
+    codeRowFocused: { borderColor: colors.acid, backgroundColor: colors.acidSoft },
+    codeBox: {
+      flex: 1,
+      height: 52,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderBottomWidth: 2,
+      borderBottomColor: colors.gray,
+    },
+    codeBoxFilled: { borderBottomColor: colors.acid },
+    codeBoxCursor: { borderBottomColor: colors.acid },
+    codeChar: { fontFamily: fonts.display, fontSize: 32, color: colors.white, letterSpacing: 0 },
+  
+    hiddenInput: {
+      position: 'absolute',
+      opacity: 0,
+      height: 0,
+      width: 0,
+    },
+  
+    errBox: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: 8,
+      borderWidth: 1,
+      borderColor: 'rgba(255,107,107,0.3)',
+      backgroundColor: colors.dangerSoft,
+      padding: 12,
+      borderRadius: radii.sm,
+      marginTop: 12,
+      marginBottom: 4,
+    },
+    errIcon: { fontSize: 14, color: colors.danger },
+    err: { fontFamily: fonts.body, color: colors.danger, fontSize: 13, flex: 1, lineHeight: 18 },
+  
+    primaryBtn: { borderRadius: radii.sm, overflow: 'hidden', marginTop: 16, ...shadows.acid },
+    primaryOff: { opacity: 0.45 },
+    primaryGrad: { paddingVertical: 16, alignItems: 'center' },
+    primaryTxt: { fontFamily: fonts.display, fontSize: 17, letterSpacing: 3, color: colors.black },
+  
+    hint: { fontFamily: fonts.body, fontSize: 11, color: colors.grayMid, textAlign: 'center', marginTop: 12 },
+  });
+
   const [code, setCode] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -168,89 +257,3 @@ export default function UnirseBarberiaScreen({ navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.black },
-  safe: { flex: 1 },
-  scroll: { padding: 20, paddingBottom: 48 },
-
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 28 },
-  backBtn: { paddingVertical: 6, paddingHorizontal: 2 },
-  backText: { fontFamily: fonts.bodyBold, fontSize: 11, letterSpacing: 2, color: colors.grayMid },
-  logo: { fontFamily: fonts.display, fontSize: 22, letterSpacing: 2, color: colors.white },
-  logoA: { color: colors.acid },
-
-  heroBlock: { marginBottom: 28 },
-  title: { fontFamily: fonts.display, fontSize: 44, color: colors.white, letterSpacing: 1, lineHeight: 42, marginBottom: 8 },
-  sub: { fontFamily: fonts.body, fontSize: 15, color: colors.grayLight },
-
-  card: {
-    backgroundColor: colors.dark2,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    borderRadius: radii.lg,
-    padding: 20,
-    ...shadows.sm,
-  },
-
-  fieldLabel: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 10,
-    letterSpacing: 2,
-    color: colors.grayLight,
-    marginBottom: 12,
-    textTransform: 'uppercase',
-  },
-
-  codeRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 8,
-    marginBottom: 4,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    borderRadius: radii.sm,
-    padding: 12,
-    backgroundColor: colors.dark3,
-  },
-  codeRowFocused: { borderColor: colors.acid, backgroundColor: '#131500' },
-  codeBox: {
-    flex: 1,
-    height: 52,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderBottomWidth: 2,
-    borderBottomColor: colors.gray,
-  },
-  codeBoxFilled: { borderBottomColor: colors.acid },
-  codeBoxCursor: { borderBottomColor: colors.acid },
-  codeChar: { fontFamily: fonts.display, fontSize: 32, color: colors.white, letterSpacing: 0 },
-
-  hiddenInput: {
-    position: 'absolute',
-    opacity: 0,
-    height: 0,
-    width: 0,
-  },
-
-  errBox: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(255,107,107,0.3)',
-    backgroundColor: colors.dangerSoft,
-    padding: 12,
-    borderRadius: radii.sm,
-    marginTop: 12,
-    marginBottom: 4,
-  },
-  errIcon: { fontSize: 14, color: colors.danger },
-  err: { fontFamily: fonts.body, color: colors.danger, fontSize: 13, flex: 1, lineHeight: 18 },
-
-  primaryBtn: { borderRadius: radii.sm, overflow: 'hidden', marginTop: 16, ...shadows.acid },
-  primaryOff: { opacity: 0.45 },
-  primaryGrad: { paddingVertical: 16, alignItems: 'center' },
-  primaryTxt: { fontFamily: fonts.display, fontSize: 17, letterSpacing: 3, color: colors.black },
-
-  hint: { fontFamily: fonts.body, fontSize: 11, color: colors.grayMid, textAlign: 'center', marginTop: 12 },
-});
