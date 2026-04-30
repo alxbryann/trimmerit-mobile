@@ -49,6 +49,9 @@ export default function App() {
   useEffect(() => {
     function onUrl({ url }) {
       if (!url) return;
+      if (__DEV__) {
+        console.log('[Trimmerit OAuth] Linking event url:', url);
+      }
       if (!url.includes('auth/callback')) return;
       finalizeOAuthFromUrl(url).catch(() => {});
     }

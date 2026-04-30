@@ -64,6 +64,9 @@ export async function finalizeOAuthFromUrl(urlString) {
  */
 export async function signInWithGoogle() {
   const redirectTo = getOAuthRedirectUri();
+  if (__DEV__) {
+    console.log('[Trimmerit OAuth] signInWithGoogle redirectTo:', redirectTo);
+  }
 
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
@@ -71,11 +74,18 @@ export async function signInWithGoogle() {
   });
   if (error) throw error;
   if (!data?.url) throw new Error('No OAuth URL');
+  if (__DEV__) {
+    console.log('[Trimmerit OAuth] supabase data.url:', data.url);
+  }
 
   // Debe coincidir exactamente con `redirectTo` de signInWithOAuth. Si usas HTTPS
   // (EXPO_PUBLIC_SITE_URL → …/auth/mobile-callback) y aquí pasas trimmerit://, iOS no
   // reconoce el cierre del ASWebAuthenticationSession y la promesa no termina.
   const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
+  if (__DEV__) {
+    console.log('[Trimmerit OAuth] openAuthSession result.type:', result?.type);
+    console.log('[Trimmerit OAuth] openAuthSession result.url:', result?.url ?? '(sin url)');
+  }
 
   if (result.type !== 'success' || !result.url) {
     return { cancelled: true };
@@ -88,6 +98,6 @@ export async function signInWithGoogle() {
   }
 
   throw new Error(
-    'No se pudo leer la sesión. Añade en Supabase Redirect URLs la URL HTTPS de callback (ver EXPO_PUBLIC_SITE_URL + /auth/mobile-callback) y exp://** / trimmerit://** si usas deep links.'
+    'No se pudo leer la sesión. Verifica en Supabase Redirect URLs que estén permitidos exp://** y trimmerit://** (y la URL HTTPS de callback solo si también usas web).'
   );
 }

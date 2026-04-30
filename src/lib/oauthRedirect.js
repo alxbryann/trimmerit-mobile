@@ -1,18 +1,16 @@
 import * as Linking from 'expo-linking';
-import Constants from 'expo-constants';
+import { Platform } from 'react-native';
 
 /**
  * URL de retorno OAuth para signInWithOAuth → redirectTo.
  *
- * Estrategia recomendada (evita quedarse en la web en el navegador embebido):
- * define EXPO_PUBLIC_SITE_URL con tu dominio (ej. https://trimmerit.vercel.app).
- * Se usará `${SITE_URL}/auth/mobile-callback` (HTTPS). Esa ruta existe en Next
- * y reenvía a trimmerit:// con el mismo hash/query.
+ * Estrategia:
+ * - Nativo (iOS/Android): deep link con Linking.createURL('auth/callback')
+ *   para que openAuthSessionAsync cierre correctamente.
+ * - Web: si existe EXPO_PUBLIC_SITE_URL, usa `${SITE_URL}/auth/mobile-callback`.
  *
- * En Supabase → Redirect URLs añade exactamente esa URL HTTPS, por ejemplo:
- *   https://trimmerit.vercel.app/auth/mobile-callback
- *
- * Opcional: exp://** y trimmerit://** si sigues usando deep links directos.
+ * En Supabase → Redirect URLs permite deep links (exp://** y trimmerit://**).
+ * Si también soportas web, añade además la URL HTTPS de callback.
  *
  * Override total: EXPO_PUBLIC_OAUTH_REDIRECT_URI
  */
@@ -22,6 +20,20 @@ export function getOAuthRedirectUri() {
     '';
   if (override) {
     return override;
+  }
+
+  // En iOS/Android el retorno más estable para openAuthSessionAsync es deep-link
+  // (trimmerit:// o exp:// en dev). Evita quedarse atascado en una página HTTPS.
+  if (Platform.OS !== 'web') {
+    const nativeUri = Linking.createURL('auth/callback');
+    if (__DEV__) {
+      console.log(
+        '[Trimmerit OAuth] redirect_to nativo (deep link). Añade en Supabase Redirect URLs:\n',
+        nativeUri,
+        '\nTambién puedes permitir: exp://** y trimmerit://**'
+      );
+    }
+    return nativeUri;
   }
 
   const site =
