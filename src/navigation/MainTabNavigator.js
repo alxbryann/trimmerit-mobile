@@ -4,6 +4,8 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { supabase, supabaseConfigured } from '../lib/supabase';
+import InicioClienteScreen from '../screens/InicioClienteScreen';
+import CatalogoScreen from '../screens/CatalogoScreen';
 import BarberosScreen from '../screens/BarberosScreen';
 import AgendaScreen from '../screens/AgendaScreen';
 import LoyaltyCardScreen from '../screens/LoyaltyCardScreen';
@@ -11,6 +13,7 @@ import PanelScreen from '../screens/PanelScreen';
 import EditarScreen from '../screens/EditarScreen';
 import AdminBarberiaScreen from '../screens/AdminBarberiaScreen';
 import EmpleadoBarberiaScreen from '../screens/EmpleadoBarberiaScreen';
+import FeedBarberoScreen from '../screens/FeedBarberoScreen';
 import LogrosScreen from '../screens/LogrosScreen';
 import ConfiguracionScreen from '../screens/ConfiguracionScreen';
 import SolicitudPopup from '../components/SolicitudPopup';
@@ -31,7 +34,8 @@ function useBarberSlug() {
 }
 
 const CLIENT_ICONS = {
-  Catalogo:      { focused: 'people', outline: 'people-outline' },
+  Inicio:        { focused: 'home', outline: 'home-outline' },
+  Catalogo:      { focused: 'search', outline: 'search-outline' },
   Agenda:        { focused: 'time', outline: 'time-outline' },
   Fidelizacion:  { focused: 'ribbon', outline: 'ribbon-outline' },
   Logros:        { focused: 'trophy', outline: 'trophy-outline' },
@@ -40,6 +44,7 @@ const CLIENT_ICONS = {
 
 const BARBER_ICONS = {
   MiAgenda:      { focused: 'calendar', outline: 'calendar-outline' },
+  Feed:          { focused: 'grid', outline: 'grid-outline' },
   MiPerfil:      { focused: 'person', outline: 'person-outline' },
   Logros:        { focused: 'trophy', outline: 'trophy-outline' },
   Configuracion: { focused: 'settings', outline: 'settings-outline' },
@@ -48,6 +53,7 @@ const BARBER_ICONS = {
 const ADMIN_ICONS = {
   MiPanel:       { focused: 'grid', outline: 'grid-outline' },
   MiAgenda:      { focused: 'calendar', outline: 'calendar-outline' },
+  Feed:          { focused: 'newspaper', outline: 'newspaper-outline' },
   MiPerfil:      { focused: 'person', outline: 'person-outline' },
   Logros:        { focused: 'trophy', outline: 'trophy-outline' },
   Configuracion: { focused: 'settings', outline: 'settings-outline' },
@@ -93,6 +99,7 @@ function pickDisplayName(profile, session) {
 
 const EMPLEADO_ICONS = {
   MiAgenda:      { focused: 'calendar', outline: 'calendar-outline' },
+  Feed:          { focused: 'grid', outline: 'grid-outline' },
   MiPerfil:      { focused: 'person', outline: 'person-outline' },
   Logros:        { focused: 'trophy', outline: 'trophy-outline' },
   Configuracion: { focused: 'settings', outline: 'settings-outline' },
@@ -134,7 +141,7 @@ const tabScreenOptions = (colors, fonts, mode) => ({ route }) => ({
 function ClientTabs({ bottomPad, colors, mode }) {
   return (
     <Tab.Navigator
-      initialRouteName="Catalogo"
+      initialRouteName="Inicio"
       screenOptions={({ route }) => ({
         ...tabScreenOptions(colors, fonts, mode)({ route }),
         tabBarStyle: {
@@ -151,7 +158,8 @@ function ClientTabs({ bottomPad, colors, mode }) {
         },
       })}
     >
-      <Tab.Screen name="Catalogo" component={BarberosScreen} options={{ tabBarLabel: 'Catálogo' }} />
+      <Tab.Screen name="Inicio" component={InicioClienteScreen} options={{ tabBarLabel: 'Inicio' }} />
+      <Tab.Screen name="Catalogo" component={CatalogoScreen} options={{ tabBarLabel: 'Catálogo' }} />
       <Tab.Screen name="Agenda" component={AgendaScreen} options={{ tabBarLabel: 'Agenda' }} />
       <Tab.Screen name="Fidelizacion" component={LoyaltyCardScreen} options={{ tabBarLabel: 'Sellos' }} />
       <Tab.Screen name="Logros" component={LogrosScreen} options={{ tabBarLabel: 'Logros' }} />
@@ -191,6 +199,7 @@ function BarberTabs({ bottomPad, slug, colors, mode }) {
         })}
       >
         <Tab.Screen name="MiAgenda" component={BarberPanelTab} options={{ tabBarLabel: 'Mi agenda' }} />
+        <Tab.Screen name="Feed" component={FeedBarberoScreen} options={{ tabBarLabel: 'Feed' }} />
         <Tab.Screen name="MiPerfil" component={BarberEditarTab} options={{ tabBarLabel: 'Mi perfil' }} />
         <Tab.Screen name="Logros" component={LogrosScreen} options={{ tabBarLabel: 'Logros' }} />
         <Tab.Screen name="Configuracion" component={ConfiguracionScreen} options={{ tabBarLabel: 'Ajustes' }} />
@@ -231,6 +240,7 @@ function AdminBarberTabs({ bottomPad, slug, colors, mode }) {
       >
         <Tab.Screen name="MiPanel" component={AdminBarberiaScreen} options={{ tabBarLabel: 'Local' }} />
         <Tab.Screen name="MiAgenda" component={BarberPanelTab} options={{ tabBarLabel: 'Agenda' }} />
+        <Tab.Screen name="Feed" component={FeedBarberoScreen} options={{ tabBarLabel: 'Feed' }} />
         <Tab.Screen name="MiPerfil" component={BarberEditarTab} options={{ tabBarLabel: 'Perfil' }} />
         <Tab.Screen name="Logros" component={LogrosScreen} options={{ tabBarLabel: 'Logros' }} />
         <Tab.Screen name="Configuracion" component={ConfiguracionScreen} options={{ tabBarLabel: 'Ajustes' }} />
@@ -270,6 +280,7 @@ function EmpleadoTabs({ bottomPad, slug, colors, mode }) {
         })}
       >
         <Tab.Screen name="MiAgenda" component={EmpleadoBarberiaScreen} options={{ tabBarLabel: 'Mi Agenda' }} />
+        <Tab.Screen name="Feed" component={FeedBarberoScreen} options={{ tabBarLabel: 'Feed' }} />
         <Tab.Screen name="MiPerfil" component={BarberEditarTab} options={{ tabBarLabel: 'Mi perfil' }} />
         <Tab.Screen name="Logros" component={LogrosScreen} options={{ tabBarLabel: 'Logros' }} />
         <Tab.Screen name="Configuracion" component={ConfiguracionScreen} options={{ tabBarLabel: 'Ajustes' }} />

@@ -8,6 +8,7 @@ import { Platform } from 'react-native';
  * - Nativo (iOS/Android): deep link con Linking.createURL('auth/callback')
  *   para que openAuthSessionAsync cierre correctamente.
  * - Web: si existe EXPO_PUBLIC_SITE_URL, usa `${SITE_URL}/auth/mobile-callback`.
+ * - Si no hay site en web, fallback a createURL (mismo patrón que Expo Go).
  *
  * En Supabase → Redirect URLs permite deep links (exp://** y trimmerit://**).
  * Si también soportas web, añade además la URL HTTPS de callback.
@@ -19,6 +20,7 @@ export function getOAuthRedirectUri() {
     (typeof process !== 'undefined' && process.env?.EXPO_PUBLIC_OAUTH_REDIRECT_URI?.trim()) ||
     '';
   if (override) {
+    if (__DEV__) console.log('[Trimmerit OAuth] redirect_to (override):', override);
     return override;
   }
 
@@ -52,10 +54,9 @@ export function getOAuthRedirectUri() {
 
   const uri = Linking.createURL('auth/callback');
   if (__DEV__) {
+    console.log('[Trimmerit OAuth] redirect_to:', uri);
     console.log(
-      '[Trimmerit OAuth] Sin EXPO_PUBLIC_SITE_URL; usando deep link:',
-      uri,
-      '\nPara OAuth estable, configura EXPO_PUBLIC_SITE_URL + página /auth/mobile-callback en la web.'
+      '[Trimmerit OAuth] Asegurate de tener en Supabase Redirect URLs: exp://** y trimmerit://**'
     );
   }
   return uri;

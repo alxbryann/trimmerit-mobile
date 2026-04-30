@@ -93,7 +93,16 @@ class QueryBuilder {
   }
 
   // ── Operaciones ──
-  select(cols = '*') { this._selectStr = cols; this._op = 'select'; return this; }
+  select(cols = '*') {
+    this._selectStr = cols;
+    // Si ya hay una op de mutación encadenada (insert/update/upsert/delete),
+    // select() actúa como "RETURNING cols" — no debe pisar la op original.
+    // Esto replica el comportamiento real de Supabase: .insert({}).select('id, slug').single()
+    if (!['insert', 'update', 'upsert', 'delete'].includes(this._op)) {
+      this._op = 'select';
+    }
+    return this;
+  }
   insert(payload)    { this._op = 'insert'; this._payload = payload; return this; }
   update(payload)    { this._op = 'update'; this._payload = payload; return this; }
   delete()           { this._op = 'delete'; return this; }
@@ -137,6 +146,51 @@ class QueryBuilder {
       rows = this._sort(rows);
       if (this._limitN) rows = rows.slice(0, this._limitN);
 
+      // ── Joins automáticos para publicaciones ──────────────────────────────
+      if (this._table === 'publicaciones') {
+        const uid = mockState.currentUser?.id ?? null;
+        rows = rows.map((pub) => {
+          // Barbero + profile
+          const barbero = (mockState.db.barberos ?? []).find((b) => b.id === pub.barbero_id);
+          // Conteos de reacciones por tipo
+          const allReas = (mockState.db.pub_reacciones ?? []).filter((r) => r.pub_id === pub.id);
+          const reacciones = {
+            fuego:    allReas.filter((r) => r.tipo === 'fuego').length,
+            tijeras:  allReas.filter((r) => r.tipo === 'tijeras').length,
+            estrella: allReas.filter((r) => r.tipo === 'estrella').length,
+            corazon:  allReas.filter((r) => r.tipo === 'corazon').length,
+          };
+          const misReacciones = uid
+            ? allReas.filter((r) => r.usuario_id === uid).map((r) => r.tipo)
+            : [];
+          // Comentarios recientes
+          const allComs = (mockState.db.pub_comentarios ?? [])
+            .filter((c) => c.pub_id === pub.id)
+            .sort((a, b) => a.created_at > b.created_at ? 1 : -1);
+          return {
+            ...pub,
+            barberos: barbero
+              ? { nombre_barberia: barbero.nombre_barberia, profiles: { nombre: barbero.profiles?.nombre ?? '' } }
+              : { nombre_barberia: '—', profiles: { nombre: '—' } },
+            _reacciones:       reacciones,
+            _mis_reacciones:   misReacciones,
+            _comentarios_count: allComs.length,
+            _comentarios:       allComs,  // todos; PostCard hace el slice(-2) para la vista colapsada
+          };
+        });
+      }
+
+      // ── Joins automáticos para pub_comentarios ────────────────────────────
+      if (this._table === 'pub_comentarios') {
+        rows = rows.map((com) => {
+          const profile = (mockState.db.profiles ?? []).find((p) => p.id === com.autor_id);
+          return {
+            ...com,
+            profiles: com.profiles ?? (profile ? { nombre: profile.nombre, role: profile.role } : { nombre: 'Usuario', role: 'cliente' }),
+          };
+        });
+      }
+
       if (this._isMaybe) return { data: rows[0] ?? null, error: null };
       if (this._isSingle) {
         if (!rows[0]) return { data: null, error: { message: 'No rows found', code: 'PGRST116' } };
@@ -147,7 +201,20 @@ class QueryBuilder {
 
     if (this._op === 'insert') {
       const items = Array.isArray(this._payload) ? this._payload : [this._payload];
-      const created = items.map((p) => ({ id: genId(), created_at: new Date().toISOString(), ...p }));
+      let created = items.map((p) => ({ id: genId(), created_at: new Date().toISOString(), ...p }));
+
+      // Auto-embed profile for pub_comentarios
+      if (this._table === 'pub_comentarios') {
+        created = created.map((com) => {
+          if (com.profiles) return com;
+          const profile = (mockState.db.profiles ?? []).find((p) => p.id === com.autor_id);
+          return {
+            ...com,
+            profiles: profile ? { nombre: profile.nombre, role: profile.role } : { nombre: 'Usuario', role: 'cliente' },
+          };
+        });
+      }
+
       mockState.db[this._table] = [...table, ...created];
       if (this._isSingle) return { data: created[0], error: null };
       return { data: created, error: null };
@@ -248,10 +315,10 @@ const RPC_HANDLERS = {
     );
     if (!prog) return { ok: false, reason: 'no_active_program' };
 
-    // Verificar duplicado
+    // Solo tarjetas activas (canjeado_at IS NULL) — loyalty v2
     const cards = mockState.db.loyalty_cards ?? [];
     let card = cards.find(
-      (c) => c.cliente_id === reserva.cliente_id && c.barbero_id === reserva.barbero_id
+      (c) => c.cliente_id === reserva.cliente_id && c.barbero_id === reserva.barbero_id && !c.canjeado_at
     );
 
     const stamps = mockState.db.loyalty_stamps ?? [];
@@ -521,11 +588,148 @@ const RPC_HANDLERS = {
       return { ok: false, reason: 'not_enough_stamps' };
     }
 
-    // Resetear tarjeta para nuevo ciclo
-    card.sellos_acumulados = 0;
-    card.canjeado_at = null;
+    // loyalty v2: marcar como canjeado (no resetear — la tarjeta queda histórica)
+    card.canjeado_at = new Date().toISOString();
 
     return { ok: true, beneficio: prog?.beneficio_descripcion ?? '' };
+  },
+
+  // ── redeem_and_give_new_card ─────────────────────────────────────────────
+  // Canjea la tarjeta completa y, si p_dar_nueva=true, crea una nueva con 1 sello.
+  async redeem_and_give_new_card({ p_reserva_id, p_dar_nueva = true } = {}) {
+    await delay();
+    const user = mockState.currentUser;
+    if (!user) return { ok: false, reason: 'unauthorized' };
+
+    const reserva = (mockState.db.reservas ?? []).find((r) => r.id === p_reserva_id);
+    if (!reserva) return { ok: false, reason: 'reserva_not_found' };
+    if (reserva.barbero_id !== user.id) return { ok: false, reason: 'unauthorized' };
+
+    const prog = (mockState.db.loyalty_programs ?? []).find(
+      (p) => p.barbero_id === reserva.barbero_id && p.activo
+    );
+    if (!prog) return { ok: false, reason: 'no_active_program' };
+
+    // Buscar tarjeta completa activa
+    const cards = mockState.db.loyalty_cards ?? [];
+    const card = cards.find(
+      (c) =>
+        c.cliente_id === reserva.cliente_id &&
+        c.barbero_id === reserva.barbero_id &&
+        !c.canjeado_at &&
+        c.sellos_acumulados >= prog.sellos_requeridos
+    );
+    if (!card) return { ok: false, reason: 'no_completed_card' };
+
+    // Canjear tarjeta
+    card.canjeado_at = new Date().toISOString();
+
+    if (p_dar_nueva) {
+      // Nueva tarjeta con 1 sello (la visita actual cuenta)
+      const newCard = {
+        id: genId(),
+        cliente_id: reserva.cliente_id,
+        barbero_id: reserva.barbero_id,
+        programa_id: prog.id,
+        sellos_acumulados: 1,
+        canjeado_at: null,
+        created_at: new Date().toISOString(),
+        loyalty_programs: {
+          sellos_requeridos: prog.sellos_requeridos,
+          beneficio_descripcion: prog.beneficio_descripcion,
+          beneficio_tipo: prog.beneficio_tipo,
+          activo: true,
+        },
+        barberos: { nombre_barberia: mockState.db.barberos?.find((b) => b.id === reserva.barbero_id)?.nombre_barberia ?? '' },
+        profiles: { nombre: mockState.db.profiles?.find((p) => p.id === reserva.cliente_id)?.nombre ?? 'Cliente' },
+      };
+      mockState.db.loyalty_cards = [...cards, newCard];
+      mockState.db.loyalty_stamps = [
+        ...(mockState.db.loyalty_stamps ?? []),
+        { id: genId(), card_id: newCard.id, reserva_id: p_reserva_id, stamped_at: new Date().toISOString() },
+      ];
+    }
+
+    return { ok: true, dar_nueva: p_dar_nueva, beneficio: prog.beneficio_descripcion ?? '' };
+  },
+
+  // ── toggle_reaccion ─────────────────────────────────────────────────────
+  // Alterna la reacción del usuario activo sobre una publicación.
+  async toggle_reaccion({ p_pub_id, p_tipo } = {}) {
+    await delay();
+    const user = mockState.currentUser;
+    if (!user) return { ok: false, reason: 'unauthorized' };
+
+    const validTipos = ['fuego', 'tijeras', 'estrella', 'corazon'];
+    if (!validTipos.includes(p_tipo)) return { ok: false, reason: 'invalid_tipo' };
+
+    const pub = (mockState.db.publicaciones ?? []).find((p) => p.id === p_pub_id && p.activo);
+    if (!pub) return { ok: false, reason: 'not_found' };
+
+    const reacciones = mockState.db.pub_reacciones ?? [];
+    const existingIdx = reacciones.findIndex(
+      (r) => r.pub_id === p_pub_id && r.usuario_id === user.id && r.tipo === p_tipo
+    );
+
+    if (existingIdx >= 0) {
+      // quitar reacción
+      mockState.db.pub_reacciones = reacciones.filter((_, i) => i !== existingIdx);
+    } else {
+      // agregar reacción
+      mockState.db.pub_reacciones = [
+        ...reacciones,
+        { id: genId(), pub_id: p_pub_id, usuario_id: user.id, tipo: p_tipo, created_at: new Date().toISOString() },
+      ];
+    }
+
+    const count = (mockState.db.pub_reacciones ?? []).filter(
+      (r) => r.pub_id === p_pub_id && r.tipo === p_tipo
+    ).length;
+
+    return { ok: true, activa: existingIdx < 0, count };
+  },
+
+  // ── get_frecuentes_cliente ────────────────────────────────────────────────
+  // Replica la RPC de Supabase: barberías más visitadas por el usuario activo.
+  async get_frecuentes_cliente({ p_limit = 3 } = {}) {
+    await delay();
+    const user = mockState.currentUser;
+    if (!user) return [];
+
+    // Contar reservas no canceladas por barbería
+    const reservas = (mockState.db.reservas ?? [])
+      .filter((r) => r.cliente_id === user.id && r.estado !== 'cancelada');
+
+    const countMap = {};
+    for (const r of reservas) {
+      const barbero = (mockState.db.barberos ?? []).find((b) => b.id === r.barbero_id);
+      const barberiaId = barbero?.barberia_id;
+      if (!barberiaId) continue;
+      countMap[barberiaId] = (countMap[barberiaId] ?? 0) + 1;
+    }
+
+    const barberias = mockState.db.barberias ?? [];
+    return Object.entries(countMap)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, p_limit)
+      .map(([barberiaId, visitas]) => {
+        const b = barberias.find((bb) => bb.id === barberiaId);
+        if (!b) return null;
+        return {
+          barberia_id:         b.id,
+          nombre:              b.nombre,
+          slug:                b.slug,
+          direccion:           b.direccion,
+          ciudad:              b.ciudad,
+          lat:                 b.lat,
+          lng:                 b.lng,
+          servicios_especiales: b.servicios_especiales ?? [],
+          hora_apertura:       b.hora_apertura,
+          hora_cierre:         b.hora_cierre,
+          visitas,
+        };
+      })
+      .filter(Boolean);
   },
 };
 

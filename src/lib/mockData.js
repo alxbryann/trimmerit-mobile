@@ -16,6 +16,10 @@ export const MOCK_IDS = {
   userPedro:     'mock-user-pedro-001',   // segundo cliente
   barberoCarlos: 'mock-user-carlos-001',  // mismo id que user (relación 1-1)
   barberoLuisa:  'mock-user-luisa-001',
+  // Barberías
+  barberiaElClasico:    'mock-barberia-001',
+  barberiaStudioLuisa:  'mock-barberia-002',
+  barberiaBarberHouse:  'mock-barberia-003',  // tercera barbería (sin barbero mock activo)
   svc1: 'mock-svc-001', svc2: 'mock-svc-002', svc3: 'mock-svc-003',
   svc4: 'mock-svc-004', svc5: 'mock-svc-005',
   res1: 'mock-res-001', res2: 'mock-res-002', res3: 'mock-res-003',
@@ -27,6 +31,11 @@ export const MOCK_IDS = {
   sol3: 'mock-sol-003',   // aplazamiento aceptado por Juan → barbero ve popup
   sol4: 'mock-sol-004',   // cancelacion_cliente → barbero ve popup
   sol5: 'mock-sol-005',   // cambio_cliente → barbero ve popup
+  // Feed social
+  pub1: 'mock-pub-001',   // Carlos — carrusel 3 imágenes
+  pub2: 'mock-pub-002',   // Luisa  — texto destacado
+  pub3: 'mock-pub-003',   // Carlos — imagen única
+  pub4: 'mock-pub-004',   // Luisa  — imagen + caption largo
 };
 
 function today(offsetDays = 0) {
@@ -68,10 +77,58 @@ export function buildInitialDB() {
       },
     ],
 
+    // ─── Barberías ────────────────────────────────────────────────────────────
+    barberias: [
+      {
+        id: MOCK_IDS.barberiaElClasico,
+        nombre: 'El Clásico',
+        slug: 'carlos-barbero',
+        admin_id: MOCK_IDS.userCarlos,
+        direccion: 'Calle 85 #12-34, Zona Rosa',
+        ciudad: 'Bogotá',
+        lat: 4.6670,
+        lng: -74.0523,
+        hora_apertura: '09:00',
+        hora_cierre: '20:00',
+        servicios_especiales: ['mascarilla', 'lavado'],
+        // embebido para Catálogo
+        barberos: [{ id: MOCK_IDS.barberoCarlos }],
+      },
+      {
+        id: MOCK_IDS.barberiaStudioLuisa,
+        nombre: 'Studio Luisa',
+        slug: 'luisa-mendoza',
+        admin_id: MOCK_IDS.userLuisa,
+        direccion: 'Carrera 13 #56-78, Chapinero',
+        ciudad: 'Bogotá',
+        lat: 4.6452,
+        lng: -74.0624,
+        hora_apertura: '10:00',
+        hora_cierre: '18:00',
+        servicios_especiales: ['tinturas', 'mascarilla'],
+        barberos: [{ id: MOCK_IDS.barberoLuisa }],
+      },
+      {
+        id: MOCK_IDS.barberiaBarberHouse,
+        nombre: 'Barber House',
+        slug: 'barber-house',
+        admin_id: null,
+        direccion: 'El Poblado, Calle 10 #43E-31',
+        ciudad: 'Medellín',
+        lat: 6.2085,
+        lng: -75.5699,
+        hora_apertura: '08:00',
+        hora_cierre: '19:00',
+        servicios_especiales: ['lavado'],
+        barberos: [],
+      },
+    ],
+
     barberos: [
       {
         id: MOCK_IDS.barberoCarlos,
         slug: 'carlos-barbero',
+        barberia_id: MOCK_IDS.barberiaElClasico,
         bio: 'Especialista en cortes clásicos y modernos. Más de 8 años de experiencia.',
         especialidades: ['fade', 'undercut', 'barba'],
         video_url: null,
@@ -82,10 +139,12 @@ export function buildInitialDB() {
         color_secundario: '#080808',
         // relación embebida (usado por Agenda cliente, catálogo)
         profiles: { nombre: 'Carlos Méndez' },
+        barberias: { id: MOCK_IDS.barberiaElClasico, nombre: 'El Clásico', ciudad: 'Bogotá', slug: 'carlos-barbero' },
       },
       {
         id: MOCK_IDS.barberoLuisa,
         slug: 'luisa-mendoza',
+        barberia_id: MOCK_IDS.barberiaStudioLuisa,
         bio: 'Local urbano con estilo. Cortes creativos y diseños únicos.',
         especialidades: ['diseño', 'coloración', 'trenzas'],
         video_url: null,
@@ -95,6 +154,7 @@ export function buildInitialDB() {
         color_primario: '#FF6B6B',
         color_secundario: '#0f0f0f',
         profiles: { nombre: 'Luisa Mendoza' },
+        barberias: { id: MOCK_IDS.barberiaStudioLuisa, nombre: 'Studio Luisa', ciudad: 'Bogotá', slug: 'luisa-mendoza' },
       },
     ],
 
@@ -272,6 +332,135 @@ export function buildInitialDB() {
     loyalty_stamps: [
       { id: 'mock-stamp-001', card_id: MOCK_IDS.card1, reserva_id: MOCK_IDS.res1, stamped_at: new Date(Date.now() - 3*86400000).toISOString() },
       { id: 'mock-stamp-002', card_id: MOCK_IDS.card1, reserva_id: MOCK_IDS.res2, stamped_at: new Date(Date.now() - 10*86400000).toISOString() },
+    ],
+
+    // ─── Publicaciones ────────────────────────────────────────────────────────
+    publicaciones: [
+      {
+        id: MOCK_IDS.pub1,
+        barbero_id: MOCK_IDS.barberoCarlos,
+        barberia_id: MOCK_IDS.barberiaElClasico,
+        tipo: 'imagen',
+        caption: 'Fin de semana productivo en El Clásico 💈 Fade + barba perfilada. Turnos disponibles para esta semana.',
+        text_style: { align: 'left', bold: false, size: 'normal' },
+        media_urls: [
+          'https://picsum.photos/seed/barber-fade1/800/800',
+          'https://picsum.photos/seed/barber-fade2/800/800',
+          'https://picsum.photos/seed/barber-barba1/800/800',
+        ],
+        video_url: null,
+        activo: true,
+        created_at: new Date(Date.now() - 2 * 3600000).toISOString(),
+        updated_at: new Date(Date.now() - 2 * 3600000).toISOString(),
+      },
+      {
+        id: MOCK_IDS.pub2,
+        barbero_id: MOCK_IDS.barberoLuisa,
+        barberia_id: MOCK_IDS.barberiaStudioLuisa,
+        tipo: 'texto',
+        caption: 'NUEVO SERVICIO: Coloración de temporada. Tonos cobre, rubio ceniza y caoba disponibles desde esta semana en Studio Luisa. Reservá tu cita y transformá tu look.',
+        text_style: { align: 'center', bold: true, size: 'large' },
+        media_urls: [],
+        video_url: null,
+        activo: true,
+        created_at: new Date(Date.now() - 5 * 3600000).toISOString(),
+        updated_at: new Date(Date.now() - 5 * 3600000).toISOString(),
+      },
+      {
+        id: MOCK_IDS.pub3,
+        barbero_id: MOCK_IDS.barberoCarlos,
+        barberia_id: MOCK_IDS.barberiaElClasico,
+        tipo: 'imagen',
+        caption: 'Undercut texturizado recién terminado. El detalle en las patillas marca la diferencia.',
+        text_style: { align: 'left', bold: false, size: 'normal' },
+        media_urls: [
+          'https://picsum.photos/seed/undercut-detail/800/1000',
+        ],
+        video_url: null,
+        activo: true,
+        created_at: new Date(Date.now() - 28 * 3600000).toISOString(),
+        updated_at: new Date(Date.now() - 28 * 3600000).toISOString(),
+      },
+      {
+        id: MOCK_IDS.pub4,
+        barbero_id: MOCK_IDS.barberoLuisa,
+        barberia_id: MOCK_IDS.barberiaStudioLuisa,
+        tipo: 'imagen',
+        caption: 'Diseño geométrico con degradado. Cuando el arte se fusiona con la precisión ✂️',
+        text_style: { align: 'left', bold: false, size: 'normal' },
+        media_urls: [
+          'https://picsum.photos/seed/geo-design1/800/1000',
+          'https://picsum.photos/seed/geo-design2/800/1000',
+        ],
+        video_url: null,
+        activo: true,
+        created_at: new Date(Date.now() - 48 * 3600000).toISOString(),
+        updated_at: new Date(Date.now() - 48 * 3600000).toISOString(),
+      },
+    ],
+
+    // ─── Comentarios de publicaciones ────────────────────────────────────────
+    pub_comentarios: [
+      {
+        id: 'mock-com-001',
+        pub_id: MOCK_IDS.pub1,
+        autor_id: MOCK_IDS.userJuan,
+        texto: 'Ese fade quedó impecable! Agendando para el viernes 🔥',
+        created_at: new Date(Date.now() - 90 * 60000).toISOString(),
+        profiles: { nombre: 'Juan Mesa', role: 'cliente' },
+      },
+      {
+        id: 'mock-com-002',
+        pub_id: MOCK_IDS.pub1,
+        autor_id: MOCK_IDS.userPedro,
+        texto: 'La barba perfilada es otro nivel. ¿Cuánto cuesta el combo?',
+        created_at: new Date(Date.now() - 60 * 60000).toISOString(),
+        profiles: { nombre: 'Pedro Gómez', role: 'cliente' },
+      },
+      {
+        id: 'mock-com-003',
+        pub_id: MOCK_IDS.pub1,
+        autor_id: MOCK_IDS.userLuisa,
+        texto: 'Buen trabajo Carlos, el degradado está bien logrado 👌',
+        created_at: new Date(Date.now() - 30 * 60000).toISOString(),
+        profiles: { nombre: 'Luisa Mendoza', role: 'barbero' },
+      },
+      {
+        id: 'mock-com-004',
+        pub_id: MOCK_IDS.pub2,
+        autor_id: MOCK_IDS.userJuan,
+        texto: 'Qué buena noticia! Quería hacer algo diferente este mes.',
+        created_at: new Date(Date.now() - 4 * 3600000).toISOString(),
+        profiles: { nombre: 'Juan Mesa', role: 'cliente' },
+      },
+      {
+        id: 'mock-com-005',
+        pub_id: MOCK_IDS.pub3,
+        autor_id: MOCK_IDS.userPedro,
+        texto: 'Ese undercut es lo que busco. ¿Hay turno esta semana?',
+        created_at: new Date(Date.now() - 20 * 3600000).toISOString(),
+        profiles: { nombre: 'Pedro Gómez', role: 'cliente' },
+      },
+    ],
+
+    // ─── Reacciones de publicaciones ─────────────────────────────────────────
+    pub_reacciones: [
+      // pub1 — Carlos fade
+      { id: 'mock-rea-001', pub_id: MOCK_IDS.pub1, usuario_id: MOCK_IDS.userJuan,   tipo: 'fuego',    created_at: new Date(Date.now() - 100*60000).toISOString() },
+      { id: 'mock-rea-002', pub_id: MOCK_IDS.pub1, usuario_id: MOCK_IDS.userPedro,  tipo: 'fuego',    created_at: new Date(Date.now() -  95*60000).toISOString() },
+      { id: 'mock-rea-003', pub_id: MOCK_IDS.pub1, usuario_id: MOCK_IDS.userLuisa,  tipo: 'tijeras',  created_at: new Date(Date.now() -  80*60000).toISOString() },
+      { id: 'mock-rea-004', pub_id: MOCK_IDS.pub1, usuario_id: MOCK_IDS.userJuan,   tipo: 'estrella', created_at: new Date(Date.now() -  75*60000).toISOString() },
+      { id: 'mock-rea-005', pub_id: MOCK_IDS.pub1, usuario_id: MOCK_IDS.userPedro,  tipo: 'estrella', created_at: new Date(Date.now() -  70*60000).toISOString() },
+      // pub2 — Luisa texto
+      { id: 'mock-rea-006', pub_id: MOCK_IDS.pub2, usuario_id: MOCK_IDS.userJuan,   tipo: 'corazon',  created_at: new Date(Date.now() - 4.5*3600000).toISOString() },
+      { id: 'mock-rea-007', pub_id: MOCK_IDS.pub2, usuario_id: MOCK_IDS.userCarlos, tipo: 'estrella', created_at: new Date(Date.now() - 4.3*3600000).toISOString() },
+      // pub3 — Carlos undercut
+      { id: 'mock-rea-008', pub_id: MOCK_IDS.pub3, usuario_id: MOCK_IDS.userJuan,   tipo: 'fuego',    created_at: new Date(Date.now() - 25*3600000).toISOString() },
+      { id: 'mock-rea-009', pub_id: MOCK_IDS.pub3, usuario_id: MOCK_IDS.userLuisa,  tipo: 'tijeras',  created_at: new Date(Date.now() - 24*3600000).toISOString() },
+      // pub4 — Luisa geo
+      { id: 'mock-rea-010', pub_id: MOCK_IDS.pub4, usuario_id: MOCK_IDS.userJuan,   tipo: 'estrella', created_at: new Date(Date.now() - 46*3600000).toISOString() },
+      { id: 'mock-rea-011', pub_id: MOCK_IDS.pub4, usuario_id: MOCK_IDS.userPedro,  tipo: 'fuego',    created_at: new Date(Date.now() - 45*3600000).toISOString() },
+      { id: 'mock-rea-012', pub_id: MOCK_IDS.pub4, usuario_id: MOCK_IDS.userCarlos, tipo: 'corazon',  created_at: new Date(Date.now() - 44*3600000).toISOString() },
     ],
 
     // ─── Solicitudes de cambio ────────────────────────────────────────────────
