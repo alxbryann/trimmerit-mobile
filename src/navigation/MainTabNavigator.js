@@ -131,10 +131,10 @@ const tabScreenOptions = (colors, fonts, mode) => ({ route }) => ({
   tabBarInactiveTintColor: tabBarInactiveTint(colors, mode),
   tabBarLabelStyle: {
     fontFamily: fonts.mono,
-    fontSize: 9,
-    letterSpacing: 3,
+    fontSize: 8,
+    letterSpacing: 0.35,
     marginBottom: 4,
-    textTransform: 'uppercase',
+    marginTop: 2,
   },
 });
 
@@ -154,8 +154,9 @@ function ClientTabs({ bottomPad, colors, mode }) {
         tabBarIcon: ({ color, focused }) => {
           const map = CLIENT_ICONS[route.name];
           const name = map ? (focused ? map.focused : map.outline) : 'ellipse-outline';
-          return <Ionicons name={name} size={22} color={color} />;
+          return <Ionicons name={name} size={20} color={color} />;
         },
+        tabBarItemStyle: { paddingHorizontal: 2 },
       })}
     >
       <Tab.Screen name="Inicio" component={InicioClienteScreen} options={{ tabBarLabel: 'Inicio' }} />
@@ -186,16 +187,17 @@ function BarberTabs({ bottomPad, slug, colors, mode }) {
           tabBarInactiveTintColor: tabBarInactiveTint(colors, mode),
           tabBarLabelStyle: {
             fontFamily: fonts.mono,
-            fontSize: 9,
-            letterSpacing: 3,
+            fontSize: 8,
+            letterSpacing: 0.35,
             marginBottom: 4,
-            textTransform: 'uppercase',
+            marginTop: 2,
           },
           tabBarIcon: ({ color, focused }) => {
             const map = BARBER_ICONS[route.name];
             const name = map ? (focused ? map.focused : map.outline) : 'ellipse-outline';
-            return <Ionicons name={name} size={22} color={color} />;
+            return <Ionicons name={name} size={20} color={color} />;
           },
+          tabBarItemStyle: { paddingHorizontal: 2 },
         })}
       >
         <Tab.Screen name="MiAgenda" component={BarberPanelTab} options={{ tabBarLabel: 'Mi agenda' }} />
@@ -227,15 +229,16 @@ function AdminBarberTabs({ bottomPad, slug, colors, mode }) {
           tabBarLabelStyle: {
             fontFamily: fonts.bodyBold,
             fontSize: 8,
-            letterSpacing: 0.8,
+            letterSpacing: 0.35,
             marginBottom: 4,
-            textTransform: 'uppercase',
+            marginTop: 2,
           },
           tabBarIcon: ({ color, focused }) => {
             const map = ADMIN_ICONS[route.name];
             const name = map ? (focused ? map.focused : map.outline) : 'ellipse-outline';
-            return <Ionicons name={name} size={22} color={color} />;
+            return <Ionicons name={name} size={20} color={color} />;
           },
+          tabBarItemStyle: { paddingHorizontal: 2 },
         })}
       >
         <Tab.Screen name="MiPanel" component={AdminBarberiaScreen} options={{ tabBarLabel: 'Local' }} />
@@ -267,16 +270,17 @@ function EmpleadoTabs({ bottomPad, slug, colors, mode }) {
           tabBarInactiveTintColor: tabBarInactiveTint(colors, mode),
           tabBarLabelStyle: {
             fontFamily: fonts.mono,
-            fontSize: 9,
-            letterSpacing: 3,
+            fontSize: 8,
+            letterSpacing: 0.35,
             marginBottom: 4,
-            textTransform: 'uppercase',
+            marginTop: 2,
           },
           tabBarIcon: ({ color, focused }) => {
             const map = EMPLEADO_ICONS[route.name];
             const name = map ? (focused ? map.focused : map.outline) : 'ellipse-outline';
-            return <Ionicons name={name} size={22} color={color} />;
+            return <Ionicons name={name} size={20} color={color} />;
           },
+          tabBarItemStyle: { paddingHorizontal: 2 },
         })}
       >
         <Tab.Screen name="MiAgenda" component={EmpleadoBarberiaScreen} options={{ tabBarLabel: 'Mi Agenda' }} />
@@ -315,10 +319,18 @@ export default function MainTabNavigator({ navigation }) {
 
   useEffect(() => {
     let cancelled = false;
+    let seq = 0;
 
-    async function resolve() {
+    /**
+     * `sessionHint === undefined` → leer getSession() (solo arranque).
+     * `null` u objeto → viene de onAuthStateChange (evita carrera con SecureStore al cambiar de usuario).
+     * `seq` evita que dos resolves solapados dejen `ready` en false o mezclen roles.
+     */
+    async function applyAuthSession(sessionHint) {
+      const mySeq = ++seq;
+
       if (!supabaseConfigured) {
-        if (!cancelled) {
+        if (!cancelled && mySeq === seq) {
           setIsBarber(false);
           setBarberSlug(null);
           setEmpleadoSlug(null);
@@ -328,9 +340,16 @@ export default function MainTabNavigator({ navigation }) {
         }
         return;
       }
-      const { data: { session } } = await supabase.auth.getSession();
+
+      let session = sessionHint;
+      if (session === undefined) {
+        const { data } = await supabase.auth.getSession();
+        if (cancelled || mySeq !== seq) return;
+        session = data?.session ?? null;
+      }
+
       if (!session?.user) {
-        if (!cancelled) {
+        if (!cancelled && mySeq === seq) {
           setIsBarber(false);
           setBarberSlug(null);
           setEmpleadoSlug(null);
@@ -340,15 +359,18 @@ export default function MainTabNavigator({ navigation }) {
         }
         return;
       }
+
       const { data: profile } = await supabase
         .from('profiles')
         .select('role')
         .eq('id', session.user.id)
         .maybeSingle();
+      if (cancelled || mySeq !== seq) return;
 
       if (profile?.role === 'admin_barberia' || profile?.role === 'barbero') {
         const slug = await ensureAdminBarbero(session.user.id);
-        if (!cancelled) {
+        if (cancelled || mySeq !== seq) return;
+        if (!cancelled && mySeq === seq) {
           setIsBarber(false);
           setBarberSlug(null);
           setEmpleadoSlug(null);
@@ -365,7 +387,8 @@ export default function MainTabNavigator({ navigation }) {
           .select('slug')
           .eq('id', session.user.id)
           .maybeSingle();
-        if (!cancelled) {
+        if (cancelled || mySeq !== seq) return;
+        if (!cancelled && mySeq === seq) {
           setIsBarber(false);
           setBarberSlug(null);
           setEmpleadoSlug(bEmp?.slug ?? null);
@@ -377,16 +400,15 @@ export default function MainTabNavigator({ navigation }) {
       }
 
       // Cliente: cargar solicitudes no leídas
-      if (!cancelled) {
-        const { data: sols } = await supabase
-          .from('reserva_solicitudes')
-          .select('*')
-          .eq('cliente_id', session.user.id)
-          .eq('leido_cliente', false)
-          .order('created_at', { ascending: true });
-        if (!cancelled && sols?.length) {
-          setClientSolicitudQueue(sols);
-        }
+      const { data: sols } = await supabase
+        .from('reserva_solicitudes')
+        .select('*')
+        .eq('cliente_id', session.user.id)
+        .eq('leido_cliente', false)
+        .order('created_at', { ascending: true });
+      if (cancelled || mySeq !== seq) return;
+      if (!cancelled && mySeq === seq) {
+        if (sols?.length) setClientSolicitudQueue(sols);
         setIsBarber(false);
         setBarberSlug(null);
         setEmpleadoSlug(null);
@@ -396,8 +418,10 @@ export default function MainTabNavigator({ navigation }) {
       }
     }
 
-    resolve();
-    const { data: sub } = supabase.auth.onAuthStateChange(() => { resolve(); });
+    applyAuthSession(undefined);
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+      applyAuthSession(session ?? null);
+    });
     return () => {
       cancelled = true;
       sub.subscription.unsubscribe();

@@ -159,9 +159,9 @@ export default function LoginScreen({ navigation, route }) {
   const [oauthLoading, setOauthLoading] = useState(false);
   const [focusedField, setFocusedField] = useState(null);
 
-  async function afterAuthSuccess(userId) {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.user || session.user.id !== userId) {
+  /** Usar la sesión devuelta por el sign-in (no `getSession()` justo después: con SecureStore puede llegar tarde o quedar desfasada al cambiar de cuenta). */
+  async function afterAuthSuccess(session) {
+    if (!session?.user) {
       setError('No se pudo validar la sesión.');
       return false;
     }
@@ -178,14 +178,20 @@ export default function LoginScreen({ navigation, route }) {
     if (!supabaseConfigured) { setError('Configura Supabase en las variables de entorno.'); return; }
     setError('');
     setLoading(true);
-    const { data, error: signInError } = await supabase.auth.signInWithPassword({ email, password });
-    if (signInError) {
-      setError(signInError.message === 'Invalid login credentials' ? 'Correo o contraseña incorrectos' : signInError.message);
+    try {
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+      if (signInError) {
+        setError(signInError.message === 'Invalid login credentials' ? 'Correo o contraseña incorrectos' : signInError.message);
+        return;
+      }
+      if (!data?.session?.user) {
+        setError('No se pudo obtener la sesión. Intentá de nuevo.');
+        return;
+      }
+      await afterAuthSuccess(data.session);
+    } finally {
       setLoading(false);
-      return;
     }
-    await afterAuthSuccess(data.user.id);
-    setLoading(false);
   }
 
   async function handleGoogle() {
@@ -208,7 +214,7 @@ export default function LoginScreen({ navigation, route }) {
         navigation.reset({ index: 0, routes: [{ name: 'CompletarPerfil', params: { suggestedNombre: nombre, redirect: redirect ?? null } }] });
         return;
       }
-      await afterAuthSuccess(session.user.id);
+      await afterAuthSuccess(session);
     } catch (e) {
       setError(String(e.message ?? e));
     } finally {

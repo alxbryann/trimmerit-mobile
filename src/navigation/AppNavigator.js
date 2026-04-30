@@ -84,7 +84,9 @@ export default function AppNavigator() {
         }
         const name = navigationRef.getCurrentRoute()?.name;
         if (name === 'Registro' || name === 'CompletarPerfil') return;
-        if (name !== 'Welcome' && name !== 'Login') return;
+        // Si `name` es undefined (transición), no bloquear: antes trataba undefined como ruta
+        // distinta de Welcome/Login y se salía sin navegar (login colgado al cambiar de cuenta).
+        if (name && name !== 'Welcome' && name !== 'Login') return;
 
         resolvePostAuthDestination(sess).then((dest) => {
           applyPostAuthDestination(navigationRef, dest);
