@@ -1,7 +1,36 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient } from '@supabase/supabase-js';
 import Constants from 'expo-constants';
+import * as SecureStore from 'expo-secure-store';
 import { supabaseMock } from './supabaseMock';
+
+// ── OWASP A02: almacenamiento seguro de tokens de sesión ──────────────────────
+// Los tokens JWT (access_token, refresh_token) no deben quedar en AsyncStorage,
+// que en Android es legible sin root vía ADB backup.
+// expo-secure-store usa Keychain (iOS) y Android Keystore (Android) — ambos cifrados.
+// Las claves de preferencias no sensibles siguen en AsyncStorage.
+const SENSITIVE_KEYS = new Set(['supabase.auth.token', 'sb-auth-token']);
+
+const SecureStoreWithFallback = {
+  async getItem(key) {
+    if (SENSITIVE_KEYS.has(key) || key.includes('auth')) {
+      try { return await SecureStore.getItemAsync(key); } catch { /* fallback */ }
+    }
+    return AsyncStorage.getItem(key);
+  },
+  async setItem(key, value) {
+    if (SENSITIVE_KEYS.has(key) || key.includes('auth')) {
+      try { return await SecureStore.setItemAsync(key, value); } catch { /* fallback */ }
+    }
+    return AsyncStorage.setItem(key, value);
+  },
+  async removeItem(key) {
+    if (SENSITIVE_KEYS.has(key) || key.includes('auth')) {
+      try { return await SecureStore.deleteItemAsync(key); } catch { /* fallback */ }
+    }
+    return AsyncStorage.removeItem(key);
+  },
+};
 
 const extra = Constants.expoConfig?.extra ?? Constants.manifest?.extra ?? {};
 
@@ -42,7 +71,7 @@ const supabaseAnonKey = supabaseConfigured && !useMock ? envKey.trim() : PLACEHO
 
 const realClient = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
-    storage: AsyncStorage,
+    storage: SecureStoreWithFallback,  // OWASP A02: tokens en Keychain/Keystore cifrado
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: false,

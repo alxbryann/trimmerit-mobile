@@ -20,6 +20,12 @@ import { colors, fonts, radii, shadows } from '../theme';
 const TABS = ['Mi Panel', 'Colaboradores', 'Ajustes'];
 const CODE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
+const SERVICIOS_OPCIONES = [
+  { id: 'mascarilla', label: 'Mascarilla capilar' },
+  { id: 'tinturas',   label: 'Tinturas y coloración' },
+  { id: 'lavado',     label: 'Lavado de cabello' },
+];
+
 function generateCode() {
   return String(Math.floor(Math.random() * 1000000)).padStart(6, '0');
 }
@@ -39,6 +45,8 @@ export default function AdminBarberiaScreen({ navigation }) {
   const [showPicker, setShowPicker] = useState(null); // 'apertura' | 'cierre'
   const [pickerHour, setPickerHour] = useState(9);
   const [pickerMinute, setPickerMinute] = useState(0);
+  const [serviciosEspeciales, setServiciosEspeciales] = useState([]);
+  const [serviciosLoading, setServiciosLoading] = useState(false);
 
   const firstLocalFocus = useRef(true);
 
@@ -65,6 +73,7 @@ export default function AdminBarberiaScreen({ navigation }) {
               cierre: b.hora_cierre ?? '20:00',
             });
           }
+          setServiciosEspeciales(b.servicios_especiales ?? []);
         }
 
         if (b.invite_code && b.invite_code_expires_at) {
@@ -197,6 +206,27 @@ export default function AdminBarberiaScreen({ navigation }) {
       Alert.alert('Error', 'No se pudo guardar el horario.');
     } else {
       Alert.alert('Guardado', 'Horario actualizado correctamente.');
+    }
+  }
+
+  function toggleServicio(id) {
+    setServiciosEspeciales((prev) =>
+      prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]
+    );
+  }
+
+  async function handleGuardarServicios() {
+    if (!barberia) return;
+    setServiciosLoading(true);
+    const { error } = await supabase
+      .from('barberias')
+      .update({ servicios_especiales: serviciosEspeciales })
+      .eq('id', barberia.id);
+    setServiciosLoading(false);
+    if (error) {
+      Alert.alert('Error', 'No se pudo guardar los servicios.');
+    } else {
+      Alert.alert('Guardado', 'Servicios actualizados correctamente.');
     }
   }
 
@@ -336,6 +366,46 @@ export default function AdminBarberiaScreen({ navigation }) {
                   {horarioLoading
                     ? <ActivityIndicator color={colors.black} />
                     : <Text style={styles.generateTxt}>GUARDAR HORARIO</Text>
+                  }
+                </TouchableOpacity>
+              </View>
+
+              {/* Servicios especiales */}
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionNum}>✦</Text>
+                <Text style={styles.sectionTitle}>SERVICIOS ESPECIALES</Text>
+              </View>
+              <View style={styles.serviciosCard}>
+                <Text style={styles.serviciosHint}>
+                  Marcá los servicios adicionales que ofrece tu local. Los clientes podrán filtrar por estos.
+                </Text>
+                {SERVICIOS_OPCIONES.map((op) => {
+                  const active = serviciosEspeciales.includes(op.id);
+                  return (
+                    <TouchableOpacity
+                      key={op.id}
+                      style={styles.checkRow}
+                      onPress={() => toggleServicio(op.id)}
+                      activeOpacity={0.8}
+                    >
+                      <View style={[styles.checkbox, active && styles.checkboxActive]}>
+                        {active && <Text style={styles.checkmark}>✓</Text>}
+                      </View>
+                      <Text style={[styles.checkLabel, active && styles.checkLabelActive]}>
+                        {op.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+                <TouchableOpacity
+                  style={[styles.generateBtn, serviciosLoading && { opacity: 0.55 }]}
+                  onPress={handleGuardarServicios}
+                  disabled={serviciosLoading}
+                  activeOpacity={0.88}
+                >
+                  {serviciosLoading
+                    ? <ActivityIndicator color={colors.black} />
+                    : <Text style={styles.generateTxt}>GUARDAR SERVICIOS</Text>
                   }
                 </TouchableOpacity>
               </View>
@@ -682,5 +752,59 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderColor: colors.cardBorder,
     borderRadius: radii.sm,
+  },
+
+  // Servicios especiales
+  serviciosCard: {
+    backgroundColor: colors.dark2,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    borderRadius: radii.lg,
+    padding: 20,
+    marginBottom: 16,
+  },
+  serviciosHint: {
+    fontFamily: fonts.body,
+    fontSize: 13,
+    color: colors.grayMid,
+    marginBottom: 16,
+    lineHeight: 18,
+  },
+  checkRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.cardBorder,
+    marginBottom: 4,
+  },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderWidth: 1.5,
+    borderColor: colors.grayMid,
+    borderRadius: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkboxActive: {
+    backgroundColor: colors.acid,
+    borderColor: colors.acid,
+  },
+  checkmark: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 13,
+    color: colors.black,
+  },
+  checkLabel: {
+    fontFamily: fonts.body,
+    fontSize: 15,
+    color: colors.grayLight,
+    flex: 1,
+  },
+  checkLabelActive: {
+    color: colors.white,
+    fontFamily: fonts.bodyBold,
   },
 });

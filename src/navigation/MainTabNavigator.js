@@ -4,6 +4,8 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { supabase, supabaseConfigured } from '../lib/supabase';
+import InicioClienteScreen from '../screens/InicioClienteScreen';
+import CatalogoScreen from '../screens/CatalogoScreen';
 import BarberosScreen from '../screens/BarberosScreen';
 import AgendaScreen from '../screens/AgendaScreen';
 import LoyaltyCardScreen from '../screens/LoyaltyCardScreen';
@@ -11,6 +13,7 @@ import PanelScreen from '../screens/PanelScreen';
 import EditarScreen from '../screens/EditarScreen';
 import AdminBarberiaScreen from '../screens/AdminBarberiaScreen';
 import EmpleadoBarberiaScreen from '../screens/EmpleadoBarberiaScreen';
+import FeedBarberoScreen from '../screens/FeedBarberoScreen';
 import SolicitudPopup from '../components/SolicitudPopup';
 import { notifRespuestaAlBarbero } from '../lib/notifications';
 import { colors, fonts } from '../theme';
@@ -24,22 +27,25 @@ function useBarberSlug() {
 }
 
 const CLIENT_ICONS = {
-  Catalogo: { focused: 'people', outline: 'people-outline' },
+  Inicio: { focused: 'home', outline: 'home-outline' },
+  Catalogo: { focused: 'search', outline: 'search-outline' },
   Agenda: { focused: 'time', outline: 'time-outline' },
   Fidelizacion: { focused: 'ribbon', outline: 'ribbon-outline' },
   CerrarSesion: { focused: 'log-out-outline', outline: 'log-out-outline' },
 };
 
 const BARBER_ICONS = {
-  MiAgenda: { focused: 'calendar', outline: 'calendar-outline' },
-  MiPerfil: { focused: 'person', outline: 'person-outline' },
+  MiAgenda:     { focused: 'calendar',    outline: 'calendar-outline'    },
+  Feed:         { focused: 'grid',        outline: 'grid-outline'        },
+  MiPerfil:     { focused: 'person',      outline: 'person-outline'      },
   CerrarSesion: { focused: 'log-out-outline', outline: 'log-out-outline' },
 };
 
 const ADMIN_ICONS = {
-  MiPanel: { focused: 'grid', outline: 'grid-outline' },
-  MiAgenda: { focused: 'calendar', outline: 'calendar-outline' },
-  MiPerfil: { focused: 'person', outline: 'person-outline' },
+  MiPanel:      { focused: 'home',        outline: 'home-outline'        },
+  MiAgenda:     { focused: 'calendar',    outline: 'calendar-outline'    },
+  Feed:         { focused: 'grid',        outline: 'grid-outline'        },
+  MiPerfil:     { focused: 'person',      outline: 'person-outline'      },
   CerrarSesion: { focused: 'log-out-outline', outline: 'log-out-outline' },
 };
 
@@ -70,8 +76,9 @@ async function ensureAdminBarbero(userId) {
 }
 
 const EMPLEADO_ICONS = {
-  MiAgenda: { focused: 'calendar', outline: 'calendar-outline' },
-  MiPerfil: { focused: 'person', outline: 'person-outline' },
+  MiAgenda:     { focused: 'calendar',    outline: 'calendar-outline'    },
+  Feed:         { focused: 'grid',        outline: 'grid-outline'        },
+  MiPerfil:     { focused: 'person',      outline: 'person-outline'      },
   CerrarSesion: { focused: 'log-out-outline', outline: 'log-out-outline' },
 };
 
@@ -119,7 +126,7 @@ function ClientTabs({ bottomPad }) {
 
   return (
     <Tab.Navigator
-      initialRouteName="Catalogo"
+      initialRouteName="Inicio"
       screenOptions={({ route }) => ({
         ...tabScreenOptions(colors, fonts)({ route }),
         tabBarStyle: {
@@ -139,7 +146,8 @@ function ClientTabs({ bottomPad }) {
         },
       })}
     >
-      <Tab.Screen name="Catalogo" component={BarberosScreen} options={{ tabBarLabel: 'Catálogo' }} />
+      <Tab.Screen name="Inicio" component={InicioClienteScreen} options={{ tabBarLabel: 'Inicio' }} />
+      <Tab.Screen name="Catalogo" component={CatalogoScreen} options={{ tabBarLabel: 'Catálogo' }} />
       <Tab.Screen name="Agenda" component={AgendaScreen} options={{ tabBarLabel: 'Agenda' }} />
       <Tab.Screen name="Fidelizacion" component={LoyaltyCardScreen} options={{ tabBarLabel: 'Sellos' }} />
       <Tab.Screen
@@ -190,6 +198,7 @@ function BarberTabs({ bottomPad, slug }) {
         })}
       >
         <Tab.Screen name="MiAgenda" component={BarberPanelTab} options={{ tabBarLabel: 'Mi agenda' }} />
+        <Tab.Screen name="Feed" component={FeedBarberoScreen} options={{ tabBarLabel: 'Feed' }} />
         <Tab.Screen name="MiPerfil" component={BarberEditarTab} options={{ tabBarLabel: 'Mi perfil' }} />
         <Tab.Screen
           name="CerrarSesion"
@@ -241,6 +250,7 @@ function AdminBarberTabs({ bottomPad, slug }) {
       >
         <Tab.Screen name="MiPanel" component={AdminBarberiaScreen} options={{ tabBarLabel: 'Local' }} />
         <Tab.Screen name="MiAgenda" component={BarberPanelTab} options={{ tabBarLabel: 'Agenda' }} />
+        <Tab.Screen name="Feed" component={FeedBarberoScreen} options={{ tabBarLabel: 'Feed' }} />
         <Tab.Screen name="MiPerfil" component={BarberEditarTab} options={{ tabBarLabel: 'Perfil' }} />
         <Tab.Screen
           name="CerrarSesion"
@@ -291,6 +301,7 @@ function EmpleadoTabs({ bottomPad, slug }) {
         })}
       >
         <Tab.Screen name="MiAgenda" component={EmpleadoBarberiaScreen} options={{ tabBarLabel: 'Mi Agenda' }} />
+        <Tab.Screen name="Feed" component={FeedBarberoScreen} options={{ tabBarLabel: 'Feed' }} />
         <Tab.Screen name="MiPerfil" component={BarberEditarTab} options={{ tabBarLabel: 'Mi perfil' }} />
         <Tab.Screen
           name="CerrarSesion"

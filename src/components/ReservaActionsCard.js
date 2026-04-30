@@ -62,18 +62,25 @@ function fmtDayLabel(d) {
 export default function ReservaActionsCard({
   reserva, perfil,
   onCompletar, onCancelar, onAplazar,
-  tienePrograma = false,
+  tienePrograma    = false,
+  // loyalty v2: estado de tarjeta del cliente con este barbero
+  tieneTargeta     = false,    // ¿tiene tarjeta activa?
+  tarjetaCompletada = false,   // ¿tarjeta completa (lista para canjear)?
+  sellosCard       = 0,        // sellos acumulados en la tarjeta activa
+  sellosRequeridos = 10,       // sellos necesarios para completar
 }) {
   const [expanded, setExpanded]     = useState(false);
   const [tab, setTab]               = useState('completar');
   const [busy, setBusy]             = useState(false);
   const [done, setDone]             = useState(false);
 
-  // Completar
-  const [sellar, setSellar]         = useState(null); // null | true | false
+  // loyalty v2: acción elegida
+  // null = sin elegir | 'dar_tarjeta' | 'sellar' | 'canjear_renovar' | 'canjear_finalizar' | 'ninguna'
+  const [loyaltyChoice, setLoyaltyChoice] = useState(null);
 
   // Cancelar
   const [razonCancel, setRazonCancel] = useState('');
+
 
   // Aplazar
   const [razonAplazar, setRazonAplazar] = useState('');
@@ -104,11 +111,18 @@ export default function ReservaActionsCard({
     return ` · $${Number(p).toLocaleString('es-CO')}`;
   }
 
+  // ─── Lógica de bloqueo del botón Confirmar (loyalty v2) ──────────────────
+  // Si hay programa pero no se ha elegido acción → bloquear (excepto tarjeta completa
+  // donde ambas opciones son válidas y siempre debe elegirse una)
+  const loyaltyRequired = tienePrograma && puedeCerrar;
+  const loyaltyPending  = loyaltyRequired && loyaltyChoice === null;
+
   // ─── Actions ─────────────────────────────────────────────────────
   async function handleCompletar() {
-    if (tienePrograma && sellar === null) return; // fuerza elegir
+    if (loyaltyPending) return;
+    const action = tienePrograma ? (loyaltyChoice ?? 'ninguna') : 'ninguna';
     setBusy(true);
-    await onCompletar(reserva.id, sellar !== false);
+    await onCompletar(reserva.id, action);
     setBusy(false);
     setDone(true);
     setExpanded(false);
@@ -215,38 +229,112 @@ export default function ReservaActionsCard({
                 </View>
               )}
 
-              {tienePrograma && puedeCerrar && (
-                <>
-                  <Text style={styles.sectionLabel}>¿Sellar tarjeta de fidelización?</Text>
-                  <View style={styles.yesno}>
-                    <TouchableOpacity
-                      style={[styles.ynBtn, sellar === true && styles.ynBtnYes]}
-                      onPress={() => setSellar(true)}
-                    >
-                      <Ionicons name="ribbon" size={14} color={sellar === true ? colors.black : colors.acid} />
-                      <Text style={[styles.ynTxt, sellar === true && { color: colors.black }]}>SÍ, SELLAR</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[styles.ynBtn, sellar === false && styles.ynBtnNo]}
-                      onPress={() => setSellar(false)}
-                    >
-                      <Ionicons name="close" size={14} color={sellar === false ? colors.white : colors.grayMid} />
-                      <Text style={[styles.ynTxt, { color: sellar === false ? colors.white : colors.grayMid }]}>NO SELLAR</Text>
-                    </TouchableOpacity>
-                  </View>
-                  {sellar === null && (
-                    <Text style={styles.hint}>Elegí una opción para continuar</Text>
-                  )}
-                </>
-              )}
+              {/* ── loyalty v2: panel de fidelización ── */}
+              {tienePrograma && puedeCerrar && (() => {
+                // Escenario 3: tarjeta completa → canjear y decidir nueva tarjeta
+                if (tarjetaCompletada) {
+                  return (
+                    <>
+                      <View style={styles.completadaBanner}>
+                        <Ionicons name="ribbon" size={16} color={colors.acid} />
+                        <Text style={styles.completadaTxt}>
+                          🎉 TARJETA COMPLETA — Este cliente tiene su beneficio listo para reclamar.
+                        </Text>
+                      </View>
+                      <Text style={styles.sectionLabel}>¿Darle una nueva tarjeta para el próximo ciclo?</Text>
+                      <View style={styles.yesno}>
+                        <TouchableOpacity
+                          style={[styles.ynBtn, loyaltyChoice === 'canjear_renovar' && styles.ynBtnYes]}
+                          onPress={() => setLoyaltyChoice('canjear_renovar')}
+                        >
+                          <Ionicons name="ribbon" size={14} color={loyaltyChoice === 'canjear_renovar' ? colors.black : colors.acid} />
+                          <Text style={[styles.ynTxt, loyaltyChoice === 'canjear_renovar' && { color: colors.black }]}>
+                            SÍ, NUEVA TARJETA
+                          </Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={[styles.ynBtn, loyaltyChoice === 'canjear_finalizar' && styles.ynBtnNo]}
+                          onPress={() => setLoyaltyChoice('canjear_finalizar')}
+                        >
+                          <Ionicons name="close" size={14} color={loyaltyChoice === 'canjear_finalizar' ? colors.white : colors.grayMid} />
+                          <Text style={[styles.ynTxt, { color: loyaltyChoice === 'canjear_finalizar' ? colors.white : colors.grayMid }]}>
+                            NO, FINALIZAR
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                      {loyaltyChoice === null && (
+                        <Text style={styles.hint}>Elegí una opción para continuar</Text>
+                      )}
+                    </>
+                  );
+                }
+
+                // Escenario 2: tiene tarjeta en progreso → sellar o no
+                if (tieneTargeta) {
+                  return (
+                    <>
+                      <Text style={styles.sectionLabel}>
+                        ¿SELLAR TARJETA? ({sellosCard}/{sellosRequeridos} sellos)
+                      </Text>
+                      <View style={styles.yesno}>
+                        <TouchableOpacity
+                          style={[styles.ynBtn, loyaltyChoice === 'sellar' && styles.ynBtnYes]}
+                          onPress={() => setLoyaltyChoice('sellar')}
+                        >
+                          <Ionicons name="ribbon" size={14} color={loyaltyChoice === 'sellar' ? colors.black : colors.acid} />
+                          <Text style={[styles.ynTxt, loyaltyChoice === 'sellar' && { color: colors.black }]}>SÍ, SELLAR</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={[styles.ynBtn, loyaltyChoice === 'ninguna' && styles.ynBtnNo]}
+                          onPress={() => setLoyaltyChoice('ninguna')}
+                        >
+                          <Ionicons name="close" size={14} color={loyaltyChoice === 'ninguna' ? colors.white : colors.grayMid} />
+                          <Text style={[styles.ynTxt, { color: loyaltyChoice === 'ninguna' ? colors.white : colors.grayMid }]}>NO SELLAR</Text>
+                        </TouchableOpacity>
+                      </View>
+                      {loyaltyChoice === null && (
+                        <Text style={styles.hint}>Elegí una opción para continuar</Text>
+                      )}
+                    </>
+                  );
+                }
+
+                // Escenario 1: no tiene tarjeta → ofrecer inscripción
+                return (
+                  <>
+                    <Text style={styles.sectionLabel}>¿INSCRIBIR AL CLIENTE EN EL PROGRAMA?</Text>
+                    <Text style={styles.hint}>Primera vez en tu programa de fidelización.</Text>
+                    <View style={styles.yesno}>
+                      <TouchableOpacity
+                        style={[styles.ynBtn, loyaltyChoice === 'dar_tarjeta' && styles.ynBtnYes]}
+                        onPress={() => setLoyaltyChoice('dar_tarjeta')}
+                      >
+                        <Ionicons name="ribbon" size={14} color={loyaltyChoice === 'dar_tarjeta' ? colors.black : colors.acid} />
+                        <Text style={[styles.ynTxt, loyaltyChoice === 'dar_tarjeta' && { color: colors.black }]}>SÍ, DAR TARJETA</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[styles.ynBtn, loyaltyChoice === 'ninguna' && styles.ynBtnNo]}
+                        onPress={() => setLoyaltyChoice('ninguna')}
+                      >
+                        <Ionicons name="close" size={14} color={loyaltyChoice === 'ninguna' ? colors.white : colors.grayMid} />
+                        <Text style={[styles.ynTxt, { color: loyaltyChoice === 'ninguna' ? colors.white : colors.grayMid }]}>NO POR AHORA</Text>
+                      </TouchableOpacity>
+                    </View>
+                    {loyaltyChoice === null && (
+                      <Text style={styles.hint}>Elegí una opción para continuar</Text>
+                    )}
+                  </>
+                );
+              })()}
+
               <TouchableOpacity
                 style={[
                   styles.actionBtn,
                   { backgroundColor: '#4ade80' },
-                  (!puedeCerrar || busy || (tienePrograma && sellar === null)) && styles.btnDisabled,
+                  (!puedeCerrar || busy || loyaltyPending) && styles.btnDisabled,
                 ]}
                 onPress={handleCompletar}
-                disabled={!puedeCerrar || busy || (tienePrograma && sellar === null)}
+                disabled={!puedeCerrar || busy || loyaltyPending}
               >
                 {busy
                   ? <ActivityIndicator size="small" color={colors.black} />
@@ -512,4 +600,16 @@ const styles = StyleSheet.create({
   },
   actionBtnTxt: { fontFamily: fonts.display, fontSize: 14, letterSpacing: 1.5 },
   btnDisabled: { opacity: 0.4 },
+
+  // Tarjeta completa — banner destacado
+  completadaBanner: {
+    flexDirection: 'row', alignItems: 'flex-start', gap: 8,
+    backgroundColor: 'rgba(212,255,0,0.08)',
+    borderWidth: 1, borderColor: 'rgba(212,255,0,0.3)',
+    borderRadius: radii.xs, padding: 10, marginBottom: 8,
+  },
+  completadaTxt: {
+    flex: 1, fontFamily: fonts.bodySemi, fontSize: 12,
+    color: colors.acid, lineHeight: 17,
+  },
 });

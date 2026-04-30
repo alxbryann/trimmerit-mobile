@@ -35,7 +35,6 @@ export default function LoyaltyConfigScreen({ navigation }) {
   const [beneficioTipo, setBeneficioTipo] = useState('personalizado');
   const [beneficioDesc, setBeneficioDesc] = useState('');
   const [clientesPendientes, setClientesPendientes] = useState([]);
-  const [redeeming, setRedeeming] = useState(null);
 
   const load = useCallback(async () => {
     if (!supabaseConfigured) { setLoading(false); return; }
@@ -135,32 +134,6 @@ export default function LoyaltyConfigScreen({ navigation }) {
     } else {
       Alert.alert('Guardado', 'Programa de fidelización actualizado.');
     }
-  }
-
-  async function handleRedeem(card) {
-    Alert.alert(
-      'Canjear beneficio',
-      `¿Confirmas que "${card.profiles?.nombre ?? 'este cliente'}" recibió el beneficio?`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Confirmar canje',
-          onPress: async () => {
-            setRedeeming(card.id);
-            const { data, error } = await supabase.rpc('redeem_loyalty_card', {
-              p_card_id: card.id,
-            });
-            setRedeeming(null);
-            if (error || !data?.ok) {
-              Alert.alert('Error', error?.message ?? data?.reason ?? 'No se pudo canjear.');
-            } else {
-              Alert.alert('¡Canjeado!', 'La tarjeta fue reiniciada. El cliente empieza un nuevo ciclo.');
-              await loadClientesPendientes(barberoId, parseInt(sellosRequeridos, 10));
-            }
-          },
-        },
-      ]
-    );
   }
 
   const sellosNum = parseInt(sellosRequeridos, 10) || 10;
@@ -289,13 +262,16 @@ export default function LoyaltyConfigScreen({ navigation }) {
           }
         </TouchableOpacity>
 
-        {/* Clientes listos para canjear */}
+        {/* Tarjetas completas — solo informativo */}
         {clientesPendientes.length > 0 && (
           <>
-            <Text style={styles.sectionLabel}>BENEFICIOS LISTOS PARA CANJEAR</Text>
-            <Text style={styles.sectionSubtitle}>
-              Estos clientes completaron su tarjeta y esperan el beneficio.
-            </Text>
+            <Text style={styles.sectionLabel}>TARJETAS COMPLETAS</Text>
+            <View style={styles.infoBox}>
+              <Ionicons name="information-circle-outline" size={15} color={colors.acid} />
+              <Text style={styles.infoTxt}>
+                Cuando estos clientes lleguen a su próximo corte, el panel te preguntará si querés darles una nueva tarjeta.
+              </Text>
+            </View>
             {clientesPendientes.map((card) => (
               <View key={card.id} style={styles.clientCard}>
                 <View style={styles.clientInfo}>
@@ -314,16 +290,10 @@ export default function LoyaltyConfigScreen({ navigation }) {
                     </Text>
                   </View>
                 </View>
-                <TouchableOpacity
-                  style={[styles.redeemBtn, redeeming === card.id && styles.redeemBtnDisabled]}
-                  onPress={() => handleRedeem(card)}
-                  disabled={redeeming === card.id}
-                >
-                  {redeeming === card.id
-                    ? <ActivityIndicator size="small" color={colors.black} />
-                    : <Text style={styles.redeemBtnText}>CANJEAR</Text>
-                  }
-                </TouchableOpacity>
+                <View style={styles.completadaBadge}>
+                  <Ionicons name="ribbon" size={14} color={colors.acid} />
+                  <Text style={styles.completadaBadgeTxt}>COMPLETA</Text>
+                </View>
               </View>
             ))}
           </>
@@ -444,14 +414,23 @@ const styles = StyleSheet.create({
   clientNombre: { fontFamily: fonts.bodyBold, fontSize: 14, color: colors.white },
   clientTel: { fontFamily: fonts.body, fontSize: 12, color: colors.grayLight },
   clientSellos: { fontFamily: fonts.body, fontSize: 11, color: colors.acid, marginTop: 1 },
-  redeemBtn: {
-    backgroundColor: colors.acid,
-    borderRadius: radii.sm,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    alignItems: 'center',
-    minWidth: 80,
+  completadaBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    backgroundColor: 'rgba(212,255,0,0.08)',
+    borderWidth: 1, borderColor: 'rgba(212,255,0,0.3)',
+    borderRadius: radii.xs, paddingHorizontal: 8, paddingVertical: 6,
   },
-  redeemBtnDisabled: { opacity: 0.6 },
-  redeemBtnText: { fontFamily: fonts.display, fontSize: 13, letterSpacing: 1.5, color: colors.black },
+  completadaBadgeTxt: {
+    fontFamily: fonts.display, fontSize: 10, letterSpacing: 1, color: colors.acid,
+  },
+  infoBox: {
+    flexDirection: 'row', alignItems: 'flex-start', gap: 8,
+    backgroundColor: 'rgba(212,255,0,0.05)',
+    borderWidth: 1, borderColor: 'rgba(212,255,0,0.2)',
+    borderRadius: radii.xs, padding: 10, marginBottom: 4,
+  },
+  infoTxt: {
+    flex: 1, fontFamily: fonts.body, fontSize: 12,
+    color: colors.grayLight, lineHeight: 17,
+  },
 });

@@ -77,6 +77,10 @@ export default function PanelScreen({ navigation, route }) {
   const [profiles, setProfiles] = useState({});
   const [loadErr, setLoadErr] = useState(null);
   const [tienePrograma, setTienePrograma] = useState(false);
+  // loyalty v2: estado de tarjeta por cliente { [clienteId]: { sellosAcumulados, sellosRequeridos, tarjetaCompletada } }
+  const [loyaltyByCliente, setLoyaltyByCliente] = useState({});
+  // banner de auto-completado
+  const [autoCount, setAutoCount] = useState(0);
 
   // Cola de notificaciones para el barbero (respuestas del cliente + acciones del cliente)
   const [solicitudQueue, setSolicitudQueue] = useState([]);
@@ -99,24 +103,76 @@ export default function PanelScreen({ navigation, route }) {
       return;
     }
     const rows = data ?? [];
-    setReservas(rows);
+
+    // ── Auto-completar citas con >1h sin confirmar (loyalty v2) ──────────
+    const now = Date.now();
+    const UNA_HORA = 60 * 60 * 1000;
+    const expiradas = rows.filter((r) => {
+      if (r.estado !== 'pendiente') return false;
+      const [y, mo, d] = r.fecha.split('-').map(Number);
+      const [h, min]   = (r.hora ?? '00:00').split(':').map(Number);
+      const citaMs = new Date(y, mo - 1, d, h, min, 0, 0).getTime();
+      return (now - citaMs) > UNA_HORA;
+    });
+
+    if (expiradas.length > 0) {
+      await Promise.all(
+        expiradas.map(async (r) => {
+          await supabase.from('reservas').update({ estado: 'completada' }).eq('id', r.id);
+          // OWASP A01: add_loyalty_stamp ya verifica que auth.uid() == barbero_id
+          if (tienePrograma) {
+            await supabase.rpc('add_loyalty_stamp', { p_reserva_id: r.id });
+          }
+          r.estado = 'completada'; // actualizar local para el re-render
+        })
+      );
+      setAutoCount(expiradas.length);
+    } else {
+      setAutoCount(0);
+    }
+
+    setReservas([...rows]); // spread para forzar re-render
+
     const ids = [...new Set(rows.map((r) => r.cliente_id))];
     if (ids.length === 0) {
       setProfiles({});
+      setLoyaltyByCliente({});
       return;
     }
+
+    // Perfiles de clientes
     const { data: profs, error: pErr } = await supabase
       .from('profiles')
       .select('id, nombre, telefono')
       .in('id', ids);
-    if (pErr) {
-      setLoadErr(pErr.message);
-      return;
-    }
+    if (pErr) { setLoadErr(pErr.message); return; }
     const map = {};
     for (const p of profs ?? []) map[p.id] = p;
     setProfiles(map);
-  }, [barberoId, dateStr]);
+
+    // Tarjetas de fidelización activas para los clientes del día
+    if (tienePrograma) {
+      const { data: loyCards } = await supabase
+        .from('loyalty_cards')
+        .select('cliente_id, sellos_acumulados, canjeado_at, loyalty_programs(sellos_requeridos)')
+        .eq('barbero_id', barberoId)
+        .in('cliente_id', ids)
+        .is('canjeado_at', null);
+
+      const loyMap = {};
+      for (const c of loyCards ?? []) {
+        const req = c.loyalty_programs?.sellos_requeridos ?? 99;
+        loyMap[c.cliente_id] = {
+          sellosAcumulados:  c.sellos_acumulados,
+          sellosRequeridos:  req,
+          tarjetaCompletada: c.sellos_acumulados >= req,
+        };
+      }
+      setLoyaltyByCliente(loyMap);
+    } else {
+      setLoyaltyByCliente({});
+    }
+  }, [barberoId, dateStr, tienePrograma]);
 
   // ─── Verificar si tiene programa de fidelización activo ───────────────────
   const checkPrograma = useCallback(async (bId) => {
@@ -186,28 +242,50 @@ export default function PanelScreen({ navigation, route }) {
 
   // ─── Handlers ─────────────────────────────────────────────────────────────
 
-  async function handleCompletarReserva(reservaId, sellarFidelizacion) {
+  // ── loyalty v2: acciones posibles ────────────────────────────────────────
+  // 'dar_tarjeta'      → crear tarjeta + 1 sello (add_loyalty_stamp crea card si no existe)
+  // 'sellar'           → solo agregar sello a tarjeta existente
+  // 'canjear_renovar'  → canjear tarjeta completa + dar nueva con 1 sello
+  // 'canjear_finalizar'→ canjear tarjeta completa, sin nueva tarjeta
+  // 'ninguna'          → completar sin acción de fidelización
+  async function handleCompletarReserva(reservaId, loyaltyAction = 'ninguna') {
     await supabase.from('reservas').update({ estado: 'completada' }).eq('id', reservaId);
 
-    if (sellarFidelizacion && tienePrograma) {
-      try {
+    try {
+      if (loyaltyAction === 'dar_tarjeta' || loyaltyAction === 'sellar') {
         const { data: stampResult } = await supabase.rpc('add_loyalty_stamp', {
           p_reserva_id: reservaId,
         });
         if (stampResult?.ok && stampResult?.completado) {
           Alert.alert(
             '🎉 ¡Tarjeta completada!',
-            `El cliente completó su tarjeta de fidelización.\nBeneficio: ${stampResult.beneficio}`
+            `El cliente completó su tarjeta.\nBeneficio: ${stampResult.beneficio}`
           );
         }
-      } catch (_) {
-        // ignorar si el RPC no existe aún
+      } else if (loyaltyAction === 'canjear_renovar' || loyaltyAction === 'canjear_finalizar') {
+        const darNueva = loyaltyAction === 'canjear_renovar';
+        const { data: redeemResult } = await supabase.rpc('redeem_and_give_new_card', {
+          p_reserva_id: reservaId,
+          p_dar_nueva:  darNueva,
+        });
+        if (redeemResult?.ok) {
+          Alert.alert(
+            '✅ Beneficio entregado',
+            darNueva
+              ? 'La tarjeta fue canjeada y se inició una nueva para el cliente.'
+              : 'La tarjeta fue canjeada. El cliente no inicia un nuevo ciclo.'
+          );
+        }
       }
+    } catch (_) {
+      // RPC no disponible aún en entornos sin migración
     }
 
     setReservas((prev) =>
       prev.map((r) => (r.id === reservaId ? { ...r, estado: 'completada' } : r))
     );
+    // Refrescar tarjetas de fidelización post-acción
+    loadReservas();
   }
 
   async function handleCancelarReserva(reservaId, razon) {
@@ -354,19 +432,34 @@ export default function PanelScreen({ navigation, route }) {
 
         {loadErr ? <Text style={styles.err}>{loadErr}</Text> : null}
 
+        {/* Banner de auto-completado */}
+        {autoCount > 0 && (
+          <View style={styles.autoBanner}>
+            <Text style={styles.autoBannerTxt}>
+              ⚡ {autoCount} {autoCount === 1 ? 'cita completada' : 'citas completadas'} automáticamente
+              {tienePrograma ? ' y sellada' : ''} (más de 1 h sin confirmar)
+            </Text>
+          </View>
+        )}
+
         {/* Lista de citas */}
         <Text style={styles.section}>CITAS DEL DÍA ({sorted.length})</Text>
         {sorted.length === 0 ? (
           <Text style={styles.empty}>Sin citas para este día.</Text>
         ) : (
           sorted.map((r) => {
-            const perfil = profiles[r.cliente_id] ?? null;
+            const perfil   = profiles[r.cliente_id] ?? null;
+            const loyInfo  = loyaltyByCliente[r.cliente_id] ?? null;
             return (
               <ReservaActionsCard
                 key={r.id}
                 reserva={r}
                 perfil={perfil}
                 tienePrograma={tienePrograma}
+                tieneTargeta={Boolean(loyInfo)}
+                tarjetaCompletada={loyInfo?.tarjetaCompletada ?? false}
+                sellosCard={loyInfo?.sellosAcumulados ?? 0}
+                sellosRequeridos={loyInfo?.sellosRequeridos ?? 10}
                 onCompletar={handleCompletarReserva}
                 onCancelar={handleCancelarReserva}
                 onAplazar={handleAplazarReserva}
@@ -476,4 +569,19 @@ const styles = StyleSheet.create({
   slotCell: { flex: 1, padding: 8, justifyContent: 'center' },
   slotName: { fontFamily: fonts.bodyBold, fontSize: 13, color: colors.white },
   libre: { fontFamily: fonts.body, fontSize: 11, color: '#444' },
+  autoBanner: {
+    backgroundColor: 'rgba(205,255,0,0.07)',
+    borderWidth: 1,
+    borderColor: 'rgba(205,255,0,0.25)',
+    borderRadius: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginBottom: 12,
+  },
+  autoBannerTxt: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: colors.acid,
+    lineHeight: 17,
+  },
 });

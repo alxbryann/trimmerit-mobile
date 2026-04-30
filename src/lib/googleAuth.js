@@ -61,20 +61,28 @@ export async function finalizeOAuthFromUrl(urlString) {
 
 /**
  * Google OAuth en nativo: abre el navegador y aplica tokens al cliente Supabase.
+ *
+ * Flujo:
+ *  1. Supabase genera URL de Google OAuth con redirectTo = deep link de la app
+ *  2. openAuthSessionAsync abre el browser; iOS/Android lo cierran cuando detectan
+ *     el scheme barberit:// (o exp:// en dev) y devuelven la URL con el code/tokens
+ *  3. finalizeOAuthFromUrl extrae el code/tokens y establece la sesión
  */
 export async function signInWithGoogle() {
   const redirectTo = getOAuthRedirectUri();
 
+  // OWASP A07: flowType 'pkce' — el code_challenge viaja en la URL pública;
+  // el code_verifier se guarda en SecureStore y se valida al canjear el code.
+  // Esto evita el flujo implícito donde los tokens van en el hash de la URL.
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
-    options: { redirectTo, skipBrowserRedirect: true },
+    options: { redirectTo, skipBrowserRedirect: true, flowType: 'pkce' },
   });
   if (error) throw error;
   if (!data?.url) throw new Error('No OAuth URL');
 
-  // Debe coincidir exactamente con `redirectTo` de signInWithOAuth. Si usas HTTPS
-  // (EXPO_PUBLIC_SITE_URL → …/auth/mobile-callback) y aquí pasas barberit://, iOS no
-  // reconoce el cierre del ASWebAuthenticationSession y la promesa no termina.
+  // redirectTo debe coincidir aquí también: iOS cierra ASWebAuthenticationSession
+  // cuando el browser navega a una URL que empieza con este scheme.
   const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
 
   if (result.type !== 'success' || !result.url) {
@@ -83,11 +91,12 @@ export async function signInWithGoogle() {
 
   const ok = await finalizeOAuthFromUrl(result.url);
   if (ok) {
-    const { data } = await supabase.auth.getSession();
-    return { cancelled: false, session: data?.session ?? null };
+    const { data: sessionData } = await supabase.auth.getSession();
+    return { cancelled: false, session: sessionData?.session ?? null };
   }
 
   throw new Error(
-    'No se pudo leer la sesión. Añade en Supabase Redirect URLs la URL HTTPS de callback (ver EXPO_PUBLIC_SITE_URL + /auth/mobile-callback) y exp://** / barberit://** si usas deep links.'
+    'OAuth completó pero no se pudo establecer la sesión. ' +
+    'Verificá en Supabase Dashboard → Authentication → URL Configuration que estén añadidos: exp://** y barberit://**'
   );
 }

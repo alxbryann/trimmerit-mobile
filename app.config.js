@@ -19,6 +19,8 @@ export default {
     infoPlist: {
       UIBackgroundModes: ['remote-notification'],
       ITSAppUsesNonExemptEncryption: false,
+      NSLocationWhenInUseUsageDescription:
+        'Trimmerit usa tu ubicación para mostrarte las barberías más cercanas.',
     },
   },
   android: {
@@ -28,6 +30,7 @@ export default {
       backgroundColor: '#0a0a0a',
     },
     edgeToEdgeEnabled: true,
+    permissions: ['android.permission.ACCESS_FINE_LOCATION'],
   },
   web: {
     favicon: './assets/favicon.png',
@@ -43,6 +46,13 @@ export default {
   plugins: [
     'expo-video',
     'expo-web-browser',
+    [
+      'expo-location',
+      {
+        locationWhenInUsePermission:
+          'Trimmerit usa tu ubicación para mostrarte las barberías más cercanas.',
+      },
+    ],
     'expo-font',
     '@react-native-community/datetimepicker',
     [
