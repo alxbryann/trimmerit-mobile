@@ -14,6 +14,7 @@ import EditarScreen from '../screens/EditarScreen';
 import AdminBarberiaScreen from '../screens/AdminBarberiaScreen';
 import EmpleadoBarberiaScreen from '../screens/EmpleadoBarberiaScreen';
 import FeedBarberoScreen from '../screens/FeedBarberoScreen';
+import LogrosScreen from '../screens/LogrosScreen';
 import SolicitudPopup from '../components/SolicitudPopup';
 import { notifRespuestaAlBarbero } from '../lib/notifications';
 import { colors, fonts } from '../theme';
@@ -31,6 +32,7 @@ const CLIENT_ICONS = {
   Catalogo: { focused: 'search', outline: 'search-outline' },
   Agenda: { focused: 'time', outline: 'time-outline' },
   Fidelizacion: { focused: 'ribbon', outline: 'ribbon-outline' },
+  Logros: { focused: 'trophy', outline: 'trophy-outline' },
   CerrarSesion: { focused: 'log-out-outline', outline: 'log-out-outline' },
 };
 
@@ -38,6 +40,7 @@ const BARBER_ICONS = {
   MiAgenda:     { focused: 'calendar',    outline: 'calendar-outline'    },
   Feed:         { focused: 'grid',        outline: 'grid-outline'        },
   MiPerfil:     { focused: 'person',      outline: 'person-outline'      },
+  Logros: { focused: 'trophy', outline: 'trophy-outline' },
   CerrarSesion: { focused: 'log-out-outline', outline: 'log-out-outline' },
 };
 
@@ -46,6 +49,7 @@ const ADMIN_ICONS = {
   MiAgenda:     { focused: 'calendar',    outline: 'calendar-outline'    },
   Feed:         { focused: 'grid',        outline: 'grid-outline'        },
   MiPerfil:     { focused: 'person',      outline: 'person-outline'      },
+  Logros: { focused: 'trophy', outline: 'trophy-outline' },
   CerrarSesion: { focused: 'log-out-outline', outline: 'log-out-outline' },
 };
 
@@ -79,6 +83,7 @@ const EMPLEADO_ICONS = {
   MiAgenda:     { focused: 'calendar',    outline: 'calendar-outline'    },
   Feed:         { focused: 'grid',        outline: 'grid-outline'        },
   MiPerfil:     { focused: 'person',      outline: 'person-outline'      },
+  Logros: { focused: 'trophy', outline: 'trophy-outline' },
   CerrarSesion: { focused: 'log-out-outline', outline: 'log-out-outline' },
 };
 
@@ -150,6 +155,7 @@ function ClientTabs({ bottomPad }) {
       <Tab.Screen name="Catalogo" component={CatalogoScreen} options={{ tabBarLabel: 'Catálogo' }} />
       <Tab.Screen name="Agenda" component={AgendaScreen} options={{ tabBarLabel: 'Agenda' }} />
       <Tab.Screen name="Fidelizacion" component={LoyaltyCardScreen} options={{ tabBarLabel: 'Sellos' }} />
+      <Tab.Screen name="Logros" component={LogrosScreen} options={{ tabBarLabel: 'Logros' }} />
       <Tab.Screen
         name="CerrarSesion"
         component={ClientLogoutStub}
@@ -200,6 +206,7 @@ function BarberTabs({ bottomPad, slug }) {
         <Tab.Screen name="MiAgenda" component={BarberPanelTab} options={{ tabBarLabel: 'Mi agenda' }} />
         <Tab.Screen name="Feed" component={FeedBarberoScreen} options={{ tabBarLabel: 'Feed' }} />
         <Tab.Screen name="MiPerfil" component={BarberEditarTab} options={{ tabBarLabel: 'Mi perfil' }} />
+        <Tab.Screen name="Logros" component={LogrosScreen} options={{ tabBarLabel: 'Logros' }} />
         <Tab.Screen
           name="CerrarSesion"
           component={BarberLogoutStub}
@@ -252,6 +259,7 @@ function AdminBarberTabs({ bottomPad, slug }) {
         <Tab.Screen name="MiAgenda" component={BarberPanelTab} options={{ tabBarLabel: 'Agenda' }} />
         <Tab.Screen name="Feed" component={FeedBarberoScreen} options={{ tabBarLabel: 'Feed' }} />
         <Tab.Screen name="MiPerfil" component={BarberEditarTab} options={{ tabBarLabel: 'Perfil' }} />
+        <Tab.Screen name="Logros" component={LogrosScreen} options={{ tabBarLabel: 'Logros' }} />
         <Tab.Screen
           name="CerrarSesion"
           component={AdminLogoutStub}
@@ -303,6 +311,7 @@ function EmpleadoTabs({ bottomPad, slug }) {
         <Tab.Screen name="MiAgenda" component={EmpleadoBarberiaScreen} options={{ tabBarLabel: 'Mi Agenda' }} />
         <Tab.Screen name="Feed" component={FeedBarberoScreen} options={{ tabBarLabel: 'Feed' }} />
         <Tab.Screen name="MiPerfil" component={BarberEditarTab} options={{ tabBarLabel: 'Mi perfil' }} />
+        <Tab.Screen name="Logros" component={LogrosScreen} options={{ tabBarLabel: 'Logros' }} />
         <Tab.Screen
           name="CerrarSesion"
           component={EmpleadoLogoutStub}

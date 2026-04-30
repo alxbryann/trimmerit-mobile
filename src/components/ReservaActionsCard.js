@@ -224,7 +224,7 @@ export default function ReservaActionsCard({
                 <View style={styles.futureWarning}>
                   <Ionicons name="time-outline" size={16} color="#60a5fa" />
                   <Text style={styles.futureWarningTxt}>
-                    La cita aún no ha ocurrido. Podés confirmar el corte a partir de las {reserva.hora ?? '—'}.
+                    La cita aún no ha ocurrido. Puedes confirmar el corte a partir de las {reserva.hora ?? '—'}.
                   </Text>
                 </View>
               )}
@@ -263,7 +263,7 @@ export default function ReservaActionsCard({
                         </TouchableOpacity>
                       </View>
                       {loyaltyChoice === null && (
-                        <Text style={styles.hint}>Elegí una opción para continuar</Text>
+                        <Text style={styles.hint}>Elige una opción para continuar</Text>
                       )}
                     </>
                   );
@@ -293,7 +293,7 @@ export default function ReservaActionsCard({
                         </TouchableOpacity>
                       </View>
                       {loyaltyChoice === null && (
-                        <Text style={styles.hint}>Elegí una opción para continuar</Text>
+                        <Text style={styles.hint}>Elige una opción para continuar</Text>
                       )}
                     </>
                   );
@@ -355,7 +355,7 @@ export default function ReservaActionsCard({
                 style={styles.textarea}
                 value={razonCancel}
                 onChangeText={setRazonCancel}
-                placeholder="Explicá al cliente por qué se cancela la cita..."
+                placeholder="Explica al cliente por qué se cancela la cita..."
                 placeholderTextColor={colors.grayMid}
                 multiline
                 numberOfLines={3}
@@ -392,7 +392,7 @@ export default function ReservaActionsCard({
                 style={styles.textarea}
                 value={razonAplazar}
                 onChangeText={setRazonAplazar}
-                placeholder="Explicá por qué proponés este cambio de fecha..."
+                placeholder="Explica por qué propones este cambio de fecha..."
                 placeholderTextColor={colors.grayMid}
                 multiline
                 numberOfLines={2}

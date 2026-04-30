@@ -17,8 +17,8 @@ import { RESET_MAIN_AGENDA } from '../navigation/resetMainTabs';
 
 const ROLES = [
   { id: 'cliente', title: 'SOY CLIENTE', sub: 'Reservar citas' },
-  { id: 'admin_barberia', title: 'DUEÑO TRIMMERIT', sub: 'Creá tu local' },
-  { id: 'barbero_empleado', title: 'COLABORADOR', sub: 'Unirme con código' },
+  { id: 'admin_barberia', title: 'DUEÑO TRIMMERIT', sub: 'Crea tu local' },
+  { id: 'barbero_empleado', title: 'COLABORADOR', sub: 'Únete con código' },
 ];
 
 function normalizeIntentRole(r) {
@@ -74,16 +74,16 @@ export default function CompletarPerfilScreen({ navigation, route }) {
 
     if (role === 'cliente') {
       if (!tel) {
-        setError('Ingresá tu número de teléfono.');
+        setError('Ingresa tu número de teléfono.');
         return;
       }
     } else if (role === 'admin_barberia' || role === 'barbero_empleado') {
       if (!nameBarber) {
-        setError('Ingresá tu nombre.');
+        setError('Ingresa tu nombre.');
         return;
       }
       if (!tel) {
-        setError('Ingresá tu teléfono.');
+        setError('Ingresa tu teléfono.');
         return;
       }
     }
@@ -131,7 +131,7 @@ export default function CompletarPerfilScreen({ navigation, route }) {
   const heroTitle = isClienteFlow ? 'TU TELÉFONO' : 'UN PASO MÁS';
   const heroSub = isClienteFlow
     ? 'Con esto podemos avisarte por SMS cuando confirmes una reserva.'
-    : 'Completá los datos para continuar.';
+    : 'Completa los datos para continuar.';
 
   const showIdentityCard = !!(sessionInfo.email || sessionInfo.nombre);
   const identityInitial = (sessionInfo.nombre || sessionInfo.email || '?').trim().charAt(0).toUpperCase();

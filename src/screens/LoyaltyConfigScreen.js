@@ -99,7 +99,7 @@ export default function LoyaltyConfigScreen({ navigation }) {
       return;
     }
     if (!beneficioDesc.trim()) {
-      Alert.alert('Error', 'Describí el beneficio que van a recibir los clientes.');
+      Alert.alert('Error', 'Describe el beneficio que van a recibir los clientes.');
       return;
     }
 

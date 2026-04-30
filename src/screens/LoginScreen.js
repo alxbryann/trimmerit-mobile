@@ -64,7 +64,7 @@ export default function LoginScreen({ navigation, route }) {
 
       // La sesión ya está en Supabase; quitar el spinner ANTES de red/DB. Si `profiles`
       // o la navegación tardan, no debe quedar “Conectando…” para siempre (al recargar
-      // igual entrás porque la sesión persistió).
+      // igual ingresas porque la sesión persistió).
       setOauthLoading(false);
 
       const { data: existing } = await supabase.from('profiles').select('role').eq('id', session.user.id).maybeSingle();
@@ -98,9 +98,9 @@ export default function LoginScreen({ navigation, route }) {
               <Text style={styles.tagline}>— entrar —</Text>
               <Text style={styles.title}>bienvenido{'\n'}de vuelta.</Text>
               <Text style={styles.sub}>
-                ¿No tenés cuenta?{' '}
+                ¿No tienes cuenta?{' '}
                 <Text style={styles.link} onPress={() => navigation.navigate('Registro', { redirect })}>
-                  Registrate
+                  Regístrate
                 </Text>
               </Text>
             </View>
@@ -145,7 +145,7 @@ export default function LoginScreen({ navigation, route }) {
 
             <View style={styles.divider}>
               <View style={styles.divLine} />
-              <Text style={styles.divTxt}>o continuá con</Text>
+              <Text style={styles.divTxt}>o continúa con</Text>
               <View style={styles.divLine} />
             </View>
 

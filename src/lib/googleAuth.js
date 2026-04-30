@@ -12,7 +12,7 @@ export { getOAuthRedirectUri } from './oauthRedirect';
 
 /**
  * Extrae tokens (implicit) o code (PKCE) de la URL final del proveedor.
- * Acepta exp://, barberit:// y también https:// (p. ej. Site URL si falló el allowlist).
+ * Acepta exp://, trimmerit:// y también https:// (p. ej. Site URL si falló el allowlist).
  */
 function extractOAuthFromUrl(urlString) {
   if (!urlString || typeof urlString !== 'string') return null;
@@ -40,7 +40,7 @@ function extractOAuthFromUrl(urlString) {
   return null;
 }
 
-/** Si la app se abre con barberit://auth/callback#… tras la página web de respaldo. */
+/** Si la app se abre con trimmerit://auth/callback#… tras la página web de respaldo. */
 export async function finalizeOAuthFromUrl(urlString) {
   const parsed = extractOAuthFromUrl(urlString);
   if (parsed?.kind === 'tokens') {

@@ -1,5 +1,5 @@
 -- ============================================================
--- SISTEMA DE FIDELIZACIÓN — BarberIT
+-- SISTEMA DE FIDELIZACIÓN — Trimmerit
 -- Ejecutar en Supabase SQL Editor (Dashboard → SQL Editor)
 -- ============================================================
 

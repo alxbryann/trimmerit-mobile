@@ -15,8 +15,8 @@ import { colors, fonts } from '../theme';
 import ReservaActionsCard from '../components/ReservaActionsCard';
 import SolicitudPopup from '../components/SolicitudPopup';
 import {
-  notifCancelacionAlCliente,
   notifAplazamientoAlCliente,
+  sendPushNotification,
 } from '../lib/notifications';
 
 const SLOT_START = 9 * 60;
@@ -64,6 +64,7 @@ export default function PanelScreen({ navigation, route }) {
   const [loading, setLoading] = useState(true);
   const [authError, setAuthError] = useState(false);
   const [barberoId, setBarberoId] = useState(null);
+  const [barberoNombre, setBarberoNombre] = useState('');
   const [barberiaNombre, setBarberiaNombre] = useState('');
 
   const [day, setDay] = useState(() => {
@@ -143,7 +144,7 @@ export default function PanelScreen({ navigation, route }) {
     // Perfiles de clientes
     const { data: profs, error: pErr } = await supabase
       .from('profiles')
-      .select('id, nombre, telefono')
+      .select('id, nombre, telefono, push_token')
       .in('id', ids);
     if (pErr) { setLoadErr(pErr.message); return; }
     const map = {};
@@ -213,7 +214,7 @@ export default function PanelScreen({ navigation, route }) {
       }
       const { data: barbero, error } = await supabase
         .from('barberos')
-        .select('id, slug, nombre_barberia')
+        .select('id, slug, nombre_barberia, profiles(nombre)')
         .eq('id', user.id)
         .maybeSingle();
       if (error || !barbero) {
@@ -226,6 +227,7 @@ export default function PanelScreen({ navigation, route }) {
         return;
       }
       setBarberoId(barbero.id);
+      setBarberoNombre(barbero.profiles?.nombre || '');
       setBarberiaNombre(barbero.nombre_barberia || '');
       setLoading(false);
     })();
@@ -299,8 +301,41 @@ export default function PanelScreen({ navigation, route }) {
       return;
     }
 
-    // Notificación local (actúa como simulación de push al cliente)
-    await notifCancelacionAlCliente(barberiaNombre || 'Trimmerit');
+    const reserva = reservas.find((r) => r.id === reservaId);
+    let pushToken = reserva?.cliente_id ? profiles[reserva.cliente_id]?.push_token : null;
+
+    if (!pushToken && reserva?.cliente_id) {
+      const { data: clienteProfile } = await supabase
+        .from('profiles')
+        .select('push_token')
+        .eq('id', reserva.cliente_id)
+        .maybeSingle();
+      pushToken = clienteProfile?.push_token ?? null;
+    }
+
+    if (pushToken) {
+      const profesionalNombre = barberoNombre || barberiaNombre || 'Tu barbero';
+      const razonCancelacion = razon?.trim();
+      const pushResult = await sendPushNotification({
+        to: pushToken,
+        title: `❌ Reserva cancelada por ${profesionalNombre}`,
+        body: razonCancelacion
+          ? `${profesionalNombre} canceló tu cita. Razón: ${razonCancelacion}`
+          : `${profesionalNombre} canceló tu cita. Abre la app para más detalles.`,
+        data: { tipo: 'cancelacion', reservaId, razon: razonCancelacion },
+      });
+      const receiptError = pushResult?.receipt?.details?.error;
+      if (receiptError === 'DeviceNotRegistered' && reserva?.cliente_id) {
+        await supabase
+          .from('profiles')
+          .update({ push_token: null })
+          .eq('id', reserva.cliente_id)
+          .eq('push_token', pushToken);
+        console.warn('[PanelScreen] push_token inválido limpiado para cliente:', reserva.cliente_id);
+      }
+    } else {
+      console.warn('[PanelScreen] Cliente sin push_token para cancelación:', reserva?.cliente_id);
+    }
 
     setReservas((prev) =>
       prev.map((r) => (r.id === reservaId ? { ...r, estado: 'cancelada' } : r))

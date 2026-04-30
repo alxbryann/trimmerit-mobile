@@ -136,7 +136,7 @@ export async function deleteFromS3(s3Path) {
 // ─── extractS3Path ─────────────────────────────────────────────────────────────
 /**
  * Extrae la Key relativa de una URL pública de S3.
- * "https://barberit-media.s3.sa-east-1.amazonaws.com/USER_ID/galeria/foto.jpg"
+ * "https://trimmerit-media.s3.sa-east-1.amazonaws.com/USER_ID/galeria/foto.jpg"
  *  → "USER_ID/galeria/foto.jpg"
  */
 export function extractS3Path(publicUrl) {

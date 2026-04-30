@@ -1,5 +1,5 @@
 -- ============================================================
--- ACCIONES DEL CLIENTE SOBRE SUS RESERVAS — BarberIT
+-- ACCIONES DEL CLIENTE SOBRE SUS RESERVAS — Trimmerit
 -- Permite al cliente cancelar o cambiar fecha/hora de su cita
 -- El barbero recibe notificación in-app (reserva_solicitudes)
 -- ============================================================

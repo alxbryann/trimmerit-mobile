@@ -1,12 +1,12 @@
 /** @type {import('expo/config').ExpoConfig} */
 export default {
   name: 'trimmerit',
-  slug: 'barberit',
+  slug: 'trimmerit',
   version: '1.0.0',
   orientation: 'portrait',
   icon: './assets/icon.png',
   userInterfaceStyle: 'dark',
-  scheme: 'barberit',
+  scheme: 'trimmerit',
   newArchEnabled: true,
   splash: {
     image: './assets/splash-icon.png',
@@ -15,7 +15,7 @@ export default {
   },
   ios: {
     supportsTablet: true,
-    bundleIdentifier: 'com.barberit.app',
+    bundleIdentifier: 'com.trimmerit.app',
     infoPlist: {
       UIBackgroundModes: ['remote-notification'],
       ITSAppUsesNonExemptEncryption: false,
@@ -24,7 +24,7 @@ export default {
     },
   },
   android: {
-    package: 'com.barberit.app',
+    package: 'com.trimmerit.app',
     adaptiveIcon: {
       foregroundImage: './assets/adaptive-icon.png',
       backgroundColor: '#0a0a0a',
@@ -60,7 +60,7 @@ export default {
       {
         icon: './assets/icon.png',
         color: '#c8a96a',
-        sounds: ['./assets/barber_buzz.caf', './assets/barber_buzz.wav'],
+        sounds: ['./assets/barber_buzz.wav'],
       },
     ],
     [

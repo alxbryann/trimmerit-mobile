@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { supabase, supabaseConfigured } from '../lib/supabase';
 import { colors, fonts } from '../theme';
 import LoyaltyCard from '../components/LoyaltyCard';
@@ -67,8 +68,13 @@ export default function LoyaltyCardScreen({ navigation }) {
     if (!silent) setLoading(false);
   }, []);
 
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load])
+  );
+
   useEffect(() => {
-    load();
     const { data: sub } = supabase.auth.onAuthStateChange(() => load({ silent: true }));
     return () => sub.subscription.unsubscribe();
   }, [load]);
@@ -122,15 +128,15 @@ export default function LoyaltyCardScreen({ navigation }) {
 
         {!session?.user ? (
           <EmptyState
-            title="iniciá sesión"
-            subtitle="Necesitás una cuenta para ver tus tarjetas de fidelización."
+            title="inicia sesión"
+            subtitle="Necesitas una cuenta para ver tus tarjetas de fidelización."
             action="iniciar sesión →"
             onAction={() => navigation.navigate('Login')}
           />
         ) : cards.length === 0 ? (
           <EmptyState
             title="sin tarjetas todavía"
-            subtitle="Reservá y completá cortes en locales Trimmerit con programa de fidelización para acumular sellos."
+            subtitle="Reserva y completa cortes en locales Trimmerit con programa de fidelización para acumular sellos."
             action="ver locales →"
             onAction={() => navigation.navigate('Catalogo')}
           />
@@ -149,7 +155,7 @@ export default function LoyaltyCardScreen({ navigation }) {
                       completada
                     />
                     <Text style={styles.redeemHint}>
-                      Mostrá esta tarjeta en tu próxima visita para canjear el beneficio.
+                      Muestra esta tarjeta en tu próxima visita para canjear el beneficio.
                     </Text>
                   </View>
                 ))}
