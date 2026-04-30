@@ -11,11 +11,10 @@
  *  A09 — solo logs en __DEV__
  */
 
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   View,
   Text,
-  FlatList,
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
@@ -25,7 +24,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { supabase, supabaseConfigured } from '../lib/supabase';
-import { colors, fonts } from '../theme';
+import { fonts } from '../theme';
+import { useColors } from '../theme/ThemeContext';
 import PostCard from '../components/PostCard';
 
 const SERVICIOS_LABELS = {
@@ -35,7 +35,7 @@ const SERVICIOS_LABELS = {
 };
 
 // ── Componente: card de una barbería frecuente ────────────────────────────────
-function BarberiaCard({ item, onPress }) {
+function BarberiaCard({ item, onPress, styles }) {
   const servicios = (item.servicios_especiales ?? [])
     .map((s) => SERVICIOS_LABELS[s] ?? s)
     .slice(0, 2);
@@ -83,6 +83,204 @@ function BarberiaCard({ item, onPress }) {
 
 // ── Pantalla principal ────────────────────────────────────────────────────────
 export default function InicioClienteScreen({ navigation }) {
+  const colors = useColors();
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        root: { flex: 1, backgroundColor: colors.ink },
+        safe: { flex: 1 },
+        scroll: { paddingBottom: 40 },
+
+        header: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 20 },
+        headerKicker: {
+          fontFamily: fonts.mono,
+          fontSize: 11,
+          letterSpacing: 3,
+          textTransform: 'uppercase',
+          color: colors.champagne,
+          marginBottom: 8,
+        },
+        headerTitle: {
+          fontFamily: fonts.display,
+          fontStyle: 'italic',
+          fontSize: 52,
+          lineHeight: 50,
+          color: colors.paper,
+          letterSpacing: -1,
+        },
+
+        section: { paddingHorizontal: 20, marginBottom: 28 },
+        sectionHeaderRow: {
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          alignItems: 'baseline',
+          marginBottom: 12,
+          borderTopWidth: 1,
+          borderTopColor: colors.border,
+          paddingTop: 16,
+        },
+        sectionTitle: {
+          fontFamily: fonts.display,
+          fontStyle: 'italic',
+          fontSize: 22,
+          color: colors.paper,
+          letterSpacing: -0.5,
+        },
+        sectionLink: {
+          fontFamily: fonts.mono,
+          fontSize: 10,
+          letterSpacing: 2,
+          textTransform: 'uppercase',
+          color: colors.champagne,
+        },
+
+        center: { paddingVertical: 28, alignItems: 'center' },
+
+        card: {
+          borderWidth: 1,
+          borderColor: colors.border,
+          padding: 16,
+          marginBottom: 10,
+          backgroundColor: 'transparent',
+        },
+        cardTop: { flexDirection: 'row', justifyContent: 'space-between', gap: 12, marginBottom: 8 },
+        cardMeta: { flex: 1 },
+        cardKicker: {
+          fontFamily: fonts.mono,
+          fontSize: 9,
+          letterSpacing: 2,
+          textTransform: 'uppercase',
+          color: colors.champagne,
+          marginBottom: 4,
+        },
+        cardTitle: {
+          fontFamily: fonts.display,
+          fontStyle: 'italic',
+          fontSize: 24,
+          lineHeight: 24,
+          color: colors.paper,
+          letterSpacing: -0.5,
+          marginBottom: 3,
+        },
+        cardAddr: {
+          fontFamily: fonts.body,
+          fontSize: 12,
+          color: colors.muted,
+        },
+        monoWrap: {
+          width: 48,
+          height: 48,
+          backgroundColor: colors.ink3,
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexShrink: 0,
+        },
+        monoChar: {
+          fontFamily: fonts.display,
+          fontStyle: 'italic',
+          fontSize: 30,
+          color: colors.champagne,
+          letterSpacing: -1,
+          lineHeight: 34,
+        },
+        serviciosRow: { flexDirection: 'row', gap: 6, marginBottom: 6, flexWrap: 'wrap' },
+        servicioBadge: {
+          borderWidth: 1,
+          borderColor: colors.champagneDim,
+          paddingHorizontal: 8,
+          paddingVertical: 2,
+        },
+        servicioTxt: {
+          fontFamily: fonts.mono,
+          fontSize: 9,
+          letterSpacing: 1,
+          textTransform: 'uppercase',
+          color: colors.champagne,
+        },
+        horario: {
+          fontFamily: fonts.mono,
+          fontSize: 10,
+          letterSpacing: 1,
+          color: colors.muted,
+          marginBottom: 6,
+        },
+        cardFooter: {
+          borderTopWidth: 1,
+          borderTopColor: colors.border,
+          paddingTop: 10,
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+        },
+        visitasTxt: {
+          fontFamily: fonts.mono,
+          fontSize: 10,
+          letterSpacing: 1,
+          color: colors.muted,
+        },
+        reservarBtn: {
+          fontFamily: fonts.mono,
+          fontSize: 10,
+          letterSpacing: 2,
+          textTransform: 'uppercase',
+          color: colors.champagne,
+        },
+
+        emptyCard: {
+          borderWidth: 1,
+          borderColor: colors.border,
+          padding: 28,
+          alignItems: 'center',
+          gap: 8,
+        },
+        emptyIcon: { fontSize: 26, color: colors.champagne, marginBottom: 4 },
+        emptyTitle: {
+          fontFamily: fonts.display,
+          fontStyle: 'italic',
+          fontSize: 20,
+          color: colors.paper,
+          letterSpacing: -0.5,
+        },
+        emptyHint: {
+          fontFamily: fonts.body,
+          fontSize: 13,
+          color: colors.muted,
+          textAlign: 'center',
+        },
+        emptyBtn: { marginTop: 8 },
+        emptyBtnTxt: {
+          fontFamily: fonts.bodySemi,
+          fontSize: 13,
+          color: colors.champagne,
+        },
+
+        feedPlaceholder: {
+          borderWidth: 1,
+          borderColor: colors.border,
+          borderStyle: 'dashed',
+          padding: 32,
+          alignItems: 'center',
+          gap: 8,
+        },
+        feedIcon: { fontSize: 28, color: colors.muted2, marginBottom: 4 },
+        feedTitle: {
+          fontFamily: fonts.display,
+          fontStyle: 'italic',
+          fontSize: 20,
+          color: colors.muted,
+          letterSpacing: -0.5,
+        },
+        feedHint: {
+          fontFamily: fonts.body,
+          fontSize: 13,
+          color: colors.muted2,
+          textAlign: 'center',
+          lineHeight: 18,
+        },
+      }),
+    [colors]
+  );
+
   const [frecuentes, setFrecuentes] = useState([]);
   const [nombreUsuario, setNombreUsuario] = useState('');
   const [loading, setLoading] = useState(true);
@@ -217,6 +415,7 @@ export default function InicioClienteScreen({ navigation }) {
               <BarberiaCard
                 key={item.barberia_id}
                 item={item}
+                styles={styles}
                 onPress={() => handleBarberiaPress(item)}
               />
             ))}
@@ -256,199 +455,3 @@ export default function InicioClienteScreen({ navigation }) {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.ink },
-  safe: { flex: 1 },
-  scroll: { paddingBottom: 40 },
-
-  header: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 20 },
-  headerKicker: {
-    fontFamily: fonts.mono,
-    fontSize: 11,
-    letterSpacing: 3,
-    textTransform: 'uppercase',
-    color: colors.champagne,
-    marginBottom: 8,
-  },
-  headerTitle: {
-    fontFamily: fonts.display,
-    fontStyle: 'italic',
-    fontSize: 52,
-    lineHeight: 50,
-    color: colors.paper,
-    letterSpacing: -1,
-  },
-
-  section: { paddingHorizontal: 20, marginBottom: 28 },
-  sectionHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'baseline',
-    marginBottom: 12,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-    paddingTop: 16,
-  },
-  sectionTitle: {
-    fontFamily: fonts.display,
-    fontStyle: 'italic',
-    fontSize: 22,
-    color: colors.paper,
-    letterSpacing: -0.5,
-  },
-  sectionLink: {
-    fontFamily: fonts.mono,
-    fontSize: 10,
-    letterSpacing: 2,
-    textTransform: 'uppercase',
-    color: colors.champagne,
-  },
-
-  center: { paddingVertical: 28, alignItems: 'center' },
-
-  // Barbería card
-  card: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: 16,
-    marginBottom: 10,
-    backgroundColor: 'transparent',
-  },
-  cardTop: { flexDirection: 'row', justifyContent: 'space-between', gap: 12, marginBottom: 8 },
-  cardMeta: { flex: 1 },
-  cardKicker: {
-    fontFamily: fonts.mono,
-    fontSize: 9,
-    letterSpacing: 2,
-    textTransform: 'uppercase',
-    color: colors.champagne,
-    marginBottom: 4,
-  },
-  cardTitle: {
-    fontFamily: fonts.display,
-    fontStyle: 'italic',
-    fontSize: 24,
-    lineHeight: 24,
-    color: colors.paper,
-    letterSpacing: -0.5,
-    marginBottom: 3,
-  },
-  cardAddr: {
-    fontFamily: fonts.body,
-    fontSize: 12,
-    color: colors.muted,
-  },
-  monoWrap: {
-    width: 48,
-    height: 48,
-    backgroundColor: colors.ink3,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-  },
-  monoChar: {
-    fontFamily: fonts.display,
-    fontStyle: 'italic',
-    fontSize: 30,
-    color: colors.champagne,
-    letterSpacing: -1,
-    lineHeight: 34,
-  },
-  serviciosRow: { flexDirection: 'row', gap: 6, marginBottom: 6, flexWrap: 'wrap' },
-  servicioBadge: {
-    borderWidth: 1,
-    borderColor: colors.champagneDim,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-  },
-  servicioTxt: {
-    fontFamily: fonts.mono,
-    fontSize: 9,
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-    color: colors.champagne,
-  },
-  horario: {
-    fontFamily: fonts.mono,
-    fontSize: 10,
-    letterSpacing: 1,
-    color: colors.muted,
-    marginBottom: 6,
-  },
-  cardFooter: {
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-    paddingTop: 10,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  visitasTxt: {
-    fontFamily: fonts.mono,
-    fontSize: 10,
-    letterSpacing: 1,
-    color: colors.muted,
-  },
-  reservarBtn: {
-    fontFamily: fonts.mono,
-    fontSize: 10,
-    letterSpacing: 2,
-    textTransform: 'uppercase',
-    color: colors.champagne,
-  },
-
-  // Estado vacío
-  emptyCard: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: 28,
-    alignItems: 'center',
-    gap: 8,
-  },
-  emptyIcon: { fontSize: 26, color: colors.champagne, marginBottom: 4 },
-  emptyTitle: {
-    fontFamily: fonts.display,
-    fontStyle: 'italic',
-    fontSize: 20,
-    color: colors.paper,
-    letterSpacing: -0.5,
-  },
-  emptyHint: {
-    fontFamily: fonts.body,
-    fontSize: 13,
-    color: colors.muted,
-    textAlign: 'center',
-  },
-  emptyBtn: { marginTop: 8 },
-  emptyBtnTxt: {
-    fontFamily: fonts.bodySemi,
-    fontSize: 13,
-    color: colors.champagne,
-  },
-
-  // Feed empty state
-  feedPlaceholder: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderStyle: 'dashed',
-    padding: 32,
-    alignItems: 'center',
-    gap: 8,
-  },
-  feedIcon: { fontSize: 28, color: colors.muted2, marginBottom: 4 },
-  feedTitle: {
-    fontFamily: fonts.display,
-    fontStyle: 'italic',
-    fontSize: 20,
-    color: colors.muted,
-    letterSpacing: -0.5,
-  },
-  feedHint: {
-    fontFamily: fonts.body,
-    fontSize: 13,
-    color: colors.muted2,
-    textAlign: 'center',
-    lineHeight: 18,
-  },
-})

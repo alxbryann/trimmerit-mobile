@@ -11,11 +11,11 @@
  *  A09 — logs solo en __DEV__
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity, Modal, TextInput,
   StyleSheet, ActivityIndicator, ScrollView, Image, Platform,
-  KeyboardAvoidingView, Dimensions, Alert,
+  KeyboardAvoidingView, Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -23,10 +23,10 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as ImagePicker from 'expo-image-picker';
 import { supabase, supabaseConfigured } from '../lib/supabase';
-import { colors, fonts, radii } from '../theme';
+import { fonts } from '../theme';
+import { useColors, useTheme } from '../theme/ThemeContext';
 import PostCard from '../components/PostCard';
 
-const { width: SCREEN_W } = Dimensions.get('window');
 const THUMB = 88;
 
 // ── Helpers de duración de video ──────────────────────────────────────────────
@@ -34,6 +34,262 @@ const MAX_VIDEO_S = 10;
 
 // ── Pantalla principal ────────────────────────────────────────────────────────
 export default function FeedBarberoScreen({ navigation }) {
+  const colors = useColors();
+  const { mode } = useTheme();
+  const onChampagne = mode === 'light' ? colors.paper : colors.ink;
+
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        root: { flex: 1, backgroundColor: colors.ink },
+        safe: { flex: 1 },
+
+        headerGrad: {
+          paddingHorizontal: 20,
+          paddingTop: 12,
+          paddingBottom: 14,
+          borderBottomWidth: 1,
+          borderBottomColor: colors.border,
+        },
+        headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+        headerKicker: {
+          fontFamily: fonts.mono,
+          fontSize: 9,
+          letterSpacing: 3,
+          textTransform: 'uppercase',
+          color: colors.champagne,
+          marginBottom: 2,
+        },
+        headerTitle: {
+          fontFamily: fonts.display,
+          fontStyle: 'italic',
+          fontSize: 36,
+          lineHeight: 38,
+          color: colors.paper,
+          letterSpacing: -1,
+        },
+        nuevaBtn: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 6,
+          backgroundColor: colors.champagne,
+          paddingHorizontal: 14,
+          paddingVertical: 10,
+        },
+        nuevaBtnTxt: {
+          fontFamily: fonts.display,
+          fontSize: 12,
+          letterSpacing: 1.5,
+          color: onChampagne,
+        },
+
+        center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+        emptyList: { flex: 1 },
+        emptyWrap: {
+          flex: 1,
+          alignItems: 'center',
+          justifyContent: 'center',
+          paddingHorizontal: 40,
+          paddingTop: 80,
+          gap: 8,
+        },
+        emptyIcon: { fontSize: 28, color: colors.muted2, marginBottom: 4 },
+        emptyTitle: {
+          fontFamily: fonts.display,
+          fontStyle: 'italic',
+          fontSize: 22,
+          color: colors.muted,
+          letterSpacing: -0.5,
+        },
+        emptyHint: {
+          fontFamily: fonts.body,
+          fontSize: 13,
+          color: colors.muted2,
+          textAlign: 'center',
+        },
+        emptyBtn: { marginTop: 8 },
+        emptyBtnTxt: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.champagne },
+
+        composerRoot: { flex: 1, backgroundColor: colors.ink },
+        composerSafe: { flex: 1 },
+        composerHeader: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          paddingHorizontal: 16,
+          paddingVertical: 14,
+          borderBottomWidth: 1,
+          borderBottomColor: colors.border,
+        },
+        composerCancel: { padding: 4 },
+        composerCancelTxt: { fontFamily: fonts.body, fontSize: 14, color: colors.muted },
+        composerTitle: {
+          fontFamily: fonts.mono,
+          fontSize: 9,
+          letterSpacing: 3,
+          color: colors.champagne,
+          textTransform: 'uppercase',
+        },
+        composerPostBtn: {
+          backgroundColor: colors.champagne,
+          paddingHorizontal: 14,
+          paddingVertical: 8,
+          minWidth: 80,
+          alignItems: 'center',
+        },
+        composerPostBtnDis: { opacity: 0.4 },
+        composerPostTxt: {
+          fontFamily: fonts.display,
+          fontSize: 12,
+          letterSpacing: 1.5,
+          color: onChampagne,
+        },
+        composerScroll: { flex: 1 },
+
+        composerInput: {
+          fontFamily: fonts.body,
+          fontSize: 15,
+          color: colors.paper,
+          lineHeight: 22,
+          padding: 20,
+          minHeight: 140,
+          textAlignVertical: 'top',
+        },
+        composerInputBold: { fontFamily: fonts.bodyBold },
+        composerInputLarge: { fontSize: 20, lineHeight: 28 },
+
+        fmtToolbar: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          paddingHorizontal: 20,
+          paddingVertical: 10,
+          borderTopWidth: 1,
+          borderBottomWidth: 1,
+          borderColor: colors.border,
+        },
+        fmtLabel: {
+          fontFamily: fonts.mono,
+          fontSize: 8,
+          letterSpacing: 2,
+          color: colors.muted2,
+          textTransform: 'uppercase',
+        },
+        fmtBtns: { flexDirection: 'row', gap: 8 },
+        fmtBtn: {
+          width: 34,
+          height: 34,
+          alignItems: 'center',
+          justifyContent: 'center',
+          borderWidth: 1,
+          borderColor: colors.border,
+          backgroundColor: 'transparent',
+        },
+        fmtBtnActive: {
+          backgroundColor: colors.champagne,
+          borderColor: colors.champagne,
+        },
+        fmtBtnTxt: {
+          fontFamily: fonts.bodyBold,
+          fontSize: 14,
+          color: colors.muted,
+        },
+        fmtBtnTxtActive: { color: onChampagne },
+
+        mediaSelectorRow: {
+          flexDirection: 'row',
+          gap: 0,
+          marginHorizontal: 20,
+          marginVertical: 16,
+          borderWidth: 1,
+          borderColor: colors.border,
+        },
+        mediaTypeBtn: { flex: 1 },
+        mediaTypeBtnInner: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 8,
+          paddingVertical: 14,
+          paddingHorizontal: 16,
+          borderRightWidth: 0.5,
+          borderRightColor: colors.border,
+        },
+        mediaTypeBtnActive: {
+          backgroundColor: colors.champagne,
+        },
+        mediaTypeTxt: {
+          fontFamily: fonts.bodyBold,
+          fontSize: 10,
+          letterSpacing: 1,
+          color: colors.champagne,
+          textTransform: 'uppercase',
+        },
+        mediaTypeTxtActive: { color: onChampagne },
+        mediaTypeHint: {
+          fontFamily: fonts.mono,
+          fontSize: 9,
+          letterSpacing: 0.5,
+          color: colors.muted,
+          marginTop: 1,
+        },
+
+        thumbScroll: { marginHorizontal: 20, marginBottom: 16 },
+        thumbScrollContent: { gap: 8, paddingRight: 8 },
+        thumbWrap: {
+          width: THUMB,
+          height: THUMB,
+          position: 'relative',
+        },
+        thumb: {
+          width: THUMB,
+          height: THUMB,
+          backgroundColor: colors.ink3,
+        },
+        videoOverlay: {
+          ...StyleSheet.absoluteFillObject,
+          backgroundColor: 'rgba(0,0,0,0.45)',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 2,
+        },
+        videoDurTxt: {
+          fontFamily: fonts.mono,
+          fontSize: 9,
+          color: colors.paper,
+          letterSpacing: 1,
+        },
+        removeThumb: {
+          position: 'absolute',
+          top: 4,
+          right: 4,
+        },
+
+        previewBox: {
+          marginHorizontal: 20,
+          marginTop: 4,
+          borderWidth: 1,
+          borderColor: colors.border,
+          borderStyle: 'dashed',
+          padding: 14,
+          gap: 6,
+        },
+        previewLabel: {
+          fontFamily: fonts.mono,
+          fontSize: 8,
+          letterSpacing: 2,
+          color: colors.muted2,
+          textTransform: 'uppercase',
+        },
+        previewTxt: {
+          fontFamily: fonts.body,
+          fontSize: 14,
+          color: colors.paper,
+          lineHeight: 20,
+        },
+      }),
+    [colors, mode, onChampagne]
+  );
+
   const [posts, setPosts]           = useState([]);
   const [loading, setLoading]       = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -231,7 +487,7 @@ export default function FeedBarberoScreen({ navigation }) {
               onPress={() => setComposerOpen(true)}
               activeOpacity={0.85}
             >
-              <Ionicons name="add" size={18} color={colors.black} />
+              <Ionicons name="add" size={18} color={onChampagne} />
               <Text style={styles.nuevaBtnTxt}>PUBLICAR</Text>
             </TouchableOpacity>
           </View>
@@ -299,7 +555,7 @@ export default function FeedBarberoScreen({ navigation }) {
                 disabled={publishing || (!caption.trim() && !mediaItems.length)}
               >
                 {publishing
-                  ? <ActivityIndicator size="small" color={colors.black} />
+                  ? <ActivityIndicator size="small" color={onChampagne} />
                   : <Text style={styles.composerPostTxt}>PUBLICAR</Text>
                 }
               </TouchableOpacity>
@@ -346,7 +602,7 @@ export default function FeedBarberoScreen({ navigation }) {
                     <Ionicons
                       name="reorder-three"
                       size={16}
-                      color={textStyle.align === 'center' ? colors.black : colors.muted}
+                      color={textStyle.align === 'center' ? onChampagne : colors.muted}
                     />
                   </TouchableOpacity>
                   {/* Large text */}
@@ -374,7 +630,7 @@ export default function FeedBarberoScreen({ navigation }) {
                       mediaItems.some((m) => m.type === 'video')
                         ? colors.muted2
                         : mediaItems.some((m) => m.type === 'image')
-                          ? colors.black
+                          ? onChampagne
                           : colors.champagne
                     } />
                     <Text style={[
@@ -402,7 +658,7 @@ export default function FeedBarberoScreen({ navigation }) {
                       mediaItems.some((m) => m.type === 'image')
                         ? colors.muted2
                         : mediaItems.some((m) => m.type === 'video')
-                          ? colors.black
+                          ? onChampagne
                           : colors.champagne
                     } />
                     <View>
@@ -479,258 +735,3 @@ export default function FeedBarberoScreen({ navigation }) {
   );
 }
 
-// ─── Estilos ─────────────────────────────────────────────────────────────────
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.ink },
-  safe: { flex: 1 },
-
-  // Header
-  headerGrad: {
-    paddingHorizontal: 20,
-    paddingTop: 12,
-    paddingBottom: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  headerKicker: {
-    fontFamily: fonts.mono,
-    fontSize: 9,
-    letterSpacing: 3,
-    textTransform: 'uppercase',
-    color: colors.champagne,
-    marginBottom: 2,
-  },
-  headerTitle: {
-    fontFamily: fonts.display,
-    fontStyle: 'italic',
-    fontSize: 36,
-    lineHeight: 38,
-    color: colors.paper,
-    letterSpacing: -1,
-  },
-  nuevaBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: colors.champagne,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-  },
-  nuevaBtnTxt: {
-    fontFamily: fonts.display,
-    fontSize: 12,
-    letterSpacing: 1.5,
-    color: colors.black,
-  },
-
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  emptyList: { flex: 1 },
-  emptyWrap: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 40,
-    paddingTop: 80,
-    gap: 8,
-  },
-  emptyIcon: { fontSize: 28, color: colors.muted2, marginBottom: 4 },
-  emptyTitle: {
-    fontFamily: fonts.display,
-    fontStyle: 'italic',
-    fontSize: 22,
-    color: colors.muted,
-    letterSpacing: -0.5,
-  },
-  emptyHint: {
-    fontFamily: fonts.body,
-    fontSize: 13,
-    color: colors.muted2,
-    textAlign: 'center',
-  },
-  emptyBtn: { marginTop: 8 },
-  emptyBtnTxt: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.champagne },
-
-  // ── Compositor ─────────────────────────────────────────────────────────────
-  composerRoot: { flex: 1, backgroundColor: colors.ink },
-  composerSafe: { flex: 1 },
-  composerHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  composerCancel: { padding: 4 },
-  composerCancelTxt: { fontFamily: fonts.body, fontSize: 14, color: colors.muted },
-  composerTitle: {
-    fontFamily: fonts.mono,
-    fontSize: 9,
-    letterSpacing: 3,
-    color: colors.champagne,
-    textTransform: 'uppercase',
-  },
-  composerPostBtn: {
-    backgroundColor: colors.champagne,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    minWidth: 80,
-    alignItems: 'center',
-  },
-  composerPostBtnDis: { opacity: 0.4 },
-  composerPostTxt: {
-    fontFamily: fonts.display,
-    fontSize: 12,
-    letterSpacing: 1.5,
-    color: colors.black,
-  },
-  composerScroll: { flex: 1 },
-
-  // Texto
-  composerInput: {
-    fontFamily: fonts.body,
-    fontSize: 15,
-    color: colors.paper,
-    lineHeight: 22,
-    padding: 20,
-    minHeight: 140,
-    textAlignVertical: 'top',
-  },
-  composerInputBold:  { fontFamily: fonts.bodyBold },
-  composerInputLarge: { fontSize: 20, lineHeight: 28 },
-
-  // Toolbar formato
-  fmtToolbar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: colors.border,
-  },
-  fmtLabel: {
-    fontFamily: fonts.mono,
-    fontSize: 8,
-    letterSpacing: 2,
-    color: colors.muted2,
-    textTransform: 'uppercase',
-  },
-  fmtBtns: { flexDirection: 'row', gap: 8 },
-  fmtBtn: {
-    width: 34,
-    height: 34,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: 'transparent',
-  },
-  fmtBtnActive: {
-    backgroundColor: colors.champagne,
-    borderColor: colors.champagne,
-  },
-  fmtBtnTxt: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 14,
-    color: colors.muted,
-  },
-  fmtBtnTxtActive: { color: colors.black },
-
-  // Selector media
-  mediaSelectorRow: {
-    flexDirection: 'row',
-    gap: 0,
-    marginHorizontal: 20,
-    marginVertical: 16,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  mediaTypeBtn: { flex: 1 },
-  mediaTypeBtnInner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    borderRightWidth: 0.5,
-    borderRightColor: colors.border,
-  },
-  mediaTypeBtnActive: {
-    backgroundColor: colors.champagne,
-  },
-  mediaTypeTxt: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 10,
-    letterSpacing: 1,
-    color: colors.champagne,
-    textTransform: 'uppercase',
-  },
-  mediaTypeTxtActive: { color: colors.black },
-  mediaTypeHint: {
-    fontFamily: fonts.mono,
-    fontSize: 9,
-    letterSpacing: 0.5,
-    color: colors.muted,
-    marginTop: 1,
-  },
-
-  // Thumbnails
-  thumbScroll: { marginHorizontal: 20, marginBottom: 16 },
-  thumbScrollContent: { gap: 8, paddingRight: 8 },
-  thumbWrap: {
-    width: THUMB,
-    height: THUMB,
-    position: 'relative',
-  },
-  thumb: {
-    width: THUMB,
-    height: THUMB,
-    backgroundColor: colors.ink3,
-  },
-  videoOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.45)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 2,
-  },
-  videoDurTxt: {
-    fontFamily: fonts.mono,
-    fontSize: 9,
-    color: colors.paper,
-    letterSpacing: 1,
-  },
-  removeThumb: {
-    position: 'absolute',
-    top: 4,
-    right: 4,
-  },
-
-  // Preview caption
-  previewBox: {
-    marginHorizontal: 20,
-    marginTop: 4,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderStyle: 'dashed',
-    padding: 14,
-    gap: 6,
-  },
-  previewLabel: {
-    fontFamily: fonts.mono,
-    fontSize: 8,
-    letterSpacing: 2,
-    color: colors.muted2,
-    textTransform: 'uppercase',
-  },
-  previewTxt: {
-    fontFamily: fonts.body,
-    fontSize: 14,
-    color: colors.paper,
-    lineHeight: 20,
-  },
-});

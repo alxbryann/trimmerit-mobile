@@ -16,7 +16,7 @@
  *  A09 — logs solo en __DEV__
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -33,7 +33,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import * as Location from 'expo-location';
 import { supabase, supabaseConfigured } from '../lib/supabase';
-import { colors, fonts } from '../theme';
+import { fonts } from '../theme';
+import { useColors, useTheme } from '../theme/ThemeContext';
 
 // ── Constantes ────────────────────────────────────────────────────────────────
 const SERVICIOS_OPCIONES = [
@@ -78,7 +79,7 @@ const DEFAULT_FILTERS = {
 };
 
 // ── Card de una barbería ──────────────────────────────────────────────────────
-function BarberiaCard({ item, userCoords, onPress }) {
+function BarberiaCard({ item, userCoords, onPress, styles }) {
   const km = userCoords
     ? distanciaKm(userCoords.lat, userCoords.lng, item.lat, item.lng)
     : null;
@@ -129,6 +130,119 @@ function BarberiaCard({ item, userCoords, onPress }) {
 
 // ── Panel de filtros (modal) ──────────────────────────────────────────────────
 function FiltrosModal({ visible, filters, hasLocation, onApply, onClose }) {
+  const colors = useColors();
+  const { mode } = useTheme();
+
+  const fStyles = useMemo(() => {
+    const onGold = mode === 'light' ? colors.paper : colors.ink;
+    return StyleSheet.create({
+      overlay: {
+        flex: 1,
+        backgroundColor: mode === 'light' ? 'rgba(15,13,11,0.45)' : 'rgba(0,0,0,0.7)',
+        justifyContent: 'flex-end',
+      },
+        sheet: {
+          backgroundColor: colors.ink2 ?? colors.ink,
+          borderTopWidth: 1,
+          borderTopColor: colors.border,
+          paddingHorizontal: 24,
+          paddingTop: 12,
+          paddingBottom: Platform.OS === 'ios' ? 40 : 24,
+          maxHeight: '80%',
+        },
+        handle: {
+          width: 36,
+          height: 3,
+          backgroundColor: colors.border,
+          alignSelf: 'center',
+          marginBottom: 16,
+        },
+        title: {
+          fontFamily: fonts.display,
+          fontStyle: 'italic',
+          fontSize: 32,
+          color: colors.paper,
+          letterSpacing: -0.5,
+          marginBottom: 20,
+        },
+        label: {
+          fontFamily: fonts.mono,
+          fontSize: 10,
+          letterSpacing: 3,
+          textTransform: 'uppercase',
+          color: colors.muted,
+          marginBottom: 8,
+          marginTop: 16,
+        },
+        chipRow: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
+        chip: {
+          borderWidth: 1,
+          borderColor: colors.border,
+          paddingHorizontal: 12,
+          paddingVertical: 6,
+        },
+        chipActive: { borderColor: colors.champagne, backgroundColor: colors.champagneGlow },
+        chipDisabled: { opacity: 0.4 },
+        chipTxt: { fontFamily: fonts.mono, fontSize: 10, letterSpacing: 1, color: colors.muted },
+        chipTxtActive: { color: colors.champagne },
+        input: {
+          borderWidth: 1,
+          borderColor: colors.border,
+          color: colors.paper,
+          fontFamily: fonts.body,
+          fontSize: 16,
+          paddingHorizontal: 14,
+          paddingVertical: 10,
+        },
+        checkRow: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 12,
+          paddingVertical: 10,
+          borderBottomWidth: 1,
+          borderBottomColor: colors.border,
+        },
+        checkbox: {
+          width: 20,
+          height: 20,
+          borderWidth: 1.5,
+          borderColor: colors.muted,
+          alignItems: 'center',
+          justifyContent: 'center',
+        },
+        checkboxActive: { backgroundColor: colors.champagne, borderColor: colors.champagne },
+        checkmark: { fontFamily: fonts.mono, fontSize: 12, color: onGold },
+        checkLabel: { fontFamily: fonts.body, fontSize: 15, color: colors.muted, flex: 1 },
+        checkLabelActive: { color: colors.paper },
+        btns: {
+          flexDirection: 'row',
+          gap: 12,
+          marginTop: 24,
+        },
+        resetBtn: {
+          flex: 1,
+          borderWidth: 1,
+          borderColor: colors.border,
+          paddingVertical: 14,
+          alignItems: 'center',
+        },
+        resetTxt: { fontFamily: fonts.mono, fontSize: 11, letterSpacing: 2, color: colors.muted },
+        applyBtn: {
+          flex: 2,
+          backgroundColor: colors.champagne,
+          paddingVertical: 14,
+          alignItems: 'center',
+        },
+        applyTxt: {
+          fontFamily: fonts.display,
+          fontStyle: 'italic',
+          fontSize: 18,
+          color: onGold,
+          letterSpacing: -0.5,
+        },
+      });
+  }, [colors, mode]);
+
   const [local, setLocal] = useState(filters);
 
   useEffect(() => {
@@ -269,6 +383,177 @@ function FiltrosModal({ visible, filters, hasLocation, onApply, onClose }) {
 
 // ── Pantalla principal ────────────────────────────────────────────────────────
 export default function CatalogoScreen({ navigation }) {
+  const colors = useColors();
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        root: { flex: 1, backgroundColor: colors.ink },
+        safe: { flex: 1 },
+
+        header: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 14 },
+        headerKicker: {
+          fontFamily: fonts.mono,
+          fontSize: 11,
+          letterSpacing: 3,
+          textTransform: 'uppercase',
+          color: colors.champagne,
+          marginBottom: 6,
+        },
+        headerTitle: {
+          fontFamily: fonts.display,
+          fontStyle: 'italic',
+          fontSize: 48,
+          lineHeight: 46,
+          color: colors.paper,
+          letterSpacing: -1,
+        },
+
+        searchRow: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 10,
+          marginHorizontal: 20,
+          marginBottom: 6,
+          borderTopWidth: 1,
+          borderBottomWidth: 1,
+          borderColor: colors.border,
+          paddingVertical: 12,
+        },
+        searchIcon: { fontSize: 16, color: colors.champagne },
+        searchInput: {
+          flex: 1,
+          fontFamily: fonts.body,
+          fontSize: 15,
+          color: colors.paper,
+          paddingVertical: 0,
+        },
+        filtrosBtn: {
+          borderWidth: 1,
+          borderColor: colors.border,
+          paddingHorizontal: 10,
+          paddingVertical: 4,
+        },
+        filtrosBtnActive: { borderColor: colors.champagne, backgroundColor: colors.champagneGlow },
+        filtrosTxt: {
+          fontFamily: fonts.mono,
+          fontSize: 9,
+          letterSpacing: 2,
+          textTransform: 'uppercase',
+          color: colors.muted,
+        },
+        filtrosTxtActive: { color: colors.champagne },
+
+        locationMsg: {
+          fontFamily: fonts.mono,
+          fontSize: 10,
+          letterSpacing: 1,
+          color: colors.muted2,
+          textAlign: 'center',
+          marginBottom: 6,
+          paddingHorizontal: 20,
+        },
+
+        countText: {
+          fontFamily: fonts.mono,
+          fontSize: 10,
+          letterSpacing: 2,
+          textTransform: 'uppercase',
+          color: colors.muted,
+          marginBottom: 10,
+        },
+
+        center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24, gap: 8 },
+        muted: { fontFamily: fonts.body, color: colors.muted, textAlign: 'center', fontSize: 14 },
+        errIcon: { fontSize: 24, color: colors.terracota },
+        err: { fontFamily: fonts.body, color: colors.terracota, textAlign: 'center', fontSize: 14 },
+        emptyIcon: { fontSize: 28, color: colors.champagne },
+        emptyTitle: {
+          fontFamily: fonts.display,
+          fontStyle: 'italic',
+          fontSize: 22,
+          color: colors.paper,
+          letterSpacing: -0.5,
+        },
+        clearLink: { fontFamily: fonts.bodySemi, color: colors.champagne, fontSize: 13 },
+
+        list: { paddingHorizontal: 20, paddingBottom: 40, paddingTop: 10 },
+
+        card: {
+          borderWidth: 1,
+          borderColor: colors.border,
+          padding: 16,
+          marginBottom: 10,
+        },
+        cardTop: { flexDirection: 'row', justifyContent: 'space-between', gap: 12, marginBottom: 8 },
+        cardMeta: { flex: 1 },
+        cardKicker: {
+          fontFamily: fonts.mono,
+          fontSize: 9,
+          letterSpacing: 2,
+          textTransform: 'uppercase',
+          color: colors.champagne,
+          marginBottom: 4,
+        },
+        cardTitle: {
+          fontFamily: fonts.display,
+          fontStyle: 'italic',
+          fontSize: 24,
+          lineHeight: 24,
+          color: colors.paper,
+          letterSpacing: -0.5,
+          marginBottom: 3,
+        },
+        cardAddr: { fontFamily: fonts.body, fontSize: 12, color: colors.muted },
+        monoWrap: {
+          width: 48,
+          height: 48,
+          backgroundColor: colors.ink3,
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexShrink: 0,
+        },
+        monoChar: {
+          fontFamily: fonts.display,
+          fontStyle: 'italic',
+          fontSize: 30,
+          color: colors.champagne,
+          letterSpacing: -1,
+          lineHeight: 34,
+        },
+        serviciosRow: { flexDirection: 'row', gap: 6, marginBottom: 6, flexWrap: 'wrap' },
+        servicioBadge: {
+          borderWidth: 1,
+          borderColor: colors.champagneDim,
+          paddingHorizontal: 8,
+          paddingVertical: 2,
+        },
+        servicioTxt: {
+          fontFamily: fonts.mono,
+          fontSize: 9,
+          letterSpacing: 1,
+          textTransform: 'uppercase',
+          color: colors.champagne,
+        },
+        cardFooter: {
+          borderTopWidth: 1,
+          borderTopColor: colors.border,
+          paddingTop: 10,
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+        },
+        footerMeta: { fontFamily: fonts.mono, fontSize: 10, letterSpacing: 1, color: colors.muted },
+        reservarBtn: {
+          fontFamily: fonts.mono,
+          fontSize: 10,
+          letterSpacing: 2,
+          textTransform: 'uppercase',
+          color: colors.champagne,
+        },
+      }),
+    [colors]
+  );
+
   const [barberias, setBarberias] = useState([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState(null);
@@ -486,6 +771,7 @@ export default function CatalogoScreen({ navigation }) {
               <BarberiaCard
                 item={item}
                 userCoords={userCoords}
+                styles={styles}
                 onPress={() => navigation.navigate('BarberProfile', { slug: item.slug })}
               />
             )}
@@ -503,279 +789,3 @@ export default function CatalogoScreen({ navigation }) {
     </View>
   );
 }
-
-// ── Estilos principales ───────────────────────────────────────────────────────
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.ink },
-  safe: { flex: 1 },
-
-  header: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 14 },
-  headerKicker: {
-    fontFamily: fonts.mono,
-    fontSize: 11,
-    letterSpacing: 3,
-    textTransform: 'uppercase',
-    color: colors.champagne,
-    marginBottom: 6,
-  },
-  headerTitle: {
-    fontFamily: fonts.display,
-    fontStyle: 'italic',
-    fontSize: 48,
-    lineHeight: 46,
-    color: colors.paper,
-    letterSpacing: -1,
-  },
-
-  searchRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginHorizontal: 20,
-    marginBottom: 6,
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: colors.border,
-    paddingVertical: 12,
-  },
-  searchIcon: { fontSize: 16, color: colors.champagne },
-  searchInput: {
-    flex: 1,
-    fontFamily: fonts.body,
-    fontSize: 15,
-    color: colors.paper,
-    paddingVertical: 0,
-  },
-  filtrosBtn: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-  },
-  filtrosBtnActive: { borderColor: colors.champagne, backgroundColor: colors.champagneGlow },
-  filtrosTxt: {
-    fontFamily: fonts.mono,
-    fontSize: 9,
-    letterSpacing: 2,
-    textTransform: 'uppercase',
-    color: colors.muted,
-  },
-  filtrosTxtActive: { color: colors.champagne },
-
-  locationMsg: {
-    fontFamily: fonts.mono,
-    fontSize: 10,
-    letterSpacing: 1,
-    color: colors.muted2,
-    textAlign: 'center',
-    marginBottom: 6,
-    paddingHorizontal: 20,
-  },
-
-  countText: {
-    fontFamily: fonts.mono,
-    fontSize: 10,
-    letterSpacing: 2,
-    textTransform: 'uppercase',
-    color: colors.muted,
-    marginBottom: 10,
-  },
-
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24, gap: 8 },
-  muted: { fontFamily: fonts.body, color: colors.muted, textAlign: 'center', fontSize: 14 },
-  errIcon: { fontSize: 24, color: colors.terracota },
-  err: { fontFamily: fonts.body, color: colors.terracota, textAlign: 'center', fontSize: 14 },
-  emptyIcon: { fontSize: 28, color: colors.champagne },
-  emptyTitle: {
-    fontFamily: fonts.display,
-    fontStyle: 'italic',
-    fontSize: 22,
-    color: colors.paper,
-    letterSpacing: -0.5,
-  },
-  clearLink: { fontFamily: fonts.bodySemi, color: colors.champagne, fontSize: 13 },
-
-  list: { paddingHorizontal: 20, paddingBottom: 40, paddingTop: 10 },
-
-  // Card
-  card: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: 16,
-    marginBottom: 10,
-  },
-  cardTop: { flexDirection: 'row', justifyContent: 'space-between', gap: 12, marginBottom: 8 },
-  cardMeta: { flex: 1 },
-  cardKicker: {
-    fontFamily: fonts.mono,
-    fontSize: 9,
-    letterSpacing: 2,
-    textTransform: 'uppercase',
-    color: colors.champagne,
-    marginBottom: 4,
-  },
-  cardTitle: {
-    fontFamily: fonts.display,
-    fontStyle: 'italic',
-    fontSize: 24,
-    lineHeight: 24,
-    color: colors.paper,
-    letterSpacing: -0.5,
-    marginBottom: 3,
-  },
-  cardAddr: { fontFamily: fonts.body, fontSize: 12, color: colors.muted },
-  monoWrap: {
-    width: 48,
-    height: 48,
-    backgroundColor: colors.ink3,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-  },
-  monoChar: {
-    fontFamily: fonts.display,
-    fontStyle: 'italic',
-    fontSize: 30,
-    color: colors.champagne,
-    letterSpacing: -1,
-    lineHeight: 34,
-  },
-  serviciosRow: { flexDirection: 'row', gap: 6, marginBottom: 6, flexWrap: 'wrap' },
-  servicioBadge: {
-    borderWidth: 1,
-    borderColor: colors.champagneDim,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-  },
-  servicioTxt: {
-    fontFamily: fonts.mono,
-    fontSize: 9,
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-    color: colors.champagne,
-  },
-  cardFooter: {
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-    paddingTop: 10,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  footerMeta: { fontFamily: fonts.mono, fontSize: 10, letterSpacing: 1, color: colors.muted },
-  reservarBtn: {
-    fontFamily: fonts.mono,
-    fontSize: 10,
-    letterSpacing: 2,
-    textTransform: 'uppercase',
-    color: colors.champagne,
-  },
-});
-
-// ── Estilos del modal de filtros ──────────────────────────────────────────────
-const fStyles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    justifyContent: 'flex-end',
-  },
-  sheet: {
-    backgroundColor: colors.ink2 ?? colors.ink,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-    paddingHorizontal: 24,
-    paddingTop: 12,
-    paddingBottom: Platform.OS === 'ios' ? 40 : 24,
-    maxHeight: '80%',
-  },
-  handle: {
-    width: 36,
-    height: 3,
-    backgroundColor: colors.border,
-    alignSelf: 'center',
-    marginBottom: 16,
-  },
-  title: {
-    fontFamily: fonts.display,
-    fontStyle: 'italic',
-    fontSize: 32,
-    color: colors.paper,
-    letterSpacing: -0.5,
-    marginBottom: 20,
-  },
-  label: {
-    fontFamily: fonts.mono,
-    fontSize: 10,
-    letterSpacing: 3,
-    textTransform: 'uppercase',
-    color: colors.muted,
-    marginBottom: 8,
-    marginTop: 16,
-  },
-  chipRow: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
-  chip: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-  },
-  chipActive: { borderColor: colors.champagne, backgroundColor: colors.champagneGlow },
-  chipDisabled: { opacity: 0.4 },
-  chipTxt: { fontFamily: fonts.mono, fontSize: 10, letterSpacing: 1, color: colors.muted },
-  chipTxtActive: { color: colors.champagne },
-  input: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    color: colors.paper,
-    fontFamily: fonts.body,
-    fontSize: 16,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-  },
-  checkRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  checkbox: {
-    width: 20,
-    height: 20,
-    borderWidth: 1.5,
-    borderColor: colors.muted,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  checkboxActive: { backgroundColor: colors.champagne, borderColor: colors.champagne },
-  checkmark: { fontFamily: fonts.mono, fontSize: 12, color: colors.ink },
-  checkLabel: { fontFamily: fonts.body, fontSize: 15, color: colors.muted, flex: 1 },
-  checkLabelActive: { color: colors.paper },
-  btns: {
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 24,
-  },
-  resetBtn: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: colors.border,
-    paddingVertical: 14,
-    alignItems: 'center',
-  },
-  resetTxt: { fontFamily: fonts.mono, fontSize: 11, letterSpacing: 2, color: colors.muted },
-  applyBtn: {
-    flex: 2,
-    backgroundColor: colors.champagne,
-    paddingVertical: 14,
-    alignItems: 'center',
-  },
-  applyTxt: {
-    fontFamily: fonts.display,
-    fontStyle: 'italic',
-    fontSize: 18,
-    color: colors.ink,
-    letterSpacing: -0.5,
-  },
-});

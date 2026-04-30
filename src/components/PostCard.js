@@ -16,14 +16,15 @@
  *  onAddComentario    : (postId, texto) => void
  */
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import {
   View, Text, Image, ScrollView, TouchableOpacity, TextInput,
   StyleSheet, Dimensions, ActivityIndicator,
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import LoopMutedVideo from './LoopMutedVideo';
-import { colors, fonts } from '../theme';
+import { fonts } from '../theme';
+import { useColors } from '../theme/ThemeContext';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 const IMG_H = Math.round(SCREEN_W * 1.1);   // ~ cuadrada/vertical editorial
@@ -53,7 +54,7 @@ function initials(nombre = '') {
 }
 
 // ── Componente Carrusel ───────────────────────────────────────────────────────
-function ImageCarousel({ urls }) {
+function ImageCarousel({ urls, styles }) {
   const [idx, setIdx] = useState(0);
   const scrollRef = useRef(null);
 
@@ -114,6 +115,216 @@ export default function PostCard({
   onToggleReaccion,
   onAddComentario,
 }) {
+  const colors = useColors();
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        card: {
+          borderBottomWidth: 1,
+          borderBottomColor: colors.border,
+          backgroundColor: colors.ink,
+          marginBottom: 0,
+        },
+        header: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 12,
+          paddingHorizontal: 16,
+          paddingTop: 16,
+          paddingBottom: 12,
+        },
+        avatar: {
+          width: 40,
+          height: 40,
+          backgroundColor: colors.ink3,
+          borderWidth: 1,
+          borderColor: colors.borderStrong,
+          alignItems: 'center',
+          justifyContent: 'center',
+        },
+        avatarTxt: {
+          fontFamily: fonts.display,
+          fontStyle: 'italic',
+          fontSize: 18,
+          color: colors.champagne,
+          lineHeight: 22,
+        },
+        headerMeta: { flex: 1 },
+        barberoName: {
+          fontFamily: fonts.bodyBold,
+          fontSize: 14,
+          color: colors.paper,
+        },
+        barberiaName: {
+          fontFamily: fonts.mono,
+          fontSize: 10,
+          letterSpacing: 1,
+          color: colors.muted,
+          marginTop: 1,
+          textTransform: 'uppercase',
+        },
+        captionWrap: {
+          paddingHorizontal: 16,
+          paddingBottom: 12,
+        },
+        caption: {
+          lineHeight: 20,
+          color: colors.paper,
+        },
+        carouselImg: {
+          height: IMG_H,
+        },
+        dotsRow: {
+          flexDirection: 'row',
+          justifyContent: 'center',
+          gap: 5,
+          paddingVertical: 8,
+        },
+        dot: {
+          width: 4,
+          height: 4,
+          borderRadius: 2,
+          backgroundColor: colors.muted2,
+        },
+        dotActive: {
+          width: 14,
+          backgroundColor: colors.champagne,
+        },
+        counterBadge: {
+          position: 'absolute',
+          top: 12,
+          right: 12,
+          backgroundColor: 'rgba(0,0,0,0.55)',
+          paddingHorizontal: 8,
+          paddingVertical: 3,
+        },
+        counterTxt: {
+          fontFamily: fonts.mono,
+          fontSize: 10,
+          letterSpacing: 1,
+          color: '#f2efe7',
+        },
+        videoWrap: {
+          height: Math.round(SCREEN_W * 0.85),
+          position: 'relative',
+        },
+        video: {
+          ...StyleSheet.absoluteFillObject,
+          backgroundColor: colors.ink2,
+        },
+        videoBadge: {
+          position: 'absolute',
+          bottom: 10,
+          left: 12,
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 4,
+          backgroundColor: 'rgba(0,0,0,0.55)',
+          paddingHorizontal: 8,
+          paddingVertical: 4,
+        },
+        videoBadgeTxt: {
+          fontFamily: fonts.mono,
+          fontSize: 9,
+          letterSpacing: 2,
+          color: colors.champagne,
+        },
+        reaccionesRow: {
+          flexDirection: 'row',
+          paddingHorizontal: 16,
+          paddingVertical: 10,
+          gap: 8,
+          borderTopWidth: 1,
+          borderTopColor: colors.border,
+        },
+        reaBtn: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 4,
+          paddingHorizontal: 10,
+          paddingVertical: 5,
+          borderWidth: 1,
+          borderColor: colors.border,
+          backgroundColor: 'transparent',
+        },
+        reaBtnActive: {
+          borderColor: colors.champagne,
+          backgroundColor: colors.champagneGlow,
+        },
+        reaEmoji: {
+          fontSize: 15,
+          lineHeight: 19,
+        },
+        reaCount: {
+          fontFamily: fonts.mono,
+          fontSize: 11,
+          color: colors.muted,
+        },
+        reaCountActive: {
+          color: colors.champagne,
+        },
+        comentariosSection: {
+          paddingHorizontal: 16,
+          paddingBottom: 12,
+        },
+        verTodosBtn: {
+          paddingVertical: 4,
+          marginBottom: 6,
+        },
+        verTodosTxt: {
+          fontFamily: fonts.mono,
+          fontSize: 10,
+          letterSpacing: 1,
+          color: colors.muted,
+          textTransform: 'lowercase',
+        },
+        comentario: {
+          marginBottom: 6,
+        },
+        comAutor: {
+          fontFamily: fonts.bodyBold,
+          fontSize: 12,
+          color: colors.paper,
+        },
+        comBadge: {
+          fontFamily: fonts.mono,
+          fontSize: 9,
+          letterSpacing: 1,
+          color: colors.champagne,
+          textTransform: 'uppercase',
+        },
+        comTxt: {
+          fontFamily: fonts.body,
+          fontSize: 13,
+          color: colors.paperDim,
+          lineHeight: 18,
+        },
+        inputRow: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 8,
+          marginTop: 8,
+          borderTopWidth: 1,
+          borderTopColor: colors.border,
+          paddingTop: 8,
+        },
+        comInput: {
+          flex: 1,
+          fontFamily: fonts.body,
+          fontSize: 13,
+          color: colors.paper,
+          paddingVertical: 6,
+        },
+        sendBtn: {
+          padding: 2,
+        },
+        sendBtnDisabled: {
+          opacity: 0.5,
+        },
+      }),
+    [colors]
+  );
+
   const [comentariosExpanded, setComentariosExpanded] = useState(false);
   const [inputTxt, setInputTxt]  = useState('');
   const [enviando, setEnviando]  = useState(false);
@@ -199,7 +410,7 @@ export default function PostCard({
 
       {/* ── Media: imágenes ──────────────────────────────────────────────────── */}
       {post.media_urls?.length > 0 && (
-        <ImageCarousel urls={post.media_urls} />
+        <ImageCarousel urls={post.media_urls} styles={styles} />
       )}
 
       {/* ── Media: video ─────────────────────────────────────────────────────── */}
@@ -290,220 +501,3 @@ export default function PostCard({
   );
 }
 
-// ─── Estilos ─────────────────────────────────────────────────────────────────
-const styles = StyleSheet.create({
-  card: {
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-    backgroundColor: colors.ink,
-    marginBottom: 0,
-  },
-
-  // Cabecera
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 12,
-  },
-  avatar: {
-    width: 40,
-    height: 40,
-    backgroundColor: colors.ink3,
-    borderWidth: 1,
-    borderColor: colors.borderStrong,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarTxt: {
-    fontFamily: fonts.display,
-    fontStyle: 'italic',
-    fontSize: 18,
-    color: colors.champagne,
-    lineHeight: 22,
-  },
-  headerMeta: { flex: 1 },
-  barberoName: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 14,
-    color: colors.paper,
-  },
-  barberiaName: {
-    fontFamily: fonts.mono,
-    fontSize: 10,
-    letterSpacing: 1,
-    color: colors.muted,
-    marginTop: 1,
-    textTransform: 'uppercase',
-  },
-
-  // Caption
-  captionWrap: {
-    paddingHorizontal: 16,
-    paddingBottom: 12,
-  },
-  caption: {
-    lineHeight: 20,
-    color: colors.paper,
-  },
-
-  // Carrusel
-  carouselImg: {
-    height: IMG_H,
-  },
-  dotsRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 5,
-    paddingVertical: 8,
-  },
-  dot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: colors.muted2,
-  },
-  dotActive: {
-    width: 14,
-    backgroundColor: colors.champagne,
-  },
-  counterBadge: {
-    position: 'absolute',
-    top: 12,
-    right: 12,
-    backgroundColor: 'rgba(10,10,10,0.65)',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-  },
-  counterTxt: {
-    fontFamily: fonts.mono,
-    fontSize: 10,
-    letterSpacing: 1,
-    color: colors.paper,
-  },
-
-  // Video
-  videoWrap: {
-    height: Math.round(SCREEN_W * 0.85),
-    position: 'relative',
-  },
-  video: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: colors.ink2,
-  },
-  videoBadge: {
-    position: 'absolute',
-    bottom: 10,
-    left: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: 'rgba(10,10,10,0.65)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
-  videoBadgeTxt: {
-    fontFamily: fonts.mono,
-    fontSize: 9,
-    letterSpacing: 2,
-    color: colors.champagne,
-  },
-
-  // Reacciones
-  reaccionesRow: {
-    flexDirection: 'row',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    gap: 8,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-  },
-  reaBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: 'transparent',
-  },
-  reaBtnActive: {
-    borderColor: colors.champagne,
-    backgroundColor: colors.champagneGlow,
-  },
-  reaEmoji: {
-    fontSize: 15,
-    lineHeight: 19,
-  },
-  reaCount: {
-    fontFamily: fonts.mono,
-    fontSize: 11,
-    color: colors.muted,
-  },
-  reaCountActive: {
-    color: colors.champagne,
-  },
-
-  // Comentarios
-  comentariosSection: {
-    paddingHorizontal: 16,
-    paddingBottom: 12,
-  },
-  verTodosBtn: {
-    paddingVertical: 4,
-    marginBottom: 6,
-  },
-  verTodosTxt: {
-    fontFamily: fonts.mono,
-    fontSize: 10,
-    letterSpacing: 1,
-    color: colors.muted,
-    textTransform: 'lowercase',
-  },
-  comentario: {
-    marginBottom: 6,
-  },
-  comAutor: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 12,
-    color: colors.paper,
-  },
-  comBadge: {
-    fontFamily: fonts.mono,
-    fontSize: 9,
-    letterSpacing: 1,
-    color: colors.champagne,
-    textTransform: 'uppercase',
-  },
-  comTxt: {
-    fontFamily: fonts.body,
-    fontSize: 13,
-    color: colors.paperDim,
-    lineHeight: 18,
-  },
-  inputRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-    paddingTop: 8,
-  },
-  comInput: {
-    flex: 1,
-    fontFamily: fonts.body,
-    fontSize: 13,
-    color: colors.paper,
-    paddingVertical: 6,
-  },
-  sendBtn: {
-    padding: 2,
-  },
-  sendBtnDisabled: {
-    opacity: 0.5,
-  },
-});

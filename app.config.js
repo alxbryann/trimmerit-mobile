@@ -21,6 +21,10 @@ export default {
       ITSAppUsesNonExemptEncryption: false,
       NSLocationWhenInUseUsageDescription:
         'Trimmerit usa tu ubicación para mostrarte las barberías más cercanas.',
+      NSLocationAlwaysAndWhenInUseUsageDescription:
+        'Trimmerit usa tu ubicación para mostrarte las barberías más cercanas.',
+      NSLocationAlwaysUsageDescription:
+        'Trimmerit usa tu ubicación para mostrarte las barberías más cercanas.',
     },
   },
   android: {
