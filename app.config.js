@@ -4,12 +4,12 @@ export default {
   slug: 'trimmerit',
   version: '1.0.0',
   orientation: 'portrait',
-  icon: './assets/icon.png',
+  icon: './assets/trimmerit-icon-1024 (1).png',
   userInterfaceStyle: 'dark',
   scheme: 'trimmerit',
   newArchEnabled: true,
   splash: {
-    image: './assets/splash-icon.png',
+    image: './assets/trimmerit-icon-1024 (1).png',
     resizeMode: 'contain',
     backgroundColor: '#0a0a0a',
   },
@@ -30,7 +30,7 @@ export default {
   android: {
     package: 'com.trimmerit.app',
     adaptiveIcon: {
-      foregroundImage: './assets/adaptive-icon.png',
+      foregroundImage: './assets/trimmerit-icon-1024 (1).png',
       backgroundColor: '#0a0a0a',
     },
     edgeToEdgeEnabled: true,
@@ -55,6 +55,10 @@ export default {
       {
         locationWhenInUsePermission:
           'Trimmerit usa tu ubicación para mostrarte las barberías más cercanas.',
+        locationAlwaysAndWhenInUsePermission:
+          'Trimmerit usa tu ubicación para mostrarte las barberías más cercanas.',
+        locationAlwaysPermission:
+          'Trimmerit usa tu ubicación para mostrarte las barberías más cercanas.',
       },
     ],
     'expo-font',
@@ -62,7 +66,7 @@ export default {
     [
       'expo-notifications',
       {
-        icon: './assets/icon.png',
+        icon: './assets/trimmerit-icon-1024 (1).png',
         color: '#c8a96a',
         sounds: ['./assets/barber_buzz.wav'],
       },

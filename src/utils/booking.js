@@ -148,7 +148,7 @@ export function getDays() {
 export function heroNameLines(raw) {
   const s = raw.trim().replace(/-/g, ' ');
   const brand = 'TRIMMERIT';
-  if (!s) return { primary: '', secondary: brand };
+  if (!s) return { primary: '', secondary: '' };
   const upper = s.toUpperCase();
   const parts = upper.split(/\s+/).filter(Boolean);
   if (parts.length >= 2) {
@@ -156,9 +156,9 @@ export function heroNameLines(raw) {
   }
   const one = parts[0];
   if (one.length > brand.length && one.endsWith(brand)) {
-    return { primary: one.slice(0, -brand.length), secondary: brand };
+    return { primary: one.slice(0, -brand.length), secondary: '' };
   }
-  return { primary: one, secondary: brand };
+  return { primary: one, secondary: '' };
 }
 
 export function fmtPrice(price) {
