@@ -22,7 +22,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as ImagePicker from 'expo-image-picker';
-import { fetchFeedPosts } from '../api/feed';
+import { FEED_PAGE_SIZE, fetchFeedPosts } from '../api/feed';
 import { supabase, supabaseConfigured } from '../lib/supabase';
 import { uploadToS3, validateFile } from '../lib/s3Upload';
 import { fonts } from '../theme';
@@ -317,6 +317,8 @@ export default function FeedBarberoScreen({ navigation }) {
   const [posts, setPosts]           = useState([]);
   const [loading, setLoading]       = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMorePosts, setHasMorePosts] = useState(true);
   const [currentUserId, setCurrentUserId] = useState(null);
   const [barberoId, setBarberoId]   = useState(null);
 
@@ -346,8 +348,12 @@ export default function FeedBarberoScreen({ navigation }) {
         .maybeSingle();
       setBarberoId(barbero?.id ?? user.id);
 
-      const feedPosts = await fetchFeedPosts(supabase, user.id);
+      const feedPosts = await fetchFeedPosts(supabase, user.id, {
+        limit: FEED_PAGE_SIZE,
+        offset: 0,
+      });
       setPosts(feedPosts);
+      setHasMorePosts(feedPosts.length === FEED_PAGE_SIZE);
     } catch (e) {
       if (__DEV__) console.warn('[FeedBarbero] Error:', e?.message);
     } finally {
@@ -357,6 +363,24 @@ export default function FeedBarberoScreen({ navigation }) {
   }
 
   useFocusEffect(useCallback(() => { loadFeed(); }, []));
+
+  async function loadMoreFeed() {
+    if (loading || refreshing || loadingMore || !hasMorePosts || !currentUserId) return;
+    setLoadingMore(true);
+
+    try {
+      const nextPosts = await fetchFeedPosts(supabase, currentUserId, {
+        limit: FEED_PAGE_SIZE,
+        offset: posts.length,
+      });
+      setPosts((prev) => [...prev, ...nextPosts]);
+      setHasMorePosts(nextPosts.length === FEED_PAGE_SIZE);
+    } catch (e) {
+      if (__DEV__) console.warn('[FeedBarbero] Error cargando más:', e?.message);
+    } finally {
+      setLoadingMore(false);
+    }
+  }
 
   // ── Reacción ───────────────────────────────────────────────────────────────
   async function handleToggleReaccion(postId, tipo) {
@@ -562,7 +586,16 @@ export default function FeedBarberoScreen({ navigation }) {
             )}
             onRefresh={() => { setRefreshing(true); loadFeed(true); }}
             refreshing={refreshing}
+            onEndReached={loadMoreFeed}
+            onEndReachedThreshold={0.6}
             showsVerticalScrollIndicator={false}
+            ListFooterComponent={
+              loadingMore ? (
+                <View style={{ paddingVertical: 16 }}>
+                  <ActivityIndicator color={colors.champagne} />
+                </View>
+              ) : null
+            }
             ListEmptyComponent={
               <View style={styles.emptyWrap}>
                 <Text style={styles.emptyIcon}>✧</Text>

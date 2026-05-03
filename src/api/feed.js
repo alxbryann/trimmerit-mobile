@@ -1,5 +1,6 @@
 const FEED_POST_SELECT = '*, barberos(nombre_barberia, profiles(nombre))';
 const REACTION_TYPES = ['fuego', 'tijeras', 'estrella', 'corazon'];
+export const FEED_PAGE_SIZE = 20;
 
 function emptyReactionCounts() {
   return REACTION_TYPES.reduce((acc, tipo) => ({ ...acc, [tipo]: 0 }), {});
@@ -48,12 +49,18 @@ function groupFeedMetadata(posts, reactions, comments, profilesById, currentUser
   }));
 }
 
-export async function fetchFeedPosts(supabase, currentUserId) {
-  const { data: posts, error: postsError } = await supabase
+async function fetchFeedPostsFallback(supabase, currentUserId, { limit, offset }) {
+  let postsQuery = supabase
     .from('publicaciones')
     .select(FEED_POST_SELECT)
     .eq('activo', true)
     .order('created_at', { ascending: false });
+
+  postsQuery = typeof postsQuery.range === 'function'
+    ? postsQuery.range(offset, offset + limit - 1)
+    : postsQuery.limit(limit);
+
+  const { data: posts, error: postsError } = await postsQuery;
 
   if (postsError) throw new Error(postsError.message);
   if (!posts?.length) return [];
@@ -91,4 +98,24 @@ export async function fetchFeedPosts(supabase, currentUserId) {
   }
 
   return groupFeedMetadata(posts, reactions ?? [], comments ?? [], profilesById, currentUserId);
+}
+
+export async function fetchFeedPosts(supabase, currentUserId, options = {}) {
+  const limit = options.limit ?? FEED_PAGE_SIZE;
+  const offset = options.offset ?? 0;
+
+  const { data, error } = await supabase.rpc('get_feed_posts', {
+    p_limit: limit,
+    p_offset: offset,
+  });
+
+  if (!error && Array.isArray(data)) {
+    return data;
+  }
+
+  if (__DEV__ && error) {
+    console.warn('[feed] get_feed_posts fallback:', error.message);
+  }
+
+  return fetchFeedPostsFallback(supabase, currentUserId, { limit, offset });
 }
