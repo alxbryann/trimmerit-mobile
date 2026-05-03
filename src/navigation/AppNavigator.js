@@ -19,6 +19,11 @@ import AdminBarberiaScreen from '../screens/AdminBarberiaScreen';
 import UnirseBarberiaScreen from '../screens/UnirseBarberiaScreen';
 import EmpleadoBarberiaScreen from '../screens/EmpleadoBarberiaScreen';
 import LoyaltyConfigScreen from '../screens/LoyaltyConfigScreen';
+import ResumenGeneralScreen from '../screens/stats/ResumenGeneralScreen';
+import EquipoStatsScreen from '../screens/stats/EquipoStatsScreen';
+import ClientesStatsScreen from '../screens/stats/ClientesStatsScreen';
+import CajaStatsScreen from '../screens/stats/CajaStatsScreen';
+import BilleteraScreen from '../screens/stats/BilleteraScreen';
 import { supabase, supabaseConfigured } from '../lib/supabase';
 import { colors } from '../theme';
 import { resolvePostAuthDestination, applyPostAuthDestination } from './postAuthRouting';
@@ -149,6 +154,11 @@ export default function AppNavigator() {
         <Stack.Screen name="UnirseBarberia" component={UnirseBarberiaScreen} />
         <Stack.Screen name="EmpleadoBarberia" component={EmpleadoBarberiaScreen} />
         <Stack.Screen name="LoyaltyConfig" component={LoyaltyConfigScreen} />
+        <Stack.Screen name="ResumenGeneral" component={ResumenGeneralScreen} />
+        <Stack.Screen name="EquipoStats" component={EquipoStatsScreen} />
+        <Stack.Screen name="ClientesStats" component={ClientesStatsScreen} />
+        <Stack.Screen name="CajaStats" component={CajaStatsScreen} />
+        <Stack.Screen name="Billetera" component={BilleteraScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

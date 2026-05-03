@@ -23,6 +23,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
+import { fetchFeedPosts } from '../api/feed';
 import { supabase, supabaseConfigured } from '../lib/supabase';
 import { fonts } from '../theme';
 import { useColors } from '../theme/ThemeContext';
@@ -314,12 +315,8 @@ export default function InicioClienteScreen({ navigation }) {
       setFrecuentes(fData ?? []);
 
       // Feed de publicaciones
-      const { data: feedData } = await supabase
-        .from('publicaciones')
-        .select('*')
-        .eq('activo', true)
-        .order('created_at', { ascending: false });
-      setPosts(feedData ?? []);
+      const feedPosts = await fetchFeedPosts(supabase, user.id);
+      setPosts(feedPosts);
     } catch (e) {
       if (__DEV__) console.warn('[InicioCliente] Error cargando datos:', e?.message);
     } finally {
@@ -329,16 +326,19 @@ export default function InicioClienteScreen({ navigation }) {
   }
 
   async function handleToggleReaccion(postId, tipo) {
-    await supabase.rpc('toggle_reaccion', { p_pub_id: postId, p_tipo: tipo });
+    const { data, error } = await supabase.rpc('toggle_reaccion', { p_pub_id: postId, p_tipo: tipo });
+    if (error) throw new Error(error.message);
+    if (data?.ok === false) throw new Error(data.reason ?? 'No se pudo guardar la reacción');
   }
 
   async function handleAddComentario(postId, texto) {
     if (!currentUserId) return;
-    await supabase.from('pub_comentarios').insert({
+    const { error } = await supabase.from('pub_comentarios').insert({
       pub_id:   postId,
       autor_id: currentUserId,
       texto,
     });
+    if (error) throw new Error(error.message);
   }
 
   useFocusEffect(

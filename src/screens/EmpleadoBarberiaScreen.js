@@ -15,6 +15,7 @@ import { supabase, supabaseConfigured } from '../lib/supabase';
 import { fonts } from '../theme';
 import { useColors } from '../theme/ThemeContext';
 import ReservaActionsCard from '../components/ReservaActionsCard';
+import StatsButtons from '../components/stats/StatsButtons';
 import { sendPushNotification } from '../lib/notifications';
 
 const SLOT_START = 9 * 60;
@@ -394,6 +395,8 @@ export default function EmpleadoBarberiaScreen({ navigation, route }) {
         </View>
 
         {loadErr ? <Text style={styles.err}>{loadErr}</Text> : null}
+
+        <StatsButtons navigation={navigation} role="empleado" />
 
         <Text style={styles.section}>CITAS DEL DÍA ({sorted.length})</Text>
         {sorted.length === 0 ? (

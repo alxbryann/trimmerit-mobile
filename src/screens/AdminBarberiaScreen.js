@@ -17,6 +17,7 @@ import * as Clipboard from 'expo-clipboard';
 import { supabase } from '../lib/supabase';
 import { fonts, radii, shadows } from '../theme';
 import { useColors } from '../theme/ThemeContext';
+import StatsButtons from '../components/stats/StatsButtons';
 
 const TABS = ['Mi Panel', 'Colaboradores', 'Ajustes'];
 const CODE_TTL_MS = 5 * 60 * 1000; // 5 minutes
@@ -592,7 +593,7 @@ export default function AdminBarberiaScreen({ navigation }) {
                 ))}
               </View>
 
-              <BarberosSection styles={styles} barberos={barberos} onEliminar={handleEliminarBarbero} />
+              <StatsButtons navigation={navigation} role="admin" />
             </>
           )}
 

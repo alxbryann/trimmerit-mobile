@@ -12,36 +12,35 @@
 export const MOCK_IDS = {
   userJuan:      'mock-user-juan-001',
   userCarlos:    'mock-user-carlos-001',
-  userLuisa:     'mock-user-luisa-001',   // segundo barbero (para catálogo)
-  userPedro:     'mock-user-pedro-001',   // segundo cliente
-  barberoCarlos: 'mock-user-carlos-001',  // mismo id que user (relación 1-1)
+  userLuisa:     'mock-user-luisa-001',
+  userPedro:     'mock-user-pedro-001',
+  barberoCarlos: 'mock-user-carlos-001',
   barberoLuisa:  'mock-user-luisa-001',
   // Barberías
   barberiaElClasico:    'mock-barberia-001',
   barberiaStudioLuisa:  'mock-barberia-002',
-  barberiaBarberHouse:  'mock-barberia-003',  // tercera barbería (sin barbero mock activo)
+  barberiaBarberHouse:  'mock-barberia-003',
   svc1: 'mock-svc-001', svc2: 'mock-svc-002', svc3: 'mock-svc-003',
   svc4: 'mock-svc-004', svc5: 'mock-svc-005',
   res1: 'mock-res-001', res2: 'mock-res-002', res3: 'mock-res-003',
   res4: 'mock-res-004', res5: 'mock-res-005', res6: 'mock-res-006',
   prog1: 'mock-prog-001', prog2: 'mock-prog-002',
   card1: 'mock-card-001', card2: 'mock-card-002', card3: 'mock-card-003',
-  sol1: 'mock-sol-001',   // cancelacion de res4 → cliente ve popup
-  sol2: 'mock-sol-002',   // aplazamiento pendiente de res6 → para probar flujo cliente
-  sol3: 'mock-sol-003',   // aplazamiento aceptado por Juan → barbero ve popup
-  sol4: 'mock-sol-004',   // cancelacion_cliente → barbero ve popup
-  sol5: 'mock-sol-005',   // cambio_cliente → barbero ve popup
+  sol1: 'mock-sol-001', sol2: 'mock-sol-002', sol3: 'mock-sol-003',
+  sol4: 'mock-sol-004', sol5: 'mock-sol-005',
   // Feed social
-  pub1: 'mock-pub-001',   // Carlos — carrusel 3 imágenes
-  pub2: 'mock-pub-002',   // Luisa  — texto destacado
-  pub3: 'mock-pub-003',   // Carlos — imagen única
-  pub4: 'mock-pub-004',   // Luisa  — imagen + caption largo
+  pub1: 'mock-pub-001', pub2: 'mock-pub-002',
+  pub3: 'mock-pub-003', pub4: 'mock-pub-004',
+  // Stats — productos
+  prod1: 'mock-prod-001',  // Pomada Texturizante
+  prod2: 'mock-prod-002',  // Shampoo Revitalizante
+  prod3: 'mock-prod-003',  // Aceite Esencial Barba
 };
 
 function today(offsetDays = 0) {
-  const d = new Date();
-  d.setDate(d.getDate() + offsetDays);
-  return d.toISOString().slice(0, 10);
+  const now = new Date();
+  const utc = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + offsetDays));
+  return utc.toISOString().slice(0, 10);
 }
 
 // ─── Generador de estado inicial ─────────────────────────────────────────────
@@ -166,6 +165,78 @@ export function buildInitialDB() {
       { id: MOCK_IDS.svc5, barbero_id: MOCK_IDS.barberoLuisa,  nombre: 'Diseño',         precio: 40000, duracion_min: 60, icono: 'color-wand', activo: true },
     ],
 
+    // ─── Stats: productos ─────────────────────────────────────────────────────
+    productos: [
+      {
+        id: MOCK_IDS.prod1,
+        barberia_id: MOCK_IDS.barberiaElClasico,
+        nombre: 'Pomada Texturizante',
+        categoria: 'Styling',
+        precio_venta: 45000,
+        precio_compra: 22000,
+        stock: 12,
+        imagen_url: null,
+        activo: true,
+      },
+      {
+        id: MOCK_IDS.prod2,
+        barberia_id: MOCK_IDS.barberiaElClasico,
+        nombre: 'Shampoo Revitalizante',
+        categoria: 'Cuidado capilar',
+        precio_venta: 35000,
+        precio_compra: 18000,
+        stock: 3,
+        imagen_url: null,
+        activo: true,
+      },
+      {
+        id: MOCK_IDS.prod3,
+        barberia_id: MOCK_IDS.barberiaElClasico,
+        nombre: 'Aceite Esencial Barba',
+        categoria: 'Barba',
+        precio_venta: 28000,
+        precio_compra: 12000,
+        stock: 24,
+        imagen_url: null,
+        activo: true,
+      },
+    ],
+
+    // ─── Stats: ventas de productos ───────────────────────────────────────────
+    productos_ventas: [
+      // Semana actual
+      { id: 'mock-pv-001', producto_id: MOCK_IDS.prod1, barbero_id: MOCK_IDS.barberoCarlos, barberia_id: MOCK_IDS.barberiaElClasico, cliente_id: MOCK_IDS.userJuan,  unidades: 2, monto: 90000,  fecha: new Date(Date.now() - 1 * 86400000).toISOString() },
+      { id: 'mock-pv-002', producto_id: MOCK_IDS.prod2, barbero_id: MOCK_IDS.barberoCarlos, barberia_id: MOCK_IDS.barberiaElClasico, cliente_id: MOCK_IDS.userPedro, unidades: 1, monto: 35000,  fecha: new Date(Date.now() - 2 * 86400000).toISOString() },
+      { id: 'mock-pv-003', producto_id: MOCK_IDS.prod3, barbero_id: MOCK_IDS.barberoCarlos, barberia_id: MOCK_IDS.barberiaElClasico, cliente_id: MOCK_IDS.userJuan,  unidades: 1, monto: 28000,  fecha: new Date(Date.now() - 3 * 86400000).toISOString() },
+      { id: 'mock-pv-004', producto_id: MOCK_IDS.prod1, barbero_id: MOCK_IDS.barberoCarlos, barberia_id: MOCK_IDS.barberiaElClasico, cliente_id: null,               unidades: 3, monto: 135000, fecha: new Date(Date.now() - 4 * 86400000).toISOString() },
+      { id: 'mock-pv-005', producto_id: MOCK_IDS.prod2, barbero_id: MOCK_IDS.barberoCarlos, barberia_id: MOCK_IDS.barberiaElClasico, cliente_id: MOCK_IDS.userPedro, unidades: 2, monto: 70000,  fecha: new Date(Date.now() - 5 * 86400000).toISOString() },
+      { id: 'mock-pv-006', producto_id: MOCK_IDS.prod1, barbero_id: MOCK_IDS.barberoCarlos, barberia_id: MOCK_IDS.barberiaElClasico, cliente_id: MOCK_IDS.userJuan,  unidades: 1, monto: 45000,  fecha: new Date(Date.now() - 14 * 86400000).toISOString() },
+      { id: 'mock-pv-007', producto_id: MOCK_IDS.prod3, barbero_id: MOCK_IDS.barberoCarlos, barberia_id: MOCK_IDS.barberiaElClasico, cliente_id: null,               unidades: 2, monto: 56000,  fecha: new Date(Date.now() - 20 * 86400000).toISOString() },
+    ],
+
+    // ─── Stats: gastos operativos ─────────────────────────────────────────────
+    gastos: [
+      // Semana actual
+      { id: 'mock-gas-001', barberia_id: MOCK_IDS.barberiaElClasico, concepto: 'Alquiler Local',         categoria: 'fijo',     monto: 2500000, fecha: today(-1) },
+      { id: 'mock-gas-002', barberia_id: MOCK_IDS.barberiaElClasico, concepto: 'Servicios (Luz, Agua)',   categoria: 'fijo',     monto: 320000,  fecha: today(-1) },
+      { id: 'mock-gas-003', barberia_id: MOCK_IDS.barberiaElClasico, concepto: 'Insumos y Productos',    categoria: 'variable', monto: 250000,  fecha: today(0)  },
+      { id: 'mock-gas-004', barberia_id: MOCK_IDS.barberiaElClasico, concepto: 'Marketing Digital',      categoria: 'variable', monto: 400000,  fecha: today(-4) },
+      // Semanas anteriores (útil para vista 'semana' y 'anio')
+      { id: 'mock-gas-005', barberia_id: MOCK_IDS.barberiaElClasico, concepto: 'Insumos y Productos',    categoria: 'variable', monto: 180000,  fecha: today(-10) },
+      { id: 'mock-gas-006', barberia_id: MOCK_IDS.barberiaElClasico, concepto: 'Marketing Digital',      categoria: 'variable', monto: 350000,  fecha: today(-18) },
+      { id: 'mock-gas-007', barberia_id: MOCK_IDS.barberiaElClasico, concepto: 'Insumos y Productos',    categoria: 'variable', monto: 220000,  fecha: today(-25) },
+    ],
+
+    // ─── Stats: configuración de comisiones ───────────────────────────────────
+    barbero_config: [
+      {
+        barbero_id: MOCK_IDS.barberoCarlos,
+        comision_servicio_pct: 50,
+        comision_producto_pct: 10,
+        meta_mensual: 5000000,
+      },
+    ],
+
     reservas: [
       {
         id: MOCK_IDS.res1,
@@ -224,6 +295,31 @@ export function buildInitialDB() {
         estado: 'pendiente',
         barberos: { nombre_barberia: 'El Clásico', slug: 'carlos-barbero', profiles: { nombre: 'Carlos Méndez' } },
       },
+      // ── Reservas adicionales para estadísticas de Carlos ─────────────────────
+      // Semana 4 atrás (≈ días -28 a -22)
+      { id: 'mock-res-s4a', cliente_id: MOCK_IDS.userJuan,  barbero_id: MOCK_IDS.barberoCarlos, servicio_id: MOCK_IDS.svc1, fecha: today(-27), hora: '09:00', precio: 25000, estado: 'completada', barberos: { nombre_barberia: 'El Clásico', slug: 'carlos-barbero', profiles: { nombre: 'Carlos Méndez' } } },
+      { id: 'mock-res-s4b', cliente_id: MOCK_IDS.userPedro, barbero_id: MOCK_IDS.barberoCarlos, servicio_id: MOCK_IDS.svc3, fecha: today(-26), hora: '11:00', precio: 35000, estado: 'completada', barberos: { nombre_barberia: 'El Clásico', slug: 'carlos-barbero', profiles: { nombre: 'Carlos Méndez' } } },
+      { id: 'mock-res-s4c', cliente_id: MOCK_IDS.userJuan,  barbero_id: MOCK_IDS.barberoCarlos, servicio_id: MOCK_IDS.svc2, fecha: today(-24), hora: '14:00', precio: 15000, estado: 'completada', barberos: { nombre_barberia: 'El Clásico', slug: 'carlos-barbero', profiles: { nombre: 'Carlos Méndez' } } },
+      { id: 'mock-res-s4d', cliente_id: MOCK_IDS.userPedro, barbero_id: MOCK_IDS.barberoCarlos, servicio_id: MOCK_IDS.svc1, fecha: today(-22), hora: '16:00', precio: 25000, estado: 'completada', barberos: { nombre_barberia: 'El Clásico', slug: 'carlos-barbero', profiles: { nombre: 'Carlos Méndez' } } },
+      // Semana 3 atrás (≈ días -21 a -15)
+      { id: 'mock-res-s3a', cliente_id: MOCK_IDS.userJuan,  barbero_id: MOCK_IDS.barberoCarlos, servicio_id: MOCK_IDS.svc3, fecha: today(-21), hora: '09:00', precio: 35000, estado: 'completada', barberos: { nombre_barberia: 'El Clásico', slug: 'carlos-barbero', profiles: { nombre: 'Carlos Méndez' } } },
+      { id: 'mock-res-s3b', cliente_id: MOCK_IDS.userPedro, barbero_id: MOCK_IDS.barberoCarlos, servicio_id: MOCK_IDS.svc1, fecha: today(-19), hora: '11:30', precio: 25000, estado: 'completada', barberos: { nombre_barberia: 'El Clásico', slug: 'carlos-barbero', profiles: { nombre: 'Carlos Méndez' } } },
+      { id: 'mock-res-s3c', cliente_id: MOCK_IDS.userJuan,  barbero_id: MOCK_IDS.barberoCarlos, servicio_id: MOCK_IDS.svc2, fecha: today(-18), hora: '15:00', precio: 15000, estado: 'completada', barberos: { nombre_barberia: 'El Clásico', slug: 'carlos-barbero', profiles: { nombre: 'Carlos Méndez' } } },
+      { id: 'mock-res-s3d', cliente_id: MOCK_IDS.userPedro, barbero_id: MOCK_IDS.barberoCarlos, servicio_id: MOCK_IDS.svc3, fecha: today(-17), hora: '10:00', precio: 35000, estado: 'completada', barberos: { nombre_barberia: 'El Clásico', slug: 'carlos-barbero', profiles: { nombre: 'Carlos Méndez' } } },
+      { id: 'mock-res-s3e', cliente_id: MOCK_IDS.userJuan,  barbero_id: MOCK_IDS.barberoCarlos, servicio_id: MOCK_IDS.svc1, fecha: today(-16), hora: '13:00', precio: 25000, estado: 'completada', barberos: { nombre_barberia: 'El Clásico', slug: 'carlos-barbero', profiles: { nombre: 'Carlos Méndez' } } },
+      // Semana 2 atrás (≈ días -14 a -8)
+      { id: 'mock-res-s2a', cliente_id: MOCK_IDS.userPedro, barbero_id: MOCK_IDS.barberoCarlos, servicio_id: MOCK_IDS.svc3, fecha: today(-14), hora: '09:00', precio: 35000, estado: 'completada', barberos: { nombre_barberia: 'El Clásico', slug: 'carlos-barbero', profiles: { nombre: 'Carlos Méndez' } } },
+      { id: 'mock-res-s2b', cliente_id: MOCK_IDS.userJuan,  barbero_id: MOCK_IDS.barberoCarlos, servicio_id: MOCK_IDS.svc1, fecha: today(-13), hora: '11:00', precio: 25000, estado: 'completada', barberos: { nombre_barberia: 'El Clásico', slug: 'carlos-barbero', profiles: { nombre: 'Carlos Méndez' } } },
+      { id: 'mock-res-s2c', cliente_id: MOCK_IDS.userPedro, barbero_id: MOCK_IDS.barberoCarlos, servicio_id: MOCK_IDS.svc2, fecha: today(-12), hora: '14:30', precio: 15000, estado: 'completada', barberos: { nombre_barberia: 'El Clásico', slug: 'carlos-barbero', profiles: { nombre: 'Carlos Méndez' } } },
+      { id: 'mock-res-s2d', cliente_id: MOCK_IDS.userJuan,  barbero_id: MOCK_IDS.barberoCarlos, servicio_id: MOCK_IDS.svc3, fecha: today(-11), hora: '16:00', precio: 35000, estado: 'completada', barberos: { nombre_barberia: 'El Clásico', slug: 'carlos-barbero', profiles: { nombre: 'Carlos Méndez' } } },
+      // Última semana / días recientes (días -7 a 0) → sparkline del ticket promedio
+      { id: 'mock-res-s1a', cliente_id: MOCK_IDS.userPedro, barbero_id: MOCK_IDS.barberoCarlos, servicio_id: MOCK_IDS.svc1, fecha: today(-7), hora: '09:30', precio: 25000, estado: 'completada', barberos: { nombre_barberia: 'El Clásico', slug: 'carlos-barbero', profiles: { nombre: 'Carlos Méndez' } } },
+      { id: 'mock-res-s1b', cliente_id: MOCK_IDS.userJuan,  barbero_id: MOCK_IDS.barberoCarlos, servicio_id: MOCK_IDS.svc3, fecha: today(-6), hora: '11:00', precio: 35000, estado: 'completada', barberos: { nombre_barberia: 'El Clásico', slug: 'carlos-barbero', profiles: { nombre: 'Carlos Méndez' } } },
+      { id: 'mock-res-s1c', cliente_id: MOCK_IDS.userPedro, barbero_id: MOCK_IDS.barberoCarlos, servicio_id: MOCK_IDS.svc2, fecha: today(-5), hora: '14:00', precio: 15000, estado: 'completada', barberos: { nombre_barberia: 'El Clásico', slug: 'carlos-barbero', profiles: { nombre: 'Carlos Méndez' } } },
+      { id: 'mock-res-s1d', cliente_id: MOCK_IDS.userJuan,  barbero_id: MOCK_IDS.barberoCarlos, servicio_id: MOCK_IDS.svc3, fecha: today(-4), hora: '10:00', precio: 35000, estado: 'completada', barberos: { nombre_barberia: 'El Clásico', slug: 'carlos-barbero', profiles: { nombre: 'Carlos Méndez' } } },
+      { id: 'mock-res-s1e', cliente_id: MOCK_IDS.userPedro, barbero_id: MOCK_IDS.barberoCarlos, servicio_id: MOCK_IDS.svc1, fecha: today(-2), hora: '15:30', precio: 25000, estado: 'completada', barberos: { nombre_barberia: 'El Clásico', slug: 'carlos-barbero', profiles: { nombre: 'Carlos Méndez' } } },
+      { id: 'mock-res-s1f', cliente_id: MOCK_IDS.userJuan,  barbero_id: MOCK_IDS.barberoCarlos, servicio_id: MOCK_IDS.svc3, fecha: today(-1), hora: '12:00', precio: 35000, estado: 'completada', barberos: { nombre_barberia: 'El Clásico', slug: 'carlos-barbero', profiles: { nombre: 'Carlos Méndez' } } },
+
       {
         // Cita de Juan para hoy — Carlos ya propuso aplazamiento (sol2), estado consistente
         id: MOCK_IDS.res6,

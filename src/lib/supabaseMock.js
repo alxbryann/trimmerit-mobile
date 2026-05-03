@@ -93,8 +93,10 @@ class QueryBuilder {
   }
 
   // ── Operaciones ──
-  select(cols = '*') {
+  select(cols = '*', opts = {}) {
     this._selectStr = cols;
+    this._countMode = opts.count === 'exact';
+    this._headOnly  = opts.head === true;
     // Si ya hay una op de mutación encadenada (insert/update/upsert/delete),
     // select() actúa como "RETURNING cols" — no debe pisar la op original.
     // Esto replica el comportamiento real de Supabase: .insert({}).select('id, slug').single()
@@ -119,6 +121,8 @@ class QueryBuilder {
   in(col, vals)  { this._conds.push({ t: 'in',  col, vals }); return this; }
   gte(col, val)  { this._conds.push({ t: 'gte', col, val });  return this; }
   lte(col, val)  { this._conds.push({ t: 'lte', col, val });  return this; }
+  gt(col, val)   { this._conds.push({ t: 'gt',  col, val });  return this; }
+  lt(col, val)   { this._conds.push({ t: 'lt',  col, val });  return this; }
   is(col, val)   { this._conds.push({ t: 'is',  col, val });  return this; }
 
   // ── Orden y paginación ──
@@ -145,6 +149,14 @@ class QueryBuilder {
       let rows = this._filter([...table]);
       rows = this._sort(rows);
       if (this._limitN) rows = rows.slice(0, this._limitN);
+
+      // Soporte count: 'exact' + head: true (usado en loadOcupacion, LogrosScreen, etc.)
+      if (this._countMode && this._headOnly) {
+        return { data: null, count: rows.length, error: null };
+      }
+      if (this._countMode) {
+        return { data: rows, count: rows.length, error: null };
+      }
 
       // ── Joins automáticos para publicaciones ──────────────────────────────
       if (this._table === 'publicaciones') {
@@ -274,6 +286,8 @@ class QueryBuilder {
           case 'in':  return (c.vals ?? []).includes(row[c.col]);
           case 'gte': return row[c.col] >= c.val;
           case 'lte': return row[c.col] <= c.val;
+          case 'gt':  return row[c.col] >  c.val;
+          case 'lt':  return row[c.col] <  c.val;
           case 'is':
             return c.val === null
               ? row[c.col] == null

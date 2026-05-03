@@ -22,7 +22,9 @@ import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as ImagePicker from 'expo-image-picker';
+import { fetchFeedPosts } from '../api/feed';
 import { supabase, supabaseConfigured } from '../lib/supabase';
+import { uploadToS3, validateFile } from '../lib/s3Upload';
 import { fonts } from '../theme';
 import { useColors, useTheme } from '../theme/ThemeContext';
 import PostCard from '../components/PostCard';
@@ -31,6 +33,28 @@ const THUMB = 88;
 
 // ── Helpers de duración de video ──────────────────────────────────────────────
 const MAX_VIDEO_S = 10;
+
+const FALLBACK_EXT_BY_MIME = {
+  'image/jpeg': 'jpg',
+  'image/jpg': 'jpg',
+  'image/png': 'png',
+  'image/webp': 'webp',
+  'image/heic': 'heic',
+  'image/heif': 'heif',
+  'video/mp4': 'mp4',
+  'video/quicktime': 'mov',
+  'video/webm': 'webm',
+};
+
+function extensionForAsset(asset, mimeType) {
+  const match = asset.uri?.match(/\.([a-zA-Z0-9]+)(?:[?#]|$)/);
+  return match?.[1]?.toLowerCase() ?? FALLBACK_EXT_BY_MIME[mimeType] ?? 'jpg';
+}
+
+function createS3Path(userId, folder, asset, mimeType) {
+  const ext = extensionForAsset(asset, mimeType).replace(/[^a-z0-9]/g, '') || 'jpg';
+  return `${userId}/${folder}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+}
 
 // ── Pantalla principal ────────────────────────────────────────────────────────
 export default function FeedBarberoScreen({ navigation }) {
@@ -287,7 +311,7 @@ export default function FeedBarberoScreen({ navigation }) {
           lineHeight: 20,
         },
       }),
-    [colors, mode, onChampagne]
+    [colors, onChampagne]
   );
 
   const [posts, setPosts]           = useState([]);
@@ -322,13 +346,8 @@ export default function FeedBarberoScreen({ navigation }) {
         .maybeSingle();
       setBarberoId(barbero?.id ?? user.id);
 
-      const { data } = await supabase
-        .from('publicaciones')
-        .select('*')
-        .eq('activo', true)
-        .order('created_at', { ascending: false });
-
-      setPosts(data ?? []);
+      const feedPosts = await fetchFeedPosts(supabase, user.id);
+      setPosts(feedPosts);
     } catch (e) {
       if (__DEV__) console.warn('[FeedBarbero] Error:', e?.message);
     } finally {
@@ -341,18 +360,21 @@ export default function FeedBarberoScreen({ navigation }) {
 
   // ── Reacción ───────────────────────────────────────────────────────────────
   async function handleToggleReaccion(postId, tipo) {
-    await supabase.rpc('toggle_reaccion', { p_pub_id: postId, p_tipo: tipo });
+    const { data, error } = await supabase.rpc('toggle_reaccion', { p_pub_id: postId, p_tipo: tipo });
+    if (error) throw new Error(error.message);
+    if (data?.ok === false) throw new Error(data.reason ?? 'No se pudo guardar la reacción');
     // No recargar el feed completo — la UI ya actualizó optimistamente en PostCard
   }
 
   // ── Comentario ─────────────────────────────────────────────────────────────
   async function handleAddComentario(postId, texto) {
     if (!currentUserId) return;
-    await supabase.from('pub_comentarios').insert({
+    const { error } = await supabase.from('pub_comentarios').insert({
       pub_id:   postId,
       autor_id: currentUserId,
       texto,
     });
+    if (error) throw new Error(error.message);
   }
 
   // ── Selector de imágenes (multi) ────────────────────────────────────────────
@@ -369,7 +391,12 @@ export default function FeedBarberoScreen({ navigation }) {
       selectionLimit: 6,
     });
     if (!result.canceled) {
-      const newItems = result.assets.map((a) => ({ type: 'image', uri: a.uri }));
+      const newItems = result.assets.map((a) => ({
+        type: 'image',
+        uri: a.uri,
+        mimeType: a.mimeType ?? 'image/jpeg',
+        fileSize: a.fileSize,
+      }));
       // Reemplazar cualquier video existente al elegir imágenes
       setMediaItems((prev) => [
         ...prev.filter((m) => m.type === 'image'),
@@ -402,7 +429,13 @@ export default function FeedBarberoScreen({ navigation }) {
         return;
       }
       // Reemplazar imágenes al elegir video
-      setMediaItems([{ type: 'video', uri: asset.uri, duration: durationS }]);
+      setMediaItems([{
+        type: 'video',
+        uri: asset.uri,
+        duration: durationS,
+        mimeType: asset.mimeType ?? 'video/mp4',
+        fileSize: asset.fileSize,
+      }]);
     }
   }
 
@@ -421,15 +454,32 @@ export default function FeedBarberoScreen({ navigation }) {
     try {
       const hasVideo  = mediaItems.some((m) => m.type === 'video');
       const images    = mediaItems.filter((m) => m.type === 'image');
+      const video     = mediaItems.find((m) => m.type === 'video');
 
-      // En producción: subir cada archivo a S3 y obtener URLs
-      // En mock: usamos picsum como URL de demostración
-      const media_urls = images.map((_, i) =>
-        `https://picsum.photos/seed/new-post-${Date.now()}-${i}/800/800`
-      );
-      const video_url = hasVideo
-        ? null  // En mock no subimos video real; en prod iría la URL S3
-        : null;
+      if ((images.length || video) && !currentUserId) {
+        throw new Error('No hay sesión activa. Vuelve a iniciar sesión.');
+      }
+
+      const media_urls = [];
+      for (const image of images) {
+        const mimeType = image.mimeType ?? 'image/jpeg';
+        const check = validateFile(mimeType, image.fileSize);
+        if (!check.ok) throw new Error(check.error);
+
+        const path = createS3Path(currentUserId, 'publicaciones', image, mimeType);
+        const publicUrl = await uploadToS3(image.uri, path, mimeType, image.fileSize);
+        media_urls.push(publicUrl);
+      }
+
+      let video_url = null;
+      if (video) {
+        const mimeType = video.mimeType ?? 'video/mp4';
+        const check = validateFile(mimeType, video.fileSize);
+        if (!check.ok) throw new Error(check.error);
+
+        const path = createS3Path(currentUserId, 'publicaciones', video, mimeType);
+        video_url = await uploadToS3(video.uri, path, mimeType, video.fileSize);
+      }
 
       const tipo = hasVideo ? 'video' : images.length ? 'imagen' : 'texto';
 

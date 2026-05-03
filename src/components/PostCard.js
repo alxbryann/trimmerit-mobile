@@ -16,10 +16,10 @@
  *  onAddComentario    : (postId, texto) => void
  */
 
-import { useState, useRef, useMemo } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import {
   View, Text, Image, ScrollView, TouchableOpacity, TextInput,
-  StyleSheet, Dimensions, ActivityIndicator,
+  StyleSheet, Dimensions, ActivityIndicator, Alert,
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import LoopMutedVideo from './LoopMutedVideo';
@@ -336,15 +336,25 @@ export default function PostCard({
   // Comentarios locales (se agregan al estado local al enviar)
   const [localComsTail, setLocalComsTail] = useState([]);
 
+  useEffect(() => {
+    setLocalReacciones(post._reacciones ?? {});
+    setLocalMias(post._mis_reacciones ?? []);
+    setLocalComsTail([]);
+  }, [post.id, post._reacciones, post._mis_reacciones]);
+
   const todasComs = [
     ...(post._comentarios ?? []),
     ...localComsTail,
   ];
 
   const visibleComs = comentariosExpanded ? todasComs : todasComs.slice(-2);
+  const comentariosCount = (post._comentarios_count ?? 0) + localComsTail.length;
 
   async function handleReaccion(tipo) {
     const yaEsta = localMias.includes(tipo);
+    const prevMias = localMias;
+    const prevReacciones = localReacciones;
+
     // Optimistic update
     setLocalMias((prev) =>
       yaEsta ? prev.filter((t) => t !== tipo) : [...prev, tipo]
@@ -353,7 +363,15 @@ export default function PostCard({
       ...prev,
       [tipo]: Math.max(0, (prev[tipo] ?? 0) + (yaEsta ? -1 : 1)),
     }));
-    onToggleReaccion?.(post.id, tipo);
+
+    try {
+      await onToggleReaccion?.(post.id, tipo);
+    } catch (e) {
+      setLocalMias(prevMias);
+      setLocalReacciones(prevReacciones);
+      if (__DEV__) console.warn('[PostCard] Error guardando reacción:', e?.message);
+      Alert.alert('Error', 'No se pudo guardar la reacción. Intenta de nuevo.');
+    }
   }
 
   async function handleEnviarComentario() {
@@ -370,9 +388,16 @@ export default function PostCard({
       profiles: { nombre: 'Tú', role: 'cliente' },
     };
     setInputTxt('');
-    await onAddComentario?.(post.id, txt);
-    setLocalComsTail((prev) => [...prev, tempCom]);
-    setEnviando(false);
+    try {
+      await onAddComentario?.(post.id, txt);
+      setLocalComsTail((prev) => [...prev, tempCom]);
+    } catch (e) {
+      setInputTxt(txt);
+      if (__DEV__) console.warn('[PostCard] Error guardando comentario:', e?.message);
+      Alert.alert('Error', 'No se pudo guardar el comentario. Intenta de nuevo.');
+    } finally {
+      setEnviando(false);
+    }
   }
 
   const barberoNombre  = post.barberos?.profiles?.nombre ?? '—';
@@ -450,13 +475,13 @@ export default function PostCard({
       {/* ── Comentarios ──────────────────────────────────────────────────────── */}
       <View style={styles.comentariosSection}>
         {/* Toggle ver todos */}
-        {(post._comentarios_count + localComsTail.length) > 2 && !comentariosExpanded && (
+        {comentariosCount > 2 && !comentariosExpanded && (
           <TouchableOpacity
             onPress={() => setComentariosExpanded(true)}
             style={styles.verTodosBtn}
           >
             <Text style={styles.verTodosTxt}>
-              ver los {post._comentarios_count + localComsTail.length} comentarios
+              ver los {comentariosCount} comentarios
             </Text>
           </TouchableOpacity>
         )}
