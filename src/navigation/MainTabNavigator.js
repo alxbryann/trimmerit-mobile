@@ -367,7 +367,11 @@ export default function MainTabNavigator({ navigation }) {
         .maybeSingle();
       if (cancelled || mySeq !== seq) return;
 
-      if (profile?.role === 'admin_barberia' || profile?.role === 'barbero') {
+      if (
+        profile?.role === 'admin_barberia' ||
+        profile?.role === 'barbero' ||
+        profile?.role === 'barbero_independiente'
+      ) {
         const slug = await ensureAdminBarbero(session.user.id);
         if (cancelled || mySeq !== seq) return;
         if (!cancelled && mySeq === seq) {
@@ -375,7 +379,9 @@ export default function MainTabNavigator({ navigation }) {
           setBarberSlug(null);
           setEmpleadoSlug(null);
           setAdminBarberSlug(slug);
-          setRole('admin_barberia');
+          const ownerTabRole =
+            profile?.role === 'barbero_independiente' ? 'barbero_independiente' : 'admin_barberia';
+          setRole(ownerTabRole);
           setReady(true);
         }
         return;
@@ -537,7 +543,7 @@ export default function MainTabNavigator({ navigation }) {
     <>
       {isBarber && barberSlug ? (
         <BarberTabs bottomPad={bottomPad} slug={barberSlug} colors={colors} mode={mode} />
-      ) : role === 'admin_barberia' ? (
+      ) : role === 'admin_barberia' || role === 'barbero_independiente' ? (
         <AdminBarberTabs bottomPad={bottomPad} slug={adminBarberSlug} colors={colors} mode={mode} />
       ) : role === 'barbero_empleado' ? (
         <EmpleadoTabs bottomPad={bottomPad} slug={empleadoSlug} colors={colors} mode={mode} />

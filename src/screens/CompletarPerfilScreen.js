@@ -19,12 +19,20 @@ import { RESET_MAIN_AGENDA } from '../navigation/resetMainTabs';
 const ROLES = [
   { id: 'cliente', title: 'SOY CLIENTE', sub: 'Reservar citas' },
   { id: 'admin_barberia', title: 'DUEÑO TRIMMERIT', sub: 'Crea tu local' },
+  { id: 'barbero_independiente', title: 'INDEPENDIENTE', sub: 'Solo tú, sin equipo' },
   { id: 'barbero_empleado', title: 'COLABORADOR', sub: 'Únete con código' },
 ];
 
 function normalizeIntentRole(r) {
   if (r === 'barbero') return 'admin_barberia';
-  if (r === 'cliente' || r === 'admin_barberia' || r === 'barbero_empleado') return r;
+  if (
+    r === 'cliente' ||
+    r === 'admin_barberia' ||
+    r === 'barbero_independiente' ||
+    r === 'barbero_empleado'
+  ) {
+    return r;
+  }
   return null;
 }
 
@@ -203,7 +211,11 @@ export default function CompletarPerfilScreen({ navigation, route }) {
         setError('Ingresa tu número de teléfono.');
         return;
       }
-    } else if (role === 'admin_barberia' || role === 'barbero_empleado') {
+    } else if (
+      role === 'admin_barberia' ||
+      role === 'barbero_independiente' ||
+      role === 'barbero_empleado'
+    ) {
       if (!nameBarber) {
         setError('Ingresa tu nombre.');
         return;
@@ -239,7 +251,7 @@ export default function CompletarPerfilScreen({ navigation, route }) {
       setLoading(false);
       return;
     }
-    if (role === 'admin_barberia') {
+    if (role === 'admin_barberia' || role === 'barbero_independiente') {
       navigation.reset({ index: 0, routes: [{ name: 'CrearBarberia' }] });
     } else if (role === 'barbero_empleado') {
       navigation.reset({ index: 0, routes: [{ name: 'UnirseBarberia' }] });

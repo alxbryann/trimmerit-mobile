@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import {
   View,
@@ -19,7 +19,14 @@ import { fonts, radii, shadows } from '../theme';
 import { useColors } from '../theme/ThemeContext';
 import StatsButtons from '../components/stats/StatsButtons';
 
-const TABS = ['Mi Panel', 'Colaboradores', 'Ajustes'];
+const TAB_PANEL = 'panel';
+const TAB_TEAM = 'team';
+const TAB_SETTINGS = 'settings';
+const ALL_ADMIN_TABS = [
+  { id: TAB_PANEL, label: 'Mi Panel' },
+  { id: TAB_TEAM, label: 'Colaboradores' },
+  { id: TAB_SETTINGS, label: 'Ajustes' },
+];
 const CODE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
 const SERVICIOS_OPCIONES = [
@@ -298,7 +305,8 @@ export default function AdminBarberiaScreen({ navigation }) {
   const [loading, setLoading] = useState(true);
   const [barberia, setBarberia] = useState(null);
   const [barberos, setBarberos] = useState([]);
-  const [activeTab, setActiveTab] = useState(0);
+  const [profileRole, setProfileRole] = useState(null);
+  const [activeTabId, setActiveTabId] = useState(TAB_PANEL);
   const [code, setCode] = useState(null);
   const [codeExpiry, setCodeExpiry] = useState(null);
   const [copied, setCopied] = useState(false);
@@ -312,7 +320,21 @@ export default function AdminBarberiaScreen({ navigation }) {
   const [serviciosEspeciales, setServiciosEspeciales] = useState([]);
   const [serviciosLoading, setServiciosLoading] = useState(false);
 
+  const canManageTeam = profileRole !== 'barbero_independiente';
+  const visibleTabs = useMemo(() => {
+    if (profileRole === 'barbero_independiente') {
+      return ALL_ADMIN_TABS.filter((t) => t.id !== TAB_TEAM);
+    }
+    return ALL_ADMIN_TABS;
+  }, [profileRole]);
+
   const firstLocalFocus = useRef(true);
+
+  useEffect(() => {
+    if (!visibleTabs.some((t) => t.id === activeTabId)) {
+      setActiveTabId(TAB_PANEL);
+    }
+  }, [visibleTabs, activeTabId]);
 
   useFocusEffect(
     useCallback(() => {
@@ -323,6 +345,14 @@ export default function AdminBarberiaScreen({ navigation }) {
         }
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) { navigation.replace('Login'); return; }
+
+        const { data: prof } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', user.id)
+          .maybeSingle();
+        if (!cancelled) setProfileRole(prof?.role ?? null);
+
         const { data: b } = await supabase
           .from('barberias')
           .select('*')
@@ -394,7 +424,7 @@ export default function AdminBarberiaScreen({ navigation }) {
   }, [codeExpiry]);
 
   async function handleGenerateCode() {
-    if (!barberia) return;
+    if (!barberia || profileRole === 'barbero_independiente') return;
     setCodeLoading(true);
     const newCode = generateCode();
     const expiry = new Date(Date.now() + CODE_TTL_MS);
@@ -529,55 +559,62 @@ export default function AdminBarberiaScreen({ navigation }) {
         </View>
 
         <View style={styles.tabBar}>
-          {TABS.map((t, i) => (
-            <TouchableOpacity key={t} style={[styles.tabItem, activeTab === i && styles.tabItemActive]} onPress={() => setActiveTab(i)}>
-              <Text style={[styles.tabTxt, activeTab === i && styles.tabTxtActive]}>{t.toUpperCase()}</Text>
+          {visibleTabs.map((t) => (
+            <TouchableOpacity
+              key={t.id}
+              style={[styles.tabItem, activeTabId === t.id && styles.tabItemActive]}
+              onPress={() => setActiveTabId(t.id)}
+            >
+              <Text style={[styles.tabTxt, activeTabId === t.id && styles.tabTxtActive]}>
+                {t.label.toUpperCase()}
+              </Text>
             </TouchableOpacity>
           ))}
         </View>
 
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
 
-          {activeTab === 0 && (
+          {activeTabId === TAB_PANEL && (
             <>
-              {/* Invite code card */}
-              <View style={[styles.inviteCard, codeActive && styles.inviteCardActive]}>
-                <Text style={styles.inviteLabel}>CÓDIGO DE INVITACIÓN</Text>
+              {canManageTeam ? (
+                <View style={[styles.inviteCard, codeActive && styles.inviteCardActive]}>
+                  <Text style={styles.inviteLabel}>CÓDIGO DE INVITACIÓN</Text>
 
-                {codeActive ? (
-                  <>
-                    <Text style={styles.codeDisplay}>{code}</Text>
-                    <View style={styles.timerRow}>
-                      <View style={[styles.timerBar, { width: `${(secondsLeft / 300) * 100}%` }]} />
-                    </View>
-                    <Text style={styles.timerTxt}>Expira en {mins}:{secs}</Text>
-                    <View style={styles.inviteBtns}>
-                      <TouchableOpacity style={styles.outlineBtn} onPress={handleCopy} activeOpacity={0.8}>
-                        <Text style={styles.outlineTxt}>{copied ? '✓ COPIADO' : 'COPIAR'}</Text>
+                  {codeActive ? (
+                    <>
+                      <Text style={styles.codeDisplay}>{code}</Text>
+                      <View style={styles.timerRow}>
+                        <View style={[styles.timerBar, { width: `${(secondsLeft / 300) * 100}%` }]} />
+                      </View>
+                      <Text style={styles.timerTxt}>Expira en {mins}:{secs}</Text>
+                      <View style={styles.inviteBtns}>
+                        <TouchableOpacity style={styles.outlineBtn} onPress={handleCopy} activeOpacity={0.8}>
+                          <Text style={styles.outlineTxt}>{copied ? '✓ COPIADO' : 'COPIAR'}</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.outlineBtn} onPress={handleShare} activeOpacity={0.8}>
+                          <Text style={styles.outlineTxt}>COMPARTIR</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </>
+                  ) : (
+                    <>
+                      <Text style={styles.noCodeTxt}>Genera un código para que{'\n'}tus colaboradores puedan unirse.</Text>
+                      <TouchableOpacity
+                        style={[styles.generateBtn, codeLoading && { opacity: 0.55 }]}
+                        onPress={handleGenerateCode}
+                        disabled={codeLoading}
+                        activeOpacity={0.88}
+                      >
+                        {codeLoading
+                          ? <ActivityIndicator color={colors.black} />
+                          : <Text style={styles.generateTxt}>GENERAR CÓDIGO</Text>
+                        }
                       </TouchableOpacity>
-                      <TouchableOpacity style={styles.outlineBtn} onPress={handleShare} activeOpacity={0.8}>
-                        <Text style={styles.outlineTxt}>COMPARTIR</Text>
-                      </TouchableOpacity>
-                    </View>
-                  </>
-                ) : (
-                  <>
-                    <Text style={styles.noCodeTxt}>Genera un código para que{'\n'}tus colaboradores puedan unirse.</Text>
-                    <TouchableOpacity
-                      style={[styles.generateBtn, codeLoading && { opacity: 0.55 }]}
-                      onPress={handleGenerateCode}
-                      disabled={codeLoading}
-                      activeOpacity={0.88}
-                    >
-                      {codeLoading
-                        ? <ActivityIndicator color={colors.black} />
-                        : <Text style={styles.generateTxt}>GENERAR CÓDIGO</Text>
-                      }
-                    </TouchableOpacity>
-                  </>
-                )}
-                <Text style={styles.inviteHint}>El código dura 5 minutos y es de un solo uso por colaborador</Text>
-              </View>
+                    </>
+                  )}
+                  <Text style={styles.inviteHint}>El código dura 5 minutos y es de un solo uso por colaborador</Text>
+                </View>
+              ) : null}
 
               {/* Stats row */}
               <View style={styles.statsRow}>
@@ -597,9 +634,11 @@ export default function AdminBarberiaScreen({ navigation }) {
             </>
           )}
 
-          {activeTab === 1 && <BarberosSection styles={styles} barberos={barberos} onEliminar={handleEliminarBarbero} />}
+          {activeTabId === TAB_TEAM && (
+            <BarberosSection styles={styles} barberos={barberos} onEliminar={handleEliminarBarbero} />
+          )}
 
-          {activeTab === 2 && (
+          {activeTabId === TAB_SETTINGS && (
             <View>
               <View style={styles.sectionHeader}>
                 <Text style={styles.sectionNum}>⏰</Text>

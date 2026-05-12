@@ -388,7 +388,7 @@ export default function LogrosScreen() {
     const userRole = profile?.role ?? 'cliente';
     setRole(userRole);
 
-    const isBarber = ['barbero', 'admin_barberia', 'barbero_empleado'].includes(userRole);
+    const isBarber = ['barbero', 'admin_barberia', 'barbero_empleado', 'barbero_independiente'].includes(userRole);
 
     if (isBarber) {
       await loadBarberData(uid);
@@ -484,7 +484,7 @@ export default function LogrosScreen() {
     );
   }
 
-  const isBarber = ['barbero', 'admin_barberia', 'barbero_empleado'].includes(role);
+  const isBarber = ['barbero', 'admin_barberia', 'barbero_empleado', 'barbero_independiente'].includes(role);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>

@@ -490,7 +490,9 @@ export default function PostCard({
           <View key={com.id} style={styles.comentario}>
             <Text style={styles.comAutor}>
               {com.profiles?.nombre ?? 'Usuario'}
-              {com.profiles?.role === 'barbero' ? (
+              {['barbero', 'admin_barberia', 'barbero_empleado', 'barbero_independiente'].includes(
+                com.profiles?.role
+              ) ? (
                 <Text style={styles.comBadge}> · barbero</Text>
               ) : null}
             </Text>

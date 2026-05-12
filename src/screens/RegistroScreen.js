@@ -23,9 +23,10 @@ import {
 } from '../navigation/postAuthRouting';
 
 const ROLES = [
-  { id: 'cliente',          icon: '◉', title: 'SOY CLIENTE',         sub: 'Quiero reservar cortes' },
-  { id: 'admin_barberia',   icon: '⊕', title: 'DUEÑO TRIMMERIT',     sub: 'Gestiono mi local y equipo' },
-  { id: 'barbero_empleado', icon: '⊙', title: 'COLABORADOR',         sub: 'Me uno a un local con código' },
+  { id: 'cliente',                 icon: '◉', title: 'SOY CLIENTE',            sub: 'Quiero reservar cortes' },
+  { id: 'admin_barberia',          icon: '⊕', title: 'DUEÑO TRIMMERIT',        sub: 'Gestiono mi local y equipo' },
+  { id: 'barbero_independiente',   icon: '◇', title: 'BARBERO INDEPENDIENTE',  sub: 'Solo yo, sin colaboradores' },
+  { id: 'barbero_empleado',        icon: '⊙', title: 'COLABORADOR',            sub: 'Me uno a un local con código' },
 ];
 
 export default function RegistroScreen({ navigation, route }) {
@@ -265,7 +266,7 @@ export default function RegistroScreen({ navigation, route }) {
       const userId = signUpData.user.id;
       const { error: profileErr } = await supabase.from('profiles').upsert({ id: userId, role, nombre, telefono });
       if (profileErr) { setError(profileErr.message); setLoading(false); return; }
-      if (role === 'admin_barberia') {
+      if (role === 'admin_barberia' || role === 'barbero_independiente') {
         navigation.reset({ index: 0, routes: [{ name: 'CrearBarberia' }] });
       } else if (role === 'barbero_empleado') {
         navigation.reset({ index: 0, routes: [{ name: 'UnirseBarberia' }] });
@@ -507,8 +508,9 @@ function StepForm({
   loading, error,
   onSubmit,
 }) {
-  const titleLine = currentRole.id === 'cliente'        ? 'TUS\nDATOS'
-                  : currentRole.id === 'admin_barberia' ? 'TU CUENTA\nDE DUEÑO'
+  const titleLine = currentRole.id === 'cliente'                 ? 'TUS\nDATOS'
+                  : currentRole.id === 'admin_barberia'          ? 'TU CUENTA\nDE DUEÑO'
+                  : currentRole.id === 'barbero_independiente'   ? 'TU CUENTA\nINDEPENDIENTE'
                   : 'TU CUENTA\nCOLABORADOR';
 
   return (

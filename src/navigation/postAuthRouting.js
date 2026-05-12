@@ -38,7 +38,7 @@ export async function resolvePostAuthDestination(session) {
   }
 
   const role = profile.role;
-  if (role === 'admin_barberia') {
+  if (role === 'admin_barberia' || role === 'barbero_independiente') {
     const { data: barberiaRow } = await supabase
       .from('barberias')
       .select('id')
