@@ -1,4 +1,5 @@
-import { View, Text, StyleSheet } from 'react-native';
+import { useState } from 'react';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { fonts } from '../../theme';
 import { useColors } from '../../theme/ThemeContext';
 
@@ -8,6 +9,7 @@ import { useColors } from '../../theme/ThemeContext';
  */
 export default function BarChart({ data, height = 160 }) {
   const colors = useColors();
+  const [activeIndex, setActiveIndex] = useState(null);
   const max = Math.max(
     1,
     ...data.flatMap((d) => [d.ingresos, d.gastos]),
@@ -36,8 +38,9 @@ export default function BarChart({ data, height = 160 }) {
       height,
       borderBottomWidth: 1,
       borderBottomColor: colors.cardBorder,
+      overflow: 'visible',
     },
-    group: { alignItems: 'center', flex: 1, height: '100%', justifyContent: 'flex-end' },
+    group: { alignItems: 'center', flex: 1, height: '100%', justifyContent: 'flex-end', overflow: 'visible' },
     pair: { flexDirection: 'row', alignItems: 'flex-end', gap: 4, height: '100%' },
     bar: {
       width: 14,
@@ -57,6 +60,23 @@ export default function BarChart({ data, height = 160 }) {
       textAlign: 'center',
       flex: 1,
     },
+    tooltip: {
+      position: 'absolute',
+      top: -72,
+      left: '50%',
+      transform: [{ translateX: -52 }],
+      width: 104,
+      backgroundColor: colors.ink ?? '#0a0a0a',
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      padding: 8,
+      zIndex: 99,
+    },
+    tooltipRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 2 },
+    tooltipLabel: { fontFamily: fonts.mono, fontSize: 9, color: colors.grayMid },
+    tooltipVal: { fontFamily: fonts.bodyBold, fontSize: 9 },
+    tooltipIng: { color: colors.acid },
+    tooltipGas: { color: colors.terracota ?? colors.danger },
     legend: {
       flexDirection: 'row',
       gap: 14,
@@ -96,13 +116,33 @@ export default function BarChart({ data, height = 160 }) {
             {data.map((d, i) => {
               const ingH = (d.ingresos / max) * (height - 4);
               const gasH = (d.gastos / max) * (height - 4);
+              const isActive = activeIndex === i;
               return (
-                <View key={i} style={styles.group}>
+                <Pressable
+                  key={i}
+                  style={styles.group}
+                  onHoverIn={() => setActiveIndex(i)}
+                  onHoverOut={() => setActiveIndex(null)}
+                  onPressIn={() => setActiveIndex(i)}
+                  onPressOut={() => setActiveIndex(null)}
+                >
+                  {isActive && (
+                    <View style={styles.tooltip}>
+                      <View style={styles.tooltipRow}>
+                        <Text style={styles.tooltipLabel}>Ingresos</Text>
+                        <Text style={[styles.tooltipVal, styles.tooltipIng]}>{formatShort(d.ingresos)}</Text>
+                      </View>
+                      <View style={styles.tooltipRow}>
+                        <Text style={styles.tooltipLabel}>Gastos</Text>
+                        <Text style={[styles.tooltipVal, styles.tooltipGas]}>{formatShort(d.gastos)}</Text>
+                      </View>
+                    </View>
+                  )}
                   <View style={styles.pair}>
                     <View style={[styles.bar, styles.barIngresos, { height: Math.max(2, ingH) }]} />
                     <View style={[styles.bar, styles.barGastos, { height: Math.max(2, gasH) }]} />
                   </View>
-                </View>
+                </Pressable>
               );
             })}
           </View>

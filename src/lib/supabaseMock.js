@@ -32,6 +32,13 @@ const MOCK_USERS = {
     password: 'test123',
     user_metadata: { nombre: 'Luisa Mendoza', role: 'barbero' },
   },
+  // Admin de El Clásico (misma cuenta que Carlos — dueño de la barbería)
+  'admin@test.com': {
+    id: MOCK_IDS.userCarlos,
+    email: 'admin@test.com',
+    password: 'test123',
+    user_metadata: { nombre: 'Carlos Méndez', role: 'admin' },
+  },
 };
 
 const mockState = {
