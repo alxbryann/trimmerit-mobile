@@ -14,8 +14,14 @@ export const MOCK_IDS = {
   userCarlos:    'mock-user-carlos-001',
   userLuisa:     'mock-user-luisa-001',
   userPedro:     'mock-user-pedro-001',
+  // Nuevos empleados de El Clásico
+  userMiguel:    'mock-user-miguel-001',
+  userElena:     'mock-user-elena-001',
+  userSofía:     'mock-user-sofia-001',
   barberoCarlos: 'mock-user-carlos-001',
   barberoLuisa:  'mock-user-luisa-001',
+  barberoMiguel: 'mock-user-miguel-001',
+  barberoElena:  'mock-user-elena-001',
   // Barberías
   barberiaElClasico:    'mock-barberia-001',
   barberiaStudioLuisa:  'mock-barberia-002',
@@ -74,6 +80,24 @@ export function buildInitialDB() {
         telefono: '3007778888',
         role: 'cliente',
       },
+      {
+        id: MOCK_IDS.userMiguel,
+        nombre: 'Miguel Santos',
+        telefono: '3112223333',
+        role: 'barbero',
+      },
+      {
+        id: MOCK_IDS.userElena,
+        nombre: 'Elena Rojas',
+        telefono: '3124445555',
+        role: 'barbero',
+      },
+      {
+        id: MOCK_IDS.userSofía,
+        nombre: 'Sofía Parra',
+        telefono: '3001112222',
+        role: 'cliente',
+      },
     ],
 
     // ─── Barberías ────────────────────────────────────────────────────────────
@@ -89,6 +113,7 @@ export function buildInitialDB() {
         lng: -74.0523,
         hora_apertura: '09:00',
         hora_cierre: '20:00',
+        comision_default_pct: 50,
         servicios_especiales: ['mascarilla', 'lavado'],
         // embebido para Catálogo
         barberos: [{ id: MOCK_IDS.barberoCarlos }],
@@ -130,14 +155,15 @@ export function buildInitialDB() {
         barberia_id: MOCK_IDS.barberiaElClasico,
         bio: 'Especialista en cortes clásicos y modernos. Más de 8 años de experiencia.',
         especialidades: ['fade', 'undercut', 'barba'],
+        especialidad: 'Master Barber',
+        comision_pct: 55,
         video_url: null,
         nombre_barberia: 'El Clásico',
         rating: 4.8,
         total_cortes: 312,
         color_primario: '#CDFF00',
         color_secundario: '#080808',
-        // relación embebida (usado por Agenda cliente, catálogo)
-        profiles: { nombre: 'Carlos Méndez' },
+        profiles: { nombre: 'Carlos Méndez', avatar_url: null },
         barberias: { id: MOCK_IDS.barberiaElClasico, nombre: 'El Clásico', ciudad: 'Bogotá', slug: 'carlos-barbero' },
       },
       {
@@ -152,8 +178,45 @@ export function buildInitialDB() {
         total_cortes: 187,
         color_primario: '#FF6B6B',
         color_secundario: '#0f0f0f',
-        profiles: { nombre: 'Luisa Mendoza' },
+        especialidad: 'Colorista Senior',
+        comision_pct: null,
+        profiles: { nombre: 'Luisa Mendoza', avatar_url: null },
         barberias: { id: MOCK_IDS.barberiaStudioLuisa, nombre: 'Studio Luisa', ciudad: 'Bogotá', slug: 'luisa-mendoza' },
+      },
+      // ── Equipo de El Clásico ────────────────────────────────────────────────
+      {
+        id: MOCK_IDS.barberoMiguel,
+        slug: 'miguel-santos',
+        barberia_id: MOCK_IDS.barberiaElClasico,
+        bio: 'Barbero con 5 años de experiencia en cortes urbanos y fade.',
+        especialidades: ['fade', 'diseño'],
+        especialidad: 'Barbero',
+        comision_pct: null,
+        video_url: null,
+        nombre_barberia: 'El Clásico',
+        rating: 4.5,
+        total_cortes: 198,
+        color_primario: '#4A90E2',
+        color_secundario: '#080808',
+        profiles: { nombre: 'Miguel Santos', avatar_url: null },
+        barberias: { id: MOCK_IDS.barberiaElClasico, nombre: 'El Clásico', ciudad: 'Bogotá', slug: 'carlos-barbero' },
+      },
+      {
+        id: MOCK_IDS.barberoElena,
+        slug: 'elena-rojas',
+        barberia_id: MOCK_IDS.barberiaElClasico,
+        bio: 'Especialista en coloración y diseños creativos.',
+        especialidades: ['coloración', 'diseño', 'trenzas'],
+        especialidad: 'Colorista Senior',
+        comision_pct: 45,
+        video_url: null,
+        nombre_barberia: 'El Clásico',
+        rating: 4.7,
+        total_cortes: 245,
+        color_primario: '#E91E63',
+        color_secundario: '#080808',
+        profiles: { nombre: 'Elena Rojas', avatar_url: null },
+        barberias: { id: MOCK_IDS.barberiaElClasico, nombre: 'El Clásico', ciudad: 'Bogotá', slug: 'carlos-barbero' },
       },
     ],
 
@@ -225,6 +288,35 @@ export function buildInitialDB() {
       { id: 'mock-gas-005', barberia_id: MOCK_IDS.barberiaElClasico, concepto: 'Insumos y Productos',    categoria: 'variable', monto: 180000,  fecha: today(-10) },
       { id: 'mock-gas-006', barberia_id: MOCK_IDS.barberiaElClasico, concepto: 'Marketing Digital',      categoria: 'variable', monto: 350000,  fecha: today(-18) },
       { id: 'mock-gas-007', barberia_id: MOCK_IDS.barberiaElClasico, concepto: 'Insumos y Productos',    categoria: 'variable', monto: 220000,  fecha: today(-25) },
+    ],
+
+    // ─── Equipo: reservas de Miguel (mes actual) ──────────────────────────────
+    // (se mezclan en la misma tabla reservas — filtradas por barbero_id)
+
+    // ─── Equipo: comisiones pagadas ───────────────────────────────────────────
+    comisiones_pagos: [
+      // Carlos ya cobró parte de su comisión del mes pasado
+      {
+        id: 'mock-cp-001',
+        barberia_id: MOCK_IDS.barberiaElClasico,
+        barbero_id:  MOCK_IDS.barberoCarlos,
+        monto:       150000,
+        periodo_inicio: today(-30),
+        periodo_fin:    today(-1),
+        pagado_en:   new Date(Date.now() - 5 * 86400000).toISOString(),
+        created_at:  new Date(Date.now() - 5 * 86400000).toISOString(),
+      },
+      // Elena cobró su comisión completa del mes pasado
+      {
+        id: 'mock-cp-002',
+        barberia_id: MOCK_IDS.barberiaElClasico,
+        barbero_id:  MOCK_IDS.barberoElena,
+        monto:       120000,
+        periodo_inicio: today(-30),
+        periodo_fin:    today(-1),
+        pagado_en:   new Date(Date.now() - 3 * 86400000).toISOString(),
+        created_at:  new Date(Date.now() - 3 * 86400000).toISOString(),
+      },
     ],
 
     // ─── Stats: configuración de comisiones ───────────────────────────────────
@@ -319,6 +411,34 @@ export function buildInitialDB() {
       { id: 'mock-res-s1d', cliente_id: MOCK_IDS.userJuan,  barbero_id: MOCK_IDS.barberoCarlos, servicio_id: MOCK_IDS.svc3, fecha: today(-4), hora: '10:00', precio: 35000, estado: 'completada', barberos: { nombre_barberia: 'El Clásico', slug: 'carlos-barbero', profiles: { nombre: 'Carlos Méndez' } } },
       { id: 'mock-res-s1e', cliente_id: MOCK_IDS.userPedro, barbero_id: MOCK_IDS.barberoCarlos, servicio_id: MOCK_IDS.svc1, fecha: today(-2), hora: '15:30', precio: 25000, estado: 'completada', barberos: { nombre_barberia: 'El Clásico', slug: 'carlos-barbero', profiles: { nombre: 'Carlos Méndez' } } },
       { id: 'mock-res-s1f', cliente_id: MOCK_IDS.userJuan,  barbero_id: MOCK_IDS.barberoCarlos, servicio_id: MOCK_IDS.svc3, fecha: today(-1), hora: '12:00', precio: 35000, estado: 'completada', barberos: { nombre_barberia: 'El Clásico', slug: 'carlos-barbero', profiles: { nombre: 'Carlos Méndez' } } },
+
+      // ── Reservas de Miguel Santos (mes actual) ────────────────────────────
+      { id: 'mock-res-m01', cliente_id: MOCK_IDS.userJuan,   barbero_id: MOCK_IDS.barberoMiguel, servicio_id: MOCK_IDS.svc1, fecha: today(-28), hora: '09:00', precio: 25000, estado: 'completada', barberos: { nombre_barberia: 'El Clásico', slug: 'carlos-barbero', profiles: { nombre: 'Miguel Santos' } } },
+      { id: 'mock-res-m02', cliente_id: MOCK_IDS.userPedro,  barbero_id: MOCK_IDS.barberoMiguel, servicio_id: MOCK_IDS.svc3, fecha: today(-27), hora: '11:00', precio: 35000, estado: 'completada', barberos: { nombre_barberia: 'El Clásico', slug: 'carlos-barbero', profiles: { nombre: 'Miguel Santos' } } },
+      { id: 'mock-res-m03', cliente_id: MOCK_IDS.userSofía,  barbero_id: MOCK_IDS.barberoMiguel, servicio_id: MOCK_IDS.svc1, fecha: today(-24), hora: '14:00', precio: 25000, estado: 'completada', barberos: { nombre_barberia: 'El Clásico', slug: 'carlos-barbero', profiles: { nombre: 'Miguel Santos' } } },
+      { id: 'mock-res-m04', cliente_id: MOCK_IDS.userJuan,   barbero_id: MOCK_IDS.barberoMiguel, servicio_id: MOCK_IDS.svc2, fecha: today(-21), hora: '09:30', precio: 15000, estado: 'completada', barberos: { nombre_barberia: 'El Clásico', slug: 'carlos-barbero', profiles: { nombre: 'Miguel Santos' } } },
+      { id: 'mock-res-m05', cliente_id: MOCK_IDS.userPedro,  barbero_id: MOCK_IDS.barberoMiguel, servicio_id: MOCK_IDS.svc1, fecha: today(-19), hora: '11:30', precio: 25000, estado: 'completada', barberos: { nombre_barberia: 'El Clásico', slug: 'carlos-barbero', profiles: { nombre: 'Miguel Santos' } } },
+      { id: 'mock-res-m06', cliente_id: MOCK_IDS.userSofía,  barbero_id: MOCK_IDS.barberoMiguel, servicio_id: MOCK_IDS.svc3, fecha: today(-17), hora: '15:00', precio: 35000, estado: 'completada', barberos: { nombre_barberia: 'El Clásico', slug: 'carlos-barbero', profiles: { nombre: 'Miguel Santos' } } },
+      { id: 'mock-res-m07', cliente_id: MOCK_IDS.userJuan,   barbero_id: MOCK_IDS.barberoMiguel, servicio_id: MOCK_IDS.svc1, fecha: today(-14), hora: '10:00', precio: 25000, estado: 'completada', barberos: { nombre_barberia: 'El Clásico', slug: 'carlos-barbero', profiles: { nombre: 'Miguel Santos' } } },
+      { id: 'mock-res-m08', cliente_id: MOCK_IDS.userPedro,  barbero_id: MOCK_IDS.barberoMiguel, servicio_id: MOCK_IDS.svc2, fecha: today(-12), hora: '13:00', precio: 15000, estado: 'completada', barberos: { nombre_barberia: 'El Clásico', slug: 'carlos-barbero', profiles: { nombre: 'Miguel Santos' } } },
+      { id: 'mock-res-m09', cliente_id: MOCK_IDS.userSofía,  barbero_id: MOCK_IDS.barberoMiguel, servicio_id: MOCK_IDS.svc1, fecha: today(-9),  hora: '09:00', precio: 25000, estado: 'completada', barberos: { nombre_barberia: 'El Clásico', slug: 'carlos-barbero', profiles: { nombre: 'Miguel Santos' } } },
+      { id: 'mock-res-m10', cliente_id: MOCK_IDS.userJuan,   barbero_id: MOCK_IDS.barberoMiguel, servicio_id: MOCK_IDS.svc3, fecha: today(-7),  hora: '14:30', precio: 35000, estado: 'completada', barberos: { nombre_barberia: 'El Clásico', slug: 'carlos-barbero', profiles: { nombre: 'Miguel Santos' } } },
+      { id: 'mock-res-m11', cliente_id: MOCK_IDS.userPedro,  barbero_id: MOCK_IDS.barberoMiguel, servicio_id: MOCK_IDS.svc1, fecha: today(-5),  hora: '11:00', precio: 25000, estado: 'completada', barberos: { nombre_barberia: 'El Clásico', slug: 'carlos-barbero', profiles: { nombre: 'Miguel Santos' } } },
+      { id: 'mock-res-m12', cliente_id: MOCK_IDS.userSofía,  barbero_id: MOCK_IDS.barberoMiguel, servicio_id: MOCK_IDS.svc2, fecha: today(-3),  hora: '10:30', precio: 15000, estado: 'completada', barberos: { nombre_barberia: 'El Clásico', slug: 'carlos-barbero', profiles: { nombre: 'Miguel Santos' } } },
+
+      // ── Reservas de Elena Rojas (mes actual) ──────────────────────────────
+      { id: 'mock-res-e01', cliente_id: MOCK_IDS.userSofía,  barbero_id: MOCK_IDS.barberoElena, servicio_id: MOCK_IDS.svc3, fecha: today(-27), hora: '10:00', precio: 35000, estado: 'completada', barberos: { nombre_barberia: 'El Clásico', slug: 'carlos-barbero', profiles: { nombre: 'Elena Rojas' } } },
+      { id: 'mock-res-e02', cliente_id: MOCK_IDS.userJuan,   barbero_id: MOCK_IDS.barberoElena, servicio_id: MOCK_IDS.svc1, fecha: today(-25), hora: '12:00', precio: 25000, estado: 'completada', barberos: { nombre_barberia: 'El Clásico', slug: 'carlos-barbero', profiles: { nombre: 'Elena Rojas' } } },
+      { id: 'mock-res-e03', cliente_id: MOCK_IDS.userPedro,  barbero_id: MOCK_IDS.barberoElena, servicio_id: MOCK_IDS.svc3, fecha: today(-23), hora: '15:00', precio: 35000, estado: 'completada', barberos: { nombre_barberia: 'El Clásico', slug: 'carlos-barbero', profiles: { nombre: 'Elena Rojas' } } },
+      { id: 'mock-res-e04', cliente_id: MOCK_IDS.userSofía,  barbero_id: MOCK_IDS.barberoElena, servicio_id: MOCK_IDS.svc2, fecha: today(-20), hora: '09:00', precio: 15000, estado: 'completada', barberos: { nombre_barberia: 'El Clásico', slug: 'carlos-barbero', profiles: { nombre: 'Elena Rojas' } } },
+      { id: 'mock-res-e05', cliente_id: MOCK_IDS.userJuan,   barbero_id: MOCK_IDS.barberoElena, servicio_id: MOCK_IDS.svc3, fecha: today(-18), hora: '11:00', precio: 35000, estado: 'completada', barberos: { nombre_barberia: 'El Clásico', slug: 'carlos-barbero', profiles: { nombre: 'Elena Rojas' } } },
+      { id: 'mock-res-e06', cliente_id: MOCK_IDS.userPedro,  barbero_id: MOCK_IDS.barberoElena, servicio_id: MOCK_IDS.svc1, fecha: today(-15), hora: '14:00', precio: 25000, estado: 'completada', barberos: { nombre_barberia: 'El Clásico', slug: 'carlos-barbero', profiles: { nombre: 'Elena Rojas' } } },
+      { id: 'mock-res-e07', cliente_id: MOCK_IDS.userSofía,  barbero_id: MOCK_IDS.barberoElena, servicio_id: MOCK_IDS.svc3, fecha: today(-13), hora: '10:30', precio: 35000, estado: 'completada', barberos: { nombre_barberia: 'El Clásico', slug: 'carlos-barbero', profiles: { nombre: 'Elena Rojas' } } },
+      { id: 'mock-res-e08', cliente_id: MOCK_IDS.userJuan,   barbero_id: MOCK_IDS.barberoElena, servicio_id: MOCK_IDS.svc2, fecha: today(-11), hora: '13:00', precio: 15000, estado: 'completada', barberos: { nombre_barberia: 'El Clásico', slug: 'carlos-barbero', profiles: { nombre: 'Elena Rojas' } } },
+      { id: 'mock-res-e09', cliente_id: MOCK_IDS.userPedro,  barbero_id: MOCK_IDS.barberoElena, servicio_id: MOCK_IDS.svc3, fecha: today(-8),  hora: '09:30', precio: 35000, estado: 'completada', barberos: { nombre_barberia: 'El Clásico', slug: 'carlos-barbero', profiles: { nombre: 'Elena Rojas' } } },
+      { id: 'mock-res-e10', cliente_id: MOCK_IDS.userSofía,  barbero_id: MOCK_IDS.barberoElena, servicio_id: MOCK_IDS.svc1, fecha: today(-6),  hora: '11:30', precio: 25000, estado: 'completada', barberos: { nombre_barberia: 'El Clásico', slug: 'carlos-barbero', profiles: { nombre: 'Elena Rojas' } } },
+      { id: 'mock-res-e11', cliente_id: MOCK_IDS.userJuan,   barbero_id: MOCK_IDS.barberoElena, servicio_id: MOCK_IDS.svc3, fecha: today(-4),  hora: '15:00', precio: 35000, estado: 'completada', barberos: { nombre_barberia: 'El Clásico', slug: 'carlos-barbero', profiles: { nombre: 'Elena Rojas' } } },
+      { id: 'mock-res-e12', cliente_id: MOCK_IDS.userPedro,  barbero_id: MOCK_IDS.barberoElena, servicio_id: MOCK_IDS.svc2, fecha: today(-2),  hora: '12:00', precio: 15000, estado: 'completada', barberos: { nombre_barberia: 'El Clásico', slug: 'carlos-barbero', profiles: { nombre: 'Elena Rojas' } } },
 
       {
         // Cita de Juan para hoy — Carlos ya propuso aplazamiento (sol2), estado consistente
